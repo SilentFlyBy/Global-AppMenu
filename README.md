@@ -17,14 +17,16 @@ Description
 --------------
 This applet integrates the Ubuntu Application Menu (Global Menu) support into the Cinnamon Desktop.
 
-It's used the same idea of the Gnome Shell extension made by rgcjonas: https://github.com/rgcjonas/gnome-shell-extension-appindicator
+It's used the same idea of the Gnome Shell extension made by rgcjonas:
+
+https://github.com/rgcjonas/gnome-shell-extension-appindicator
 
 Known issues (Try at your own risk):
 --------------
 * The applet could takes ages to load and can freeze Cinnamon forever. This is probably caused by the insane amount of embedded PNG icons. 
 * There are some unsupported application that can not be integrate into the applet, like Firefox, as is dropping the menu after some time.
 
-![](http://stackoverflow.com/questions/30206099/what-is-the-current-behavior-of-firefox-for-the-ubuntu-menu-bar) 
+[](http://stackoverflow.com/questions/30206099/what-is-the-current-behavior-of-firefox-for-the-ubuntu-menu-bar) 
 
 Change log
 --------------
@@ -52,9 +54,11 @@ In order to successfully resolve the issues you need to provide some data:
 * Bugs which don't provide the necessary information may be closed as "invalid" without prior notice.
 
 To report bugs, request new features and make suggestions, please visit:
+
 https://github.com/lestcape/Global-AppMenu/issues
 
 You can also send us a pull request:
+
 https://github.com/lestcape/Global-AppMenu/pulls
 
 Installation instructions:
@@ -68,25 +72,30 @@ Installation instructions:
 
 unity-gtk-module:
 --------------
-This applet is designed to be used with the standars gtk-modules packages and patches that ubuntu provide to be used on Unity desktop.
+This applet is designed to be used with the standars gtk modules packages (https://launchpad.net/unity-gtk-module) and patches that ubuntu provide to
+be used on Unity desktop.
+
 Thats then will depend of your specific distro and possible you will need to use some equivalent different packages.
+
 - Ubuntu users, be happy, you don't need to do anything if unity is working. :)
 - Mint users, all Ubuntu packages that we needed are availables on mint repositories as well and can be installed.
-- Arch users, you will need to use the rilian-la-te source ![](https://aur.archlinux.org/packages/?SeB=m&K=rilian).
+- Arch users, you will need to use the rilian-la-te source
 
-This applet can only read the standard Dbus menu structure (Gtk/Kde), so we can not resolve or patch directly any problematic
-application that not export the menu, or if is not exported properly. We also can not do anything if you used an alternative
-internally implementation that not export the DBus menu structure for some applications. 
+[](https://aur.archlinux.org/packages/?SeB=m&K=rilian).
+
+This applet can only read the standard Dbus menu structure (Gtk/Kde), so we can not resolve or patch directly any problematic application that not export the menu, or if is not exported properly. We also can not do anything if you used an alternative internally implementation that not export the DBus menu structure for some applications. 
 
 We are happy to include the support to any alternative implementation, if is provided an appropriate Dbus menu structure.
 
 Uninstall instructions:
 --------------
-1. Disable the applet, reset the gsettings values:
-- gsettings reset org.cinnamon.settings-daemon.plugins.xsettings overrides
-- gsettings reset org.cinnamon.settings-daemon.plugins.xsettings enabled-gtk-modules
+1. Disable the applet.
+2. Reset the gsettings values:
 
-2. If you don't use unity desktop, remove also the packages that you install.
+  *  gsettings reset org.cinnamon.settings-daemon.plugins.xsettings overrides
+  * gsettings reset org.cinnamon.settings-daemon.plugins.xsettings enabled-gtk-modules
+
+3. If you don't use unity desktop, remove also the packages that you install.
 Restart your computer.
 
 ==============
