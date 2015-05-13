@@ -26,7 +26,7 @@ Known issues (Try at your own risk):
 * The applet could takes ages to load and can freeze Cinnamon forever. This is probably caused by the insane amount of embedded PNG icons. 
 * There are some unsupported application that can not be integrate into the applet, like Firefox, as is dropping the menu after some time.
 
-[](http://stackoverflow.com/questions/30206099/what-is-the-current-behavior-of-firefox-for-the-ubuntu-menu-bar) 
+http://stackoverflow.com/questions/30206099/what-is-the-current-behavior-of-firefox-for-the-ubuntu-menu-bar
 
 Change log
 --------------
@@ -79,9 +79,7 @@ Thats then will depend of your specific distro and possible you will need to use
 
 - Ubuntu users, be happy, you don't need to do anything if unity is working. :)
 - Mint users, all Ubuntu packages that we needed are availables on mint repositories as well and can be installed.
-- Arch users, you will need to use the rilian-la-te source
-
-https://aur.archlinux.org/packages/?SeB=m&K=rilian.
+- Arch users, you will need to use the rilian-la-te source (https://aur.archlinux.org/packages/?SeB=m&K=rilian).
 
 This applet can only read the standard Dbus menu structure (Gtk/Kde), so we can not resolve or patch directly any problematic application that not export the menu, or if is not exported properly. We also can not do anything if you used an alternative internally implementation that not export the DBus menu structure for some applications. 
 
@@ -92,7 +90,7 @@ Uninstall instructions:
 1. Disable the applet.
 2. Reset the gsettings values:
 
-  *  gsettings reset org.cinnamon.settings-daemon.plugins.xsettings overrides
+  * gsettings reset org.cinnamon.settings-daemon.plugins.xsettings overrides
   * gsettings reset org.cinnamon.settings-daemon.plugins.xsettings enabled-gtk-modules
 
 3. If you don't use unity desktop, remove also the packages that you install.
