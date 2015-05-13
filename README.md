@@ -81,7 +81,7 @@ Thats then will depend of your specific distro and possible you will need to use
 - Mint users, all Ubuntu packages that we needed are availables on mint repositories as well and can be installed.
 - Arch users, you will need to use the rilian-la-te source
 
-[](https://aur.archlinux.org/packages/?SeB=m&K=rilian).
+https://aur.archlinux.org/packages/?SeB=m&K=rilian.
 
 This applet can only read the standard Dbus menu structure (Gtk/Kde), so we can not resolve or patch directly any problematic application that not export the menu, or if is not exported properly. We also can not do anything if you used an alternative internally implementation that not export the DBus menu structure for some applications. 
 
