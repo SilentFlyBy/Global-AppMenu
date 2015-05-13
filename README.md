@@ -1,29 +1,30 @@
 Cinnamon Applet: Global Application Menu Version: v0.0-Beta
 
-Last update: 20 april 2015
+Last update: 13 may 2015
 
 ***
 Special thanks to:
 
-- rgcjonas             (https://github.com/rgcjonas)               Help providing the initial code.
-- Canonical devs       (jpegrande@gmail.com)                       The protocols.
-- Cinnamon devs        (https://github.com/linuxmint/Cinnamon)     Help providing support (specially: https://github.com/mtwebster).
+- rgcjonas             (https://github.com/rgcjonas)               The initial code.
+- Canonical devs       (http://www.canonical.com/)                 The protocols and patches.
+- Cinnamon devs        (https://github.com/linuxmint/Cinnamon)     The support (specially: https://github.com/mtwebster).
+- rilian-la-te         (https://github.com/rilian-la-te)           Understand and fix a lot of things.
 
 --------------
 ![](https://raw.githubusercontent.com/lestcape/Global-AppMenu/master/globalAppMenu%40lestcape/Capture.png)
 
 Description
 --------------
-This extension integrates the Ubuntu AppMenu (Global Menu) support into Cinnamon Desktop.
+This applet integrates the Ubuntu Application Menu (Global Menu) support into the Cinnamon Desktop.
 
-It's based on the Gnome Shell extension made by rgcjonas: https://github.com/rgcjonas/gnome-shell-extension-appindicator
+It's used the same idea of the Gnome Shell extension made by rgcjonas: https://github.com/rgcjonas/gnome-shell-extension-appindicator
 
-Known issues:
+Known issues (Try at your own risk):
 --------------
-* The applet could takes ages to load and can freeze cinnamon forever. This is probably caused by the insane amount of embedded PNG icons. Try at your own risk.
-* There are some unsupported application that can not be integrate into the applet, like evince, also Firefox drop the menu after some time.
+* The applet could takes ages to load and can freeze Cinnamon forever. This is probably caused by the insane amount of embedded PNG icons. 
+* There are some unsupported application that can not be integrate into the applet, like Firefox, as is dropping the menu after some time.
 
-https://bugs.launchpad.net/plasma-widget-menubar/+bug/878165
+![](http://stackoverflow.com/questions/30206099/what-is-the-current-behavior-of-firefox-for-the-ubuntu-menu-bar) 
 
 Change log
 --------------
@@ -46,30 +47,46 @@ Guidelines for bug reports
 Unfortunately, this applet is not completely bug free and will probably never be.
 In order to successfully resolve the issues you need to provide some data:
 
-* Your distribution, Shell version and extension version (something like "latest git" or "latest from spices" is sufficient).
+* Your distribution, Cinnamon version and applet version (something like "latest git" or "latest from spices" is sufficient).
 * Instructions how to reproduce it. **This is the single most important point**. Bugs that [can't be reproduced](http://xkcd.com/583/) can't be fixed either.
 * Bugs which don't provide the necessary information may be closed as "invalid" without prior notice.
 
 To report bugs, request new features and make suggestions, please visit:
 https://github.com/lestcape/Global-AppMenu/issues
 
-You can also send us pull requests:
+You can also send us a pull request:
 https://github.com/lestcape/Global-AppMenu/pulls
 
-Installation Instructions:
+Installation instructions:
 --------------
-1. Install the unity-gtk-module package.
+1. Install the unity-gtk-module packages (explanation below).
 2. Restart your computer.
 3. Download this applet from their website : https://github.com/lestcape/Global-AppMenu
 4. Unzip the downloaded file and copy the folder globalAppMenu@lestcape at ~/.local/share/cinnamon/applets/
 5. Enable the applet in Cinnamon Settings.
 6. Logout and login again.
 
-To remove, disable the applet, reset the gsettings values:
-gsettings reset org.cinnamon.settings-daemon.plugins.xsettings overrides
-gsettings reset org.cinnamon.settings-daemon.plugins.xsettings enabled-gtk-modules
+unity-gtk-module:
+--------------
+This applet is designed to be used with the standars gtk-modules packages and patches that ubuntu provide to be used on Unity desktop.
+Thats then will depend of your specific distro and possible you will need to use some equivalent different packages.
+- Ubuntu users, be happy, you don't need to do anything if unity is working. :)
+- Mint users, all Ubuntu packages that we needed are availables on mint repositories as well and can be installed.
+- Arch users, you will need to use the rilian-la-te source ![](https://aur.archlinux.org/packages/?SeB=m&K=rilian).
 
-If you don't use unity desktop, remove the package, unity-gtk-module.
+This applet can only read the standard Dbus menu structure (Gtk/Kde), so we can not resolve or patch directly any problematic
+application that not export the menu, or if is not exported properly. We also can not do anything if you used an alternative
+internally implementation that not export the DBus menu structure for some applications. 
+
+We are happy to include the support to any alternative implementation, if is provided an appropriate Dbus menu structure.
+
+Uninstall instructions:
+--------------
+1. Disable the applet, reset the gsettings values:
+- gsettings reset org.cinnamon.settings-daemon.plugins.xsettings overrides
+- gsettings reset org.cinnamon.settings-daemon.plugins.xsettings enabled-gtk-modules
+
+2. If you don't use unity desktop, remove also the packages that you install.
 Restart your computer.
 
 ==============

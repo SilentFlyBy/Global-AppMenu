@@ -194,6 +194,7 @@ GradientLabel.prototype = {
          let height  =  font.get_size() / Pango.SCALE;
          this._drawingArea.set_width(width);
          this._drawingArea.set_height(height + 2*this.margin);
+         this._drawingArea.queue_repaint();
       }
    },
 
