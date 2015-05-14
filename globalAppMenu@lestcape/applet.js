@@ -18,18 +18,27 @@ const St = imports.gi.St;
 const Lang = imports.lang;
 const Clutter = imports.gi.Clutter;
 const Pango = imports.gi.Pango;
+const Gio = imports.gi.Gio;
+const GLib = imports.gi.GLib;
 const Cairo = imports.cairo;
+const Gettext = imports.gettext;
 
 const Applet = imports.ui.applet;
 const Main = imports.ui.main;
 const Settings = imports.ui.settings;
 const PopupMenu = imports.ui.popupMenu;
 
-
-const AppletPath = imports.ui.appletManager.applets['globalAppMenu@lestcape'];
+const AppletPath = imports.ui.appletManager.applets["globalAppMenu@lestcape"];
 const IndicatorAppMenuWatcher = AppletPath.indicatorAppMenuWatcher;
 const ConfigurableMenus = AppletPath.configurableMenus;
 
+function _(str) {
+   let resultConf = Gettext.dgettext("globalAppMenu@lestcape", str);
+   if(resultConf != str) {
+      return resultConf;
+   }
+   return Gettext.gettext(str);
+};
 
 function MyMenuFactory() {
    this._init.apply(this, arguments);
@@ -247,7 +256,9 @@ MyApplet.prototype = {
          this.uuid = metadata["uuid"];
          this.orientation = orientation;
 
-         this.set_applet_tooltip("Global application menu");
+         this.execInstallLanguage();
+
+         this.set_applet_tooltip(_("Global Application Menu"));
          this.status_notifier_watcher = null;
          this._indicator_icons = [];
 
@@ -278,12 +289,12 @@ MyApplet.prototype = {
              this.indicatorDbus.watch();
              this.indicatorDbus.connect('on_appmenu_changed', Lang.bind(this, this._on_appmenu_changed));
          } else {
-             Main.notify("You need restart your computer, to active the unity-gtk-module");
+             Main.notify(_("You need restart your computer, to active the unity-gtk-module"));
          }
       }
       catch(e) {
-         Main.notify("Init error " + e.message);
-         global.logError("Init error " + e.message);
+         Main.notify("Init error %s".format(e.message));
+         global.logError("Init error %s".format(e.message));
       }
    },
 
@@ -450,7 +461,63 @@ MyApplet.prototype = {
          this.menu.forcedToggle();
       }
       return false;       
-   }
+   },
+
+   execInstallLanguage: function() {
+      try {
+         let shareFolder = GLib.get_home_dir() + "/.local/share/";
+         let localeFolder = Gio.file_new_for_path(shareFolder + "locale/");
+         let moFolder = Gio.file_new_for_path(shareFolder + "cinnamon/applets/" + this.uuid + "/po/mo/");
+         let children = moFolder.enumerate_children('standard::name,standard::type,time::modified',
+                                                     Gio.FileQueryInfoFlags.NONE, null);
+         let info, child, moFile, moLocale, moPath, src, dest, modified, destModified;
+         while((info = children.next_file(null)) != null) {
+            modified = info.get_modification_time().tv_sec;
+            if (info.get_file_type() == Gio.FileType.REGULAR) {
+               moFile = info.get_name();
+               if (moFile.substring(moFile.lastIndexOf(".")) == ".mo") {
+                  moLocale = moFile.substring(0, moFile.lastIndexOf("."));
+                  moPath = localeFolder.get_path() + "/" + moLocale + "/LC_MESSAGES/";
+                  src = Gio.file_new_for_path(String(moFolder.get_path() + "/" + moFile));
+                  dest = Gio.file_new_for_path(String(moPath + this.uuid + ".mo"));
+                  try {
+                     if(dest.query_exists(null)) {
+                        destModified = dest.query_info('time::modified', Gio.FileQueryInfoFlags.NONE, null).get_modification_time().tv_sec;
+                        if((modified > destModified)) {
+                           src.copy(dest, Gio.FileCopyFlags.OVERWRITE, null, null);
+                        }
+                     } else {
+                         this._makeDirectoy(dest.get_parent());
+                         src.copy(dest, Gio.FileCopyFlags.OVERWRITE, null, null);
+                     }
+                  } catch(e) {
+                     global.logWarning("Error %s".format(e.message));
+                  }
+               }
+            }
+         }
+         Gettext.bindtextdomain(this.uuid, localeFolder);
+      } catch(e) {
+         global.logWarning("Error %s".format(e.message));
+      }
+   },
+
+   _isDirectory: function(fDir) {
+      try {
+         let info = fDir.query_filesystem_info("standard::type", null);
+         if((info)&&(info.get_file_type() != Gio.FileType.DIRECTORY))
+            return true;
+      } catch(e) {
+      }
+      return false;
+   },
+
+   _makeDirectoy: function(fDir) {
+      if(!this._isDirectory(fDir))
+         this._makeDirectoy(fDir.get_parent());
+      if(!this._isDirectory(fDir))
+         fDir.make_directory(null);
+   },
 };
 
 function main(metadata, orientation, panel_height, instance_id) {

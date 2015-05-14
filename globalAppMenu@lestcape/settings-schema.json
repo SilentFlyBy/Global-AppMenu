@@ -60,8 +60,8 @@
     "automatic-active-mainmenu" : {
         "type" : "checkbox",
         "default" : true,
-        "description": "Automatically active the main menu",
-        "tooltip": "Select if you want to automatically active the main menu.",
+        "description": "Automatically activate the main menu",
+        "tooltip": "Select if you want to automatically activate the main menu.",
         "indent": true,
         "dependency": "display-in-panel"
     },

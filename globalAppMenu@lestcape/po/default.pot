@@ -1,146 +1,142 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
 # This file is distributed under the same license as the PACKAGE package.
-# FIRST AUTHOR <lestcape@gmail.com>, 2015.
-#
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+# 
+#, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: Global Application Menu\n"
+"Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-05-14 06:58-0500\n"
-"PO-Revision-Date: 2015-05-14 07:35-0600\n"
-"Last-Translator: Lester Carballo Pérez <lestcape@gmail.com>\n"
-"Language-Team: Lester Carballo Pérez <lestcape@gmail.com>\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Type: text/plain; charset=CHARSET\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: es\n"
-"Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Poedit 1.5.4\n"
+"Language: \n"
 
 #: applet.js:261
-msgid "Global application menu"
-msgstr "Global application menu"
+msgid "Global Application Menu"
+msgstr ""
 
 #: applet.js:292
 msgid "You need restart your computer, to active the unity-gtk-module"
-msgstr "Es necesario reiniciar el equipo, para activar la unity-gtk-module"
+msgstr ""
 
 #: utility.js:181
 msgid "Command not found."
-msgstr "Comando no encontrado."
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->max-app-name-
 #. size->description
 msgid "Maximum size of the application name:"
-msgstr "Tamaño máximo del nombre de la aplicación:"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->max-app-name-size->tooltip
 msgid "Set the maximum size of the application name."
-msgstr "Establezca el tamaño máximo del nombre de la aplicación."
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->max-app-name-size->units
 msgid "characters"
-msgstr "caracteres"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->head-submenu->description
 msgid "Submenu"
-msgstr "Submenú"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->show-item-icon->description
 msgid "Show icons in the menu items"
-msgstr "Mostrar iconos en los elementos del menú"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->show-item-icon->tooltip
 msgid "Select if you want to show icons in the menu items."
-msgstr "Seleccione si desea mostrar los iconos de los elementos de menú."
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->align-menu-
 #. launcher->description
 msgid "Align all menus with his launcher"
-msgstr "Alinear todos los menús con su lanzador"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->align-menu-launcher->tooltip
 msgid "Select if you want to align all menus with his launcher."
-msgstr "Seleccione si desea alinear todos los menús con su lanzador."
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->automatic-active-
 #. mainmenu->description
 msgid "Automatically activate the main menu"
-msgstr "Activar automáticamente el menú principal"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->automatic-active-
 #. mainmenu->tooltip
 msgid "Select if you want to automatically activate the main menu."
-msgstr "Seleccione si desea activar automáticamente el menú principal."
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->desaturate-app-
 #. icon->description
 msgid "Desaturate the application icon"
-msgstr "Desaturar el icono de la aplicación"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->desaturate-app-icon->tooltip
 msgid "Select if you want to desaturate the application icon"
-msgstr "Seleccione si desea desaturar el icono de la aplicación"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->close-active-
 #. submenu->description
 msgid "Automatically close the submenu"
-msgstr "Cerrar automáticamente el submenú"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->close-active-submenu->tooltip
 msgid ""
 "Select if you want to automatically close the submenu when the mouse is out "
 "of the launcher."
 msgstr ""
-"Seleccione si desea cerrar automáticamente el submenú cuando el ratón está "
-"fuera del lanzador."
 
 #. globalAppMenu@lestcape->settings-schema.json->show-app-name->description
 msgid "Show the application name in the panel"
-msgstr "Mostrar el nombre de la aplicación en el panel"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->show-app-name->tooltip
 msgid "Select if you want to show the application name in the panel."
-msgstr "Seleccione si desea mostrar el nombre de la aplicación en el panel."
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->head-mainmenu->description
 msgid "Main menu"
-msgstr "Menú principal"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->display-in-panel->description
 msgid "Display the main menu in the panel"
-msgstr "Muestra el menú principal en el panel"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->display-in-panel->tooltip
 msgid "Select if you want to display the main menu in the panel."
-msgstr "Seleccione si desea mostrar el menú principal en el panel."
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->head-menuitem->description
 msgid "Menu items"
-msgstr "Elementos de menú"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->head-application->description
 msgid "Applications"
-msgstr "Aplicaciones"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->show-boxpointer->description
 msgid "Show the boxpointers"
-msgstr "Mostrar los boxpointers"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->show-boxpointer->tooltip
 msgid "Select if you want to show the boxpointer of all floating menus."
 msgstr ""
-"Seleccione si desea mostrar los boxpointer de todos los menús flotantes."
 
 #. globalAppMenu@lestcape->settings-schema.json->show-app-icon->description
 msgid "Show the application icon in the panel"
-msgstr "Mostrar el icono de la aplicación en el panel"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->show-app-icon->tooltip
 msgid "Select if you want to show the application icon in the panel."
-msgstr "Seleccione si desea mostrar el icono de la aplicación en el panel."
+msgstr ""
 
 #. globalAppMenu@lestcape->metadata.json->description
 msgid "Adds global application menu support to Cinnamon"
-msgstr "Añadir soporte de menú global de aplicaciones a Cinnamon"
+msgstr ""
