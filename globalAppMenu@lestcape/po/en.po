@@ -5,10 +5,10 @@
 #
 msgid ""
 msgstr ""
-"Project-Id-Version: Global Application Menu 0.1\n"
+"Project-Id-Version: Global Application Menu 0.1-Beta\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-05-14 06:58-0500\n"
-"PO-Revision-Date: 2015-05-14 07:35-0600\n"
+"PO-Revision-Date: 2015-05-14 08:52-0600\n"
 "Last-Translator: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "Language-Team: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -19,8 +19,8 @@ msgstr ""
 "X-Generator: Poedit 1.5.4\n"
 
 #: applet.js:261
-msgid "Global application menu"
-msgstr "Global application menu"
+msgid "Global Application Menu"
+msgstr "Global Application Menu"
 
 #: applet.js:292
 msgid "You need restart your computer, to active the unity-gtk-module"

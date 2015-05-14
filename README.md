@@ -1,4 +1,4 @@
-Cinnamon Applet: Global Application Menu Version: v0.0-Beta
+Cinnamon Applet: Global Application Menu Version: v0.1-Beta
 
 Last update: 13 may 2015
 
@@ -30,8 +30,8 @@ http://stackoverflow.com/questions/30206099/what-is-the-current-behavior-of-fire
 
 Change log
 --------------
-0.0-Beta
-   - Not released.
+0.1-Beta
+   - Initial release.
 
 This program is free software:
 --------------
