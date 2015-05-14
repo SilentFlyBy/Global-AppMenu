@@ -50,11 +50,11 @@ function loadInterfaceXml(filename) {
 };
 
 /**
- * will take the given signals and handlers, connect them to the object
+ * Will take the given signals and handlers, connect them to the object
  * and push the id needed to disconnect it into the given array.
- * the id array is returned, too
+ * the id array is returned, too.
  *
- * if you do not pass a predefined array, it will be created for you.
+ * If you do not pass a predefined array, it will be created for you.
  */
 const connectAndSaveId = function(target, handlers /* { "signal": handler } */, idArray) {
     idArray = typeof idArray != 'undefined' ? idArray : [];
@@ -175,7 +175,7 @@ TerminalReader.prototype = {
                   this.idle = true;
                }));
             }
-            //throw
+            // Throw
          } catch(err) {
             if (err.code == GLib.SpawnError.G_SPAWN_ERROR_NOENT) {
                err.message = _("Command not found.");
@@ -235,7 +235,7 @@ TerminalReader.prototype = {
          try {
             if(!this._dataStdout.is_closed()) {
                if(this.resOut != -1)
-                  this.resOut = this._dataStdout.fill_finish(result);// end of file
+                  this.resOut = this._dataStdout.fill_finish(result);// End of file
                if(this.resOut == 0) {
                   let val = stream.peek_buffer().toString();
                   if(val != "")
@@ -259,7 +259,7 @@ TerminalReader.prototype = {
             if(!this._stderrStream.is_closed()) {
                if(this.resErr != -1)
                   this.resErr = this._stderrStream.fill_finish(result);
-               if(this.resErr == 0) { // end of file
+               if(this.resErr == 0) { // End of file
                   let val = stream.peek_buffer().toString();
                   if(val != "")
                      this._callbackPipe(this._commandPipe, false, val);
@@ -277,156 +277,155 @@ TerminalReader.prototype = {
 };
 
 function SystemProperties() {
-    this._init.apply(this, arguments);
+   this._init.apply(this, arguments);
 }
 
 SystemProperties.prototype = {
 
-    _init: function() {
-        this.xsetting = new Gio.Settings({ schema: 'org.cinnamon.settings-daemon.plugins.xsettings' });
-    },
+   _init: function() {
+      this.xSetting = new Gio.Settings({ schema: 'org.cinnamon.settings-daemon.plugins.xsettings' });
+   },
 
-    set_shell_shows_appmenu: function(show) {
-        this._override_bool_xsetting('Gtk/ShellShowsAppMenu', show);
-    },
+   shellShowAppmenu: function(show) {
+      this._overrideBoolXSetting('Gtk/ShellShowsAppMenu', show);
+   },
 
-    set_shell_shows_menubar: function(show) {
-        this._override_bool_xsetting('Gtk/ShellShowsMenubar', show);
-    },
+   shellShowMenubar: function(show) {
+      this._overrideBoolXSetting('Gtk/ShellShowsMenubar', show);
+   },
 
-    active_unity_gtk_module: function(active) {
-        let is_ready = false;
-        let env_gtk = this._get_env_gtk_modules();
-        let x_gtk = this._get_x_gtk_modules();
-        if(active) {
-            if(env_gtk) {
-                if(env_gtk.indexOf("unity-gtk-module") == -1) {
-                    env_gtk.push("unity-gtk-module");
-                    this._set_env_gtk_modules(env_gtk);
-                } else {
-                    is_ready = true;
-                }
-            } else  {
-                env_gtk = ["unity-gtk-module"];
-                this._set_env_gtk_modules(env_gtk);
-            }
-            if(x_gtk) {
-                if(x_gtk.indexOf("unity-gtk-module") == -1) {
-                    x_gtk.push("unity-gtk-module");
-                    this._set_x_gtk_modules(x_gtk);
-                } else {
-                    is_ready = true;
-                }
-            } else  {
-                x_gtk = ["unity-gtk-module"];
-                this._set_x_gtk_modules(x_gtk);
-            }
-        } else {
-            if(env_gtk) {
-                let pos = env_gtk.indexOf("unity-gtk-module")
-                if(pos != -1) {
-                    env_gtk.splice(pos, -1);
-                    this._set_env_gtk_modules(env_gtk);
-                } else {
-                    is_ready = true;
-                }
-            } else if(x_gtk) {
-                let pos = x_gtk.indexOf("unity-gtk-module")
-                if(pos != -1) {
-                    x_gtk.splice(pos, -1);
-                    this._set_x_gtk_modules(x_gtk);
-                } else {
-                    is_ready = true;
-                }
-            } else  {
-                is_ready = true;
-            }
-        }
-        return is_ready;
-    },
-
-    active_unity_menu_proxy: function(active) {
-        let env_ubu = GLib.getenv('UBUNTU_MENUPROXY');
-        if(env_ubu != "1") {
-            GLib.setenv('UBUNTU_MENUPROXY', "1", true);
-            return false;
-        }
-        return true;
-    },
-
-    _override_bool_xsetting: function(xsetting, show) {
-        let values = this.xsetting.get_value('overrides').deep_unpack();
-        if(show) {
-            if(xsetting in values) {
-                let status = values[xsetting]
-                if(status != 1) {
-                    values[xsetting] = GLib.Variant.new('i', 1);
-                    let return_value = GLib.Variant.new('a{sv}', values);
-                    this.xsetting.set_value('overrides', return_value);
-                }
+   activeUnityGtkModule: function(active) {
+      let isReady = false;
+      let envGtk = this._getEnvGtkModules();
+      let xSettingGtk = this._getXSettingGtkModules();
+      if(active) {
+         if(envGtk) {
+            if(envGtk.indexOf("unity-gtk-module") == -1) {
+               envGtk.push("unity-gtk-module");
+               this._setEnvGtkModules(envGtk);
             } else {
-                values[xsetting] = GLib.Variant.new('i', 1);
-                let return_value = GLib.Variant.new('a{sv}', values);
-                this.xsetting.set_value('overrides', return_value);
+               isReady = true;
             }
-        } else if(xsetting in values) {
+         } else  {
+            envGtk = ["unity-gtk-module"];
+            this._setEnvGtkModules(envGtk);
+         }
+         if(xSettingGtk) {
+            if(xSettingGtk.indexOf("unity-gtk-module") == -1) {
+               xSettingGtk.push("unity-gtk-module");
+               this._setXSettingGtkModules(xSettingGtk);
+            } else {
+               isReady = true;
+            }
+         } else  {
+            xSettingGtk = ["unity-gtk-module"];
+            this._setXSettingGtkModules(xSettingGtk);
+         }
+      } else {
+         if(envGtk) {
+            let pos = envGtk.indexOf("unity-gtk-module")
+            if(pos != -1) {
+               envGtk.splice(pos, -1);
+               this._setEnvGtkModules(envGtk);
+            } else {
+               isReady = true;
+            }
+         } else if(xSettingGtk) {
+            let pos = xSettingGtk.indexOf("unity-gtk-module")
+            if(pos != -1) {
+               xSettingGtk.splice(pos, -1);
+               this._setXSettingGtkModules(xSettingGtk);
+            } else {
+               isReady = true;
+            }
+         } else  {
+            isReady = true;
+         }
+      }
+      return isReady;
+   },
+
+   activeUnityMenuProxy: function(active) {
+      let env_ubu = GLib.getenv('UBUNTU_MENUPROXY');
+      if(env_ubu != "1") {
+         GLib.setenv('UBUNTU_MENUPROXY', "1", true);
+         return false;
+      }
+      return true;
+   },
+
+   _overrideBoolXSetting: function(xsetting, show) {
+      let values = this.xSetting.get_value('overrides').deep_unpack();
+      if(show) {
+         if(xsetting in values) {
             let status = values[xsetting]
-            if(status != 0) {
-                values[xsetting] = GLib.Variant.new('i', 0); 
-                let return_value = GLib.Variant.new('a{sv}', values);
-                this.xsetting.set_value('overrides', return_value);
+            if(status != 1) {
+               values[xsetting] = GLib.Variant.new('i', 1);
+               let return_value = GLib.Variant.new('a{sv}', values);
+               this.xSetting.set_value('overrides', return_value);
             }
-        }
-    },
+         } else {
+            values[xsetting] = GLib.Variant.new('i', 1);
+            let return_value = GLib.Variant.new('a{sv}', values);
+            this.xSetting.set_value('overrides', return_value);
+         }
+      } else if(xsetting in values) {
+         let status = values[xsetting]
+         if(status != 0) {
+            values[xsetting] = GLib.Variant.new('i', 0); 
+            let return_value = GLib.Variant.new('a{sv}', values);
+            this.xSetting.set_value('overrides', return_value);
+         }
+      }
+   },
 
-    _get_env_gtk_modules: function() {
-        let env_gtk = GLib.getenv('GTK_MODULES');
-        if(env_gtk)
-            return env_gtk.split(":");
-        return null;
-    },
+   _getEnvGtkModules: function() {
+      let envGtk = GLib.getenv('GTK_MODULES');
+      if(envGtk)
+         return envGtk.split(":");
+      return null;
+   },
 
-    _set_env_gtk_modules: function(env_gtk_list) {
-        let env_gtk = "";
-        for(let i in env_gtk_list) {
-            if(i == 0) {
-                env_gtk += env_gtk_list[i];
-            } else if(env_gtk.indexOf("unity-gtk-module" ) == -1) {
-               env_gtk += ":" + env_gtk_list[i];
-            }
-        }
-        GLib.setenv('GTK_MODULES', env_gtk, true);
-    },
+   _setEnvGtkModules: function(envGtkList) {
+      let envGtk = "";
+      for(let i in envGtkList) {
+         if(i == 0) {
+            envGtk += envGtkList[i];
+         } else if(envGtk.indexOf("unity-gtk-module" ) == -1) {
+            envGtk += ":" + envGtkList[i];
+         }
+      }
+      GLib.setenv('GTK_MODULES', envGtk, true);
+   },
 
-    _get_x_gtk_modules: function() {
-        return this.xsetting.get_strv('enabled-gtk-modules');
-    },
+   _getXSettingGtkModules: function() {
+      return this.xSetting.get_strv('enabled-gtk-modules');
+   },
 
-    _set_x_gtk_modules: function(env_gtk_list) {
-        this.xsetting.set_strv('enabled-gtk-modules', env_gtk_list);
-    },
+   _setXSettingGtkModules: function(envGtkList) {
+      this.xSetting.set_strv('enabled-gtk-modules', envGtkList);
+   },
 
-    _is_cinnamon_session_start: function() {
-        let string_file = this._readFile(GLib.get_home_dir() + "/.xsession-errors");
-        return ((!string_file) || (string_file.indexOf("About to start Cinnamon") == string_file.lastIndexOf("About to start Cinnamon")));
-    },
+   _isCinnamonSessionStart: function() {
+      let string_file = this._readFile(GLib.get_home_dir() + "/.xsession-errors");
+      return ((!string_file) || (string_file.indexOf("About to start Cinnamon") == string_file.lastIndexOf("About to start Cinnamon")));
+   },
 
-    _readFile: function(path) {
-        try {
-            let file = Gio.file_new_for_path(path);
-            if(file.query_exists(null))
-            {
-                let fstream = file.read(null);
-                let dstream = new Gio.DataInputStream({ base_stream: fstream });
-                let data = dstream.read_until("", null);
-                fstream.close(null);
-                return data.toString();
-            }
-        } catch(e) {
-            Main.notifyError(_("Error:"), e.message);
-        }
-        return null;
-    }
+   _readFile: function(path) {
+      try {
+         let file = Gio.file_new_for_path(path);
+         if(file.query_exists(null)) {
+            let fstream = file.read(null);
+            let dstream = new Gio.DataInputStream({ base_stream: fstream });
+            let data = dstream.read_until("", null);
+            fstream.close(null);
+            return data.toString();
+         }
+      } catch(e) {
+         global.logError("Error:" + e.message);
+      }
+      return null;
+   }
 };
 
 const system = new SystemProperties();

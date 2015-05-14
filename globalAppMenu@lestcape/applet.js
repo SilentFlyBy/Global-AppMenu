@@ -51,86 +51,79 @@ MyMenuFactory.prototype = {
 
    setMainMenuArrowSide: function(arrowSide) {
       if(this._arrowSide != arrowSide) {
-          this._arrowSide = arrowSide;
-          for (let pos in this._menuLikend) {
-              let shellMenu = this._menuLikend[pos].getShellItem();
-              if(shellMenu)
-                 shellMenu.setArrowSide(this._arrowSide);
-          }
+         this._arrowSide = arrowSide;
+         for (let pos in this._menuLikend) {
+            let shellMenu = this._menuLikend[pos].getShellItem();
+            if(shellMenu)
+               shellMenu.setArrowSide(this._arrowSide);
+         }
       }
    },
 
    setFloatingState: function(floating) {
       if(this._floatingMenu != floating) {
-          this._floatingMenu = floating;
-          try {
-          for (let pos in this._menuLikend) {
-              let shellMenu = this._menuLikend[pos].getShellItem();
-              if(shellMenu)
-                 shellMenu.setFloatingState(this._floatingMenu);
-          }
-          } catch(e) {Main.notify("error" + e.message)}
+         this._floatingMenu = floating;
+         for (let pos in this._menuLikend) {
+            let shellMenu = this._menuLikend[pos].getShellItem();
+            if(shellMenu)
+               shellMenu.setFloatingState(this._floatingMenu);
+         }
       }
    },
 
    showBoxPointer: function(show) {
       if(this._showBoxPointer != show) {
-          this._showBoxPointer = show;
-          for (let pos in this._menuManager) {
-              this._menuManager[pos].showBoxPointer(this._showBoxPointer);
-          }
+         this._showBoxPointer = show;
+         for (let pos in this._menuManager) {
+            this._menuManager[pos].showBoxPointer(this._showBoxPointer);
+         }
       }
    },
 
    setAlignSubMenu: function(align) {
       if(this._alignSubMenu != align) {
-          this._alignSubMenu= align;
-          for (let pos in this._menuManager) {
-              this._menuManager[pos].setAlignSubMenu(this._alignSubMenu);
-          }
+         this._alignSubMenu= align;
+         for (let pos in this._menuManager) {
+            this._menuManager[pos].setAlignSubMenu(this._alignSubMenu);
+         }
       }
    },
 
    setCloseSubMenu: function(closeSubMenu) {
       if(this._closeSubMenu != closeSubMenu) {
-          this._closeSubMenu = closeSubMenu;
-          for (let pos in this._menuManager) {
-              this._menuManager[pos].setCloseSubMenu(this._closeSubMenu);
-          }
+         this._closeSubMenu = closeSubMenu;
+         for (let pos in this._menuManager) {
+            this._menuManager[pos].setCloseSubMenu(this._closeSubMenu);
+         }
       }
    },
 
    setFloatingSubMenu: function(floating) {
       if(this._floatingSubMenu != floating) {
-          this._floatingSubMenu = floating;
-          for (let pos in this._menuManager) {
-              this._menuManager[pos].setFloatingSubMenu(this._floatingSubMenu);
-          }
+         this._floatingSubMenu = floating;
+         for (let pos in this._menuManager) {
+            this._menuManager[pos].setFloatingSubMenu(this._floatingSubMenu);
+         }
       }
    },
 
    setShowItemIcon: function(show) {
       if(this._showItemIcon != show) {
-          this._showItemIcon = show;
-          for (let pos in this._menuManager) {
-              this._menuManager[pos].setShowItemIcon(this._showItemIcon);
-          }
+         this._showItemIcon = show;
+         for (let pos in this._menuManager) {
+            this._menuManager[pos].setShowItemIcon(this._showItemIcon);
+         }
       }
    },
 
-   // RootMenuClass: Applet.AppletPopupMenu,
-   // MenuItemClass: PopupMenu.PopupMenuItem,
-   // SubMenuMenuItemClass: PopupMenu.PopupSubMenuMenuItem,
-   // MenuSectionMenuItemClass: PopupMenu.PopupMenuSection,
-   // SeparatorMenuItemClass: PopupMenu.PopupSeparatorMenuItem
    _createShellItem: function(factoryItem, launcher, orientation, menuManager) {
       // Decide whether it's a submenu or not
       this._arrowSide = orientation;
       if(menuManager) {
-          menuManager.showBoxPointer(this._showBoxPointer);
-          menuManager.setCloseSubMenu(this._closeSubMenu);
-          menuManager.setAlignSubMenu(this._alignSubMenu);
-          menuManager.setShowItemIcon(this._showItemIcon);
+         menuManager.showBoxPointer(this._showBoxPointer);
+         menuManager.setCloseSubMenu(this._closeSubMenu);
+         menuManager.setAlignSubMenu(this._alignSubMenu);
+         menuManager.setShowItemIcon(this._showItemIcon);
       }
       let shellItem = null;
       let item_type = factoryItem.getFactoryType();
@@ -162,7 +155,7 @@ GradientLabel.prototype = {
       this.size = size;
 
       this.actor = new St.Bin();
-      //this.actorLabel = new St.Label({ style_class: 'applet-label' });
+      //this.labelActor = new St.Label({ style_class: 'applet-label' });
       this._drawingArea = new St.DrawingArea({ style_class: 'applet-label' });
       this._drawingArea.connect('repaint', Lang.bind(this, this._onRepaint));
       this._drawingArea.connect('style-changed', Lang.bind(this, this._onStyleChanged));
@@ -274,20 +267,23 @@ MyApplet.prototype = {
          this.actor.add(this.actorIcon, { y_align: St.Align.MIDDLE, y_fill: false });
          this.actor.add(this.gradient.actor, { y_align: St.Align.MIDDLE, y_fill: false });
 
-         this.settings = new Settings.AppletSettings(this, this.uuid, instance_id);
-
          this.menuFactory = new MyMenuFactory(instance_id);
-
-         let icon_size = this._get_icon_size();
+         this.settings = new Settings.AppletSettings(this, this.uuid, instance_id);
+         this._create_settings();
 
          this.indicatorDbus = new IndicatorAppMenuWatcher.IndicatorAppMenuWatcher(
-                IndicatorAppMenuWatcher.AppmenuMode.MODE_STANDARD, icon_size);
-         this.indicatorDbus.connect('on_appmenu_changed', Lang.bind(this, this._on_appmenu_changed));
-         this._create_settings();
+                IndicatorAppMenuWatcher.AppmenuMode.MODE_STANDARD, this._get_icon_size());
+
+         if(this.indicatorDbus.canWatch()) {
+             this.indicatorDbus.watch();
+             this.indicatorDbus.connect('on_appmenu_changed', Lang.bind(this, this._on_appmenu_changed));
+         } else {
+             Main.notify("You need restart your computer, to active the unity-gtk-module");
+         }
       }
       catch(e) {
-         Main.notify("init error " + e.message);
-         global.logError(e);
+         Main.notify("Init error " + e.message);
+         global.logError("Init error " + e.message);
       }
    },
 
@@ -361,30 +357,25 @@ MyApplet.prototype = {
    },
 
    _on_appmenu_changed: function(indicator, window) {
-      try {
-         let newLabel = null;
-         let newIcon = null;
-         let newMenu = null;
-         if(window) {
-            let app = this.indicatorDbus.get_app_for_window(window);
-            if(app) {
-                newIcon = this.indicatorDbus.get_icon_for_window(window);
-                newLabel = app.get_name();
-                let dbus_menu = this.indicatorDbus.get_menu_for_window(window);
-                if(dbus_menu) {
-                    newMenu = this.menuFactory.getShellMenu(dbus_menu);
-                    if(!newMenu) {
-                        let menuManager = new ConfigurableMenus.ConfigurableMenuManager(this);
-                        newMenu = this.menuFactory.buildShellMenu(dbus_menu, this, this.orientation, menuManager);
-                    }
-
-                }
+      let newLabel = null;
+      let newIcon = null;
+      let newMenu = null;
+      if(window) {
+         let app = this.indicatorDbus.getAppForWindow(window);
+         if(app) {
+            newIcon = this.indicatorDbus.getIconForWindow(window);
+            newLabel = app.get_name();
+            let dbus_menu = this.indicatorDbus.getMenuForWindow(window);
+            if(dbus_menu) {
+               newMenu = this.menuFactory.getShellMenu(dbus_menu);
+               if(!newMenu) {
+                  let menuManager = new ConfigurableMenus.ConfigurableMenuManager(this);
+                  newMenu = this.menuFactory.buildShellMenu(dbus_menu, this, this.orientation, menuManager);
+               }
             }
-        }
-
-        this._try_to_show(newLabel, newIcon, newMenu);
-
-      } catch(e) {Main.notify("Errors", e.message);}
+         }
+      }
+      this._try_to_show(newLabel, newIcon, newMenu);
    },
 
    _try_to_show: function(newLabel, newIcon, newMenu) {
@@ -399,7 +390,7 @@ MyApplet.prototype = {
       if(this._is_new_menu(newMenu)) {
          this._close_menu();
          this.menu = newMenu;
-         if((this.menu)&&(!this.menu._floating)&&(this.automaticActiveMainMenu))
+         if((this.menu)&&(!this.menu.isInFloatingState())&&(this.automaticActiveMainMenu))
             this.menu.open();
       }
       if(this._is_new_app(newLabel, newIcon)) {
@@ -447,7 +438,7 @@ MyApplet.prototype = {
 
    on_panel_height_changed: function() {
       let icon_size = this._get_icon_size();
-      this.indicatorDbus.set_icon_size(icon_size);
+      this.indicatorDbus.setIconSize(icon_size);
    },
 
    on_applet_removed_from_panel: function() {
@@ -463,6 +454,6 @@ MyApplet.prototype = {
 };
 
 function main(metadata, orientation, panel_height, instance_id) {
-    let myApplet = new MyApplet(metadata, orientation, panel_height, instance_id);
-    return myApplet;
+   let myApplet = new MyApplet(metadata, orientation, panel_height, instance_id);
+   return myApplet;
 }

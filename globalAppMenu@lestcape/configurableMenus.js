@@ -31,23 +31,23 @@ const Mainloop = imports.mainloop;
 const DND = imports.ui.dnd;
 
 const OrnamentType = PopupMenu.Ornament ? PopupMenu.Ornament : {
-    NONE: 0,
-    CHECK: 1,
-    DOT: 2
+   NONE: 0,
+   CHECK: 1,
+   DOT: 2
 };
 
 const FactoryClassTypes = {
-    'RootMenuClass'            : "RootMenuClass",
-    'MenuItemClass'            : "MenuItemClass",
-    'SubMenuMenuItemClass'     : "SubMenuMenuItemClass",
-    'MenuSectionMenuItemClass' : "MenuSectionMenuItemClass",
-    'SeparatorMenuItemClass'   : "SeparatorMenuItemClass"
+   'RootMenuClass'            : "RootMenuClass",
+   'MenuItemClass'            : "MenuItemClass",
+   'SubMenuMenuItemClass'     : "SubMenuMenuItemClass",
+   'MenuSectionMenuItemClass' : "MenuSectionMenuItemClass",
+   'SeparatorMenuItemClass'   : "SeparatorMenuItemClass"
 };
 
 const FactoryEventTypes = {
-    'opened'    : "opened",
-    'closed'    : "closed",
-    'clicked'   : "clicked"
+   'opened'    : "opened",
+   'closed'    : "closed",
+   'clicked'   : "clicked"
 };
 
 /**
@@ -57,7 +57,7 @@ const FactoryEventTypes = {
  * The child of the Cinnamon BoxPointer class.
  */
 function ConfigurablePointer() {
-    this._init.apply(this, arguments);
+   this._init.apply(this, arguments);
 }
 
 ConfigurablePointer.prototype = {
@@ -246,7 +246,6 @@ ConfigurablePointer.prototype = {
    },
 
    _reposition: function(sourceActor, alignment) {
-try {
       // Position correctly relative to the sourceActor
       let sourceNode = sourceActor.get_theme_node();
       let sourceContentBox = sourceNode.get_content_box(sourceActor.get_allocation_box());
@@ -327,14 +326,10 @@ try {
          [success, x, y] = parent.transform_stage_point(resX, resY);
          parent = parent.get_parent();
       }
-      //Main.notify("fixScreen" + this.fixScreen + " fixCorner" + this.fixCorner)
       this._fixCorner(x, y, sourceActor, sourceAllocation, monitor, gap, borderWidth);
       this._xPosition = x;
       this._yPosition = y;
       this._shiftActor();
-} catch(e) {
-   Main.notify("repos", e.message);
-}
    },
 
    _allocate: function(actor, box, flags) {
@@ -581,11 +576,11 @@ try {
  * The class that allow control the configurable menu API.
  */
 function ConfigurableMenuManager() {
-    this._init.apply(this, arguments);
+   this._init.apply(this, arguments);
 }
 
 ConfigurableMenuManager.prototype = {
-    __proto__: PopupMenu.PopupMenuManager.prototype,
+   __proto__: PopupMenu.PopupMenuManager.prototype,
 
    _init: function(owner) {
       PopupMenu.PopupMenuManager.prototype._init.call (this, owner);
@@ -598,7 +593,8 @@ ConfigurableMenuManager.prototype = {
    },
 
    addMenu: function(menu, position) {
-        let menudata = {
+      if (this._findMenu(menu) == -1) {
+         let menudata = {
             menu:               menu,
             openStateChangeId:  menu.connect('open-state-changed', Lang.bind(this, this._onMenuOpenState)),
             childMenuAddedId:   menu.connect('child-menu-added', Lang.bind(this, this._onChildMenuAdded)),
@@ -608,317 +604,324 @@ ConfigurableMenuManager.prototype = {
             leaveId:            0,
             focusInId:          0,
             focusOutId:         0
-        };
+         };
 
-        if((menu.setFloatingState) && !(menu instanceof ConfigurableMenuApplet))
+         if((menu.setFloatingState) && !(menu instanceof ConfigurableMenuApplet))
             menu.setFloatingState(this._floating);
-        if(menu.showBoxPointer)
+         if(menu.showBoxPointer)
             menu.showBoxPointer(this._showBoxPointer);
-        if(menu.fixToCorner)
+         if(menu.fixToCorner)
             menu.fixToCorner(this._alignSubMenu);
-        if(menu.setShowItemIcon)
+         if(menu.setShowItemIcon)
             menu.setShowItemIcon(this._showItemIcon);
 
-        let source = menu.sourceActor;
-        if (source) {
+         let source = menu.sourceActor;
+         if (source) {
             menudata.enterId = source.connect('enter-event', Lang.bind(this, function() { this._onMenuSourceEnter(menu); }));
             menudata.focusInId = source.connect('key-focus-in', Lang.bind(this, function() { this._onMenuSourceEnter(menu); }));
             if(this._closeSubMenu) {
-                menudata.leaveId = source.connect('leave-event', Lang.bind(this, function() { this._onMenuSourceLeave(menu); }));
-                menudata.focusOutId = source.connect('key-focus-out', Lang.bind(this, function() { this._onMenuSourceLeave(menu); }));
+               menudata.leaveId = source.connect('leave-event', Lang.bind(this, function() { this._onMenuSourceLeave(menu); }));
+               menudata.focusOutId = source.connect('key-focus-out', Lang.bind(this, function() { this._onMenuSourceLeave(menu); }));
             }
-        }
+         }
 
-        if (position == undefined)
+         if (position == undefined)
             this._menus.push(menudata);
-        else
+         else
             this._menus.splice(position, 0, menudata);
 
-        //new code
-        let children = menu._childMenus;
-        for(let pos in children)
+         // We will add all current childrens
+         let children = menu._childMenus;
+         for(let pos in children)
             this.addMenu(children[pos]);
-    },
+      }
+   },
 
-    setCloseSubMenu: function(closeSubMenu) {
-        this._disconnectTimeOut();
-        if(this._closeSubMenu != closeSubMenu) {
-            this._closeSubMenu = closeSubMenu;
-            for(let pos in this._menus) {
-                let menudata = this._menus[pos];
-                let source = menudata.menu.sourceActor;
-                if (menudata.leaveId > 0) {
-                    source.disconnect(menudata.leaveId);
-                    menudata.leaveId = 0;
-                }
-                if (menudata.focusOutId > 0) {
-                    source.disconnect(menudata.focusOutId);
-                    menudata.focusOutId = 0;
-                }
-                if (this._closeSubMenu) {
-                    menudata.leaveId = source.connect('leave-event', Lang.bind(this, function() { this._onMenuSourceLeave(menudata.menu); }));
-                    menudata.focusOutId = source.connect('key-focus-out', Lang.bind(this, function() { this._onMenuSourceLeave(menudata.menu); }));
-                }
-                    
+   setCloseSubMenu: function(closeSubMenu) {
+      this._disconnectTimeOut();
+      if(this._closeSubMenu != closeSubMenu) {
+         this._closeSubMenu = closeSubMenu;
+         for(let pos in this._menus) {
+            let menudata = this._menus[pos];
+            let source = menudata.menu.sourceActor;
+            if (menudata.leaveId > 0) {
+               source.disconnect(menudata.leaveId);
+               menudata.leaveId = 0;
             }
-        }
-    },
-
-    showBoxPointer: function(show) {
-       if(this._showBoxPointer != show) {
-          this._showBoxPointer = show;
-          for(let pos in this._menus) {
-             if(this._menus[pos].menu.showBoxPointer)
-                 this._menus[pos].menu.showBoxPointer(this._showBoxPointer);
-          }
-       }
-    },
-
-    setAlignSubMenu: function(align) {
-       if(this._alignSubMenu != align) {
-          this._alignSubMenu = align;
-          for(let pos in this._menus) {
-             if(this._menus[pos].menu.fixToCorner)
-                 this._menus[pos].menu.fixToCorner(this._alignSubMenu);
-          }
-       }
-    },
-
-    setFloatingSubMenu: function(floating) {
-       if(this._floating != floating) {
-          this._floating = floating;
-          for(let pos in this._menus) {
-             if(this._menus[pos].menu.setFloatingState)
-                 this._menus[pos].menu.setFloatingState(this._floating);
-          }
-       }
-    },
-
-    setShowItemIcon: function(show) {
-       if(this._showItemIcon != show) {
-          this._showItemIcon = show;
-          for(let pos in this._menus) {
-             if(this._menus[pos].menu.setShowItemIcon)
-                 this._menus[pos].menu.setShowItemIcon(this._showItemIcon);
-          }
-       }
-    },
-
-    removeMenu: function(menu) {
-        if (menu == this._activeMenu)
-            this._closeMenu();
-
-        let position = this._findMenu(menu);
-        if (position == -1) // not a menu we manage
-            return;
-
-        let menudata = this._menus[position];
-        menu.disconnect(menudata.openStateChangeId);
-        menu.disconnect(menudata.childMenuAddedId);
-        menu.disconnect(menudata.childMenuRemovedId);
-        menu.disconnect(menudata.destroyId);
-
-        if (menudata.enterId)
-            menu.sourceActor.disconnect(menudata.enterId);
-        if (menudata.focusInId)
-            menu.sourceActor.disconnect(menudata.focusInId);
-        if (menudata.leaveId)
-            menu.sourceActor.disconnect(menudata.leaveId);
-        if (menudata.focusOutId)
-            menu.sourceActor.disconnect(menudata.focusOutId);
-
-        this._menus.splice(position, 1);
-    },
-
-    _onMenuOpenState: function(menu, open) {
-        if (open) {
-            if (this._activeMenu && this._activeMenu.isChildMenu(menu)) {
-                this._menuStack.push(this._activeMenu);
-                menu.actor.grab_key_focus();
+            if (menudata.focusOutId > 0) {
+               source.disconnect(menudata.focusOutId);
+               menudata.focusOutId = 0;
             }
-            this._activeMenu = menu;
-        } else if (this._menuStack.length > 0) {
-            this._activeMenu = this._menuStack.pop();
-        } else if (this._activeMenu) {
-            this._activeMenu.close();
-        }
+            if (this._closeSubMenu) {
+               menudata.leaveId = source.connect('leave-event', Lang.bind(this, function() { this._onMenuSourceLeave(menudata.menu); }));
+               menudata.focusOutId = source.connect('key-focus-out', Lang.bind(this, function() { this._onMenuSourceLeave(menudata.menu); }));
+            }       
+         }
+      }
+   },
 
-        // Check what the focus was before calling pushModal/popModal
-        let focus = global.stage.key_focus;
-        let hadFocus = focus && this._activeMenuContains(focus);
+   showBoxPointer: function(show) {
+      if(this._showBoxPointer != show) {
+         this._showBoxPointer = show;
+         for(let pos in this._menus) {
+            if(this._menus[pos].menu.showBoxPointer)
+               this._menus[pos].menu.showBoxPointer(this._showBoxPointer);
+         }
+      }
+   },
 
-        if (open) {
-            if (!this.grabbed) {
-                this._preGrabInputMode = global.stage_input_mode;
-                this._grabbedFromKeynav = hadFocus;
-                this._grab();
-            }
+   setAlignSubMenu: function(align) {
+      if(this._alignSubMenu != align) {
+         this._alignSubMenu = align;
+         for(let pos in this._menus) {
+            if(this._menus[pos].menu.fixToCorner)
+               this._menus[pos].menu.fixToCorner(this._alignSubMenu);
+         }
+      }
+   },
 
-            if (hadFocus)
-                focus.grab_key_focus();
-            else
-                menu.actor.grab_key_focus();
-        } else if (menu == this._activeMenu) {
-            if (this.grabbed)
-                this._ungrab();
+   setFloatingSubMenu: function(floating) {
+      if(this._floating != floating) {
+         this._floating = floating;
+         for(let pos in this._menus) {
+            if(this._menus[pos].menu.setFloatingState)
+               this._menus[pos].menu.setFloatingState(this._floating);
+         }
+      }
+   },
+
+   setShowItemIcon: function(show) {
+      if(this._showItemIcon != show) {
+         this._showItemIcon = show;
+         for(let pos in this._menus) {
+            if(this._menus[pos].menu.setShowItemIcon)
+               this._menus[pos].menu.setShowItemIcon(this._showItemIcon);
+         }
+      }
+   },
+
+   removeMenu: function(menu) {
+      if (menu == this._activeMenu)
+         this._closeMenu();
+
+      let position = this._findMenu(menu);
+      // Not a menu we manage
+      if (position == -1) 
+         return;
+
+      let menudata = this._menus[position];
+      menu.disconnect(menudata.openStateChangeId);
+      menu.disconnect(menudata.childMenuAddedId);
+      menu.disconnect(menudata.childMenuRemovedId);
+      menu.disconnect(menudata.destroyId);
+
+      if (menudata.enterId)
+         menu.sourceActor.disconnect(menudata.enterId);
+      if (menudata.focusInId)
+         menu.sourceActor.disconnect(menudata.focusInId);
+      if (menudata.leaveId)
+         menu.sourceActor.disconnect(menudata.leaveId);
+      if (menudata.focusOutId)
+         menu.sourceActor.disconnect(menudata.focusOutId);
+
+      this._menus.splice(position, 1);
+   },
+
+   _onMenuOpenState: function(menu, open) {
+      if (!this._isFloating(menu))
+         return;
+      if (open) {
+         if (this._activeMenu && this._activeMenu.isChildMenu(menu)) {
+            this._menuStack.push(this._activeMenu);
+            menu.actor.grab_key_focus();
+         }
+         this._activeMenu = menu;
+      } else if (this._menuStack.length > 0) {
+         this._activeMenu = this._menuStack.pop();
+      } else if (this._activeMenu) {
+         this._activeMenu.close();
+      }
+
+      // Check what the focus was before calling pushModal/popModal
+      let focus = global.stage.key_focus;
+      let hadFocus = focus && this._activeMenuContains(focus);
+
+      if (open) {
+         if (!this.grabbed) {
+            this._preGrabInputMode = global.stage_input_mode;
+            this._grabbedFromKeynav = hadFocus;
+            this._grab();
+         }
+
+         if (hadFocus)
+            focus.grab_key_focus();
+         else
+            menu.actor.grab_key_focus();
+      } else if (menu == this._activeMenu) {
+         if (this.grabbed)
+            this._ungrab();
   
-            this._activeMenu = null;
+         this._activeMenu = null;
 
-            if (this._grabbedFromKeynav) {
-                if (this._preGrabInputMode == Cinnamon.StageInputMode.FOCUSED)
-                    global.stage_input_mode = Cinnamon.StageInputMode.FOCUSED;
-                if (hadFocus && menu.sourceActor)
-                    menu.sourceActor.grab_key_focus();
-                else if (focus)
-                    focus.grab_key_focus();
-            }
-        }
-    },
+         if (this._grabbedFromKeynav) {
+            if (this._preGrabInputMode == Cinnamon.StageInputMode.FOCUSED)
+               global.stage_input_mode = Cinnamon.StageInputMode.FOCUSED;
+            if (hadFocus && menu.sourceActor)
+               menu.sourceActor.grab_key_focus();
+            else if (focus)
+               focus.grab_key_focus();
+         }
+      }
+   },
 
-    _shouldMadeSourceAction: function(menu) {
-        if (!this.grabbed)
-            return false;
-        if (this._activeMenu && this._activeMenu.isChildMenu(menu))
-            return false;
-        if (this._menuStack.indexOf(menu) != -1)
-            return false;
-        return true;
-    },
+   _shouldMadeSourceAction: function(menu) {
+      if (!this.grabbed)
+         return false;
+      if (this._activeMenu && this._activeMenu.isChildMenu(menu))
+         return false;
+      if (this._menuStack.indexOf(menu) != -1)
+         return false;
+      return true;
+   },
 
-    // change the currently-open menu without dropping grab
-    _changeMenu: function(newMenu) {
-        if (this._activeMenu) {
-            // _onOpenMenuState will drop the grab if it sees
-            // this._activeMenu being closed; so clear _activeMenu
-            // before closing it to keep that from happening.
-            let pos = this._menuStack.indexOf(newMenu.getTopMenu());
-            // we will accepted pos == -1, as we want to close the activemenu also.
-            for(let i = this._menuStack.length; i > pos; i--) {
-               let oldMenu = this._activeMenu;
-               this._activeMenu = null;
-               oldMenu.close(false);
-            }
-            newMenu.open(false);
-        } else
-            newMenu.open(true);
-    },
-
-    _onMenuSourceEnter: function(menu) {
-        if(!this._shouldMadeSourceAction(menu) || menu == this._activeMenu)
-           return false;
-
-        this._changeMenu(menu);
-        return false;
-    },
-
-    _onMenuSourceLeave: function(menu) {
-       let topMenu = menu.getTopMenu();
-       if ((this.grabbed) && (topMenu) && (topMenu.actor.get_parent() == Main.uiGroup)) {
-           this._disconnectTimeOut();
-           this._lastMenuTimeOut = Mainloop.idle_add(Lang.bind(this, function() {
-              //this._lastMenuTimeOut = Mainloop.timeout_add(500, Lang.bind(this, function() {
-              this._disconnectTimeOut();
-              let focus = global.stage.key_focus;
-              if ((focus) && (topMenu.actor.contains(focus)))
-                 this._onMenuSourceCompleteLeave(menu);
-           }));
-       }
-    },
-
-    _disconnectTimeOut: function() {
-        if(this._lastMenuTimeOut > 0) {
-           Mainloop.source_remove(this._lastMenuTimeOut);
-           this._lastMenuTimeOut = 0;
-        }
-    },
-
-    _onMenuSourceCompleteLeave: function(menu) {
-        if(!this._shouldMadeSourceAction(menu) || menu != this._activeMenu)
-           return false;
-
-        if (this._activeMenu) {
+   // change the currently-open menu without dropping grab
+   _changeMenu: function(newMenu) {
+      if (this._activeMenu) {
+         // _onOpenMenuState will drop the grab if it sees
+         // this._activeMenu being closed; so clear _activeMenu
+         // before closing it to keep that from happening.
+         let pos = this._menuStack.indexOf(newMenu.getTopMenu());
+         // We will accepted pos == -1, as we want to close the activemenu also.
+         for(let i = this._menuStack.length; i > pos; i--) {
             let oldMenu = this._activeMenu;
             this._activeMenu = null;
             oldMenu.close(false);
-        }
-        return false;
-    },
+         }
+         newMenu.open(false);
+      } else
+         newMenu.open(true);
+   },
 
-    _onKeyFocusChanged: function() {
-        if (!this.grabbed || !this._activeMenu || DND.isDragging())
+   _isFloating: function(menu) {
+      return ((menu.isInFloatingState) && (menu.isInFloatingState()));
+   },
+
+   _onMenuSourceEnter: function(menu) {
+      if((!this._isFloating(menu)) || (!this._shouldMadeSourceAction(menu)) || (menu == this._activeMenu))
+         return false;
+
+      this._changeMenu(menu);
+      return false;
+   },
+
+   _onMenuSourceLeave: function(menu) {
+      let topMenu = menu.getTopMenu();
+      if ((this._isFloating(menu)) && (this.grabbed) && (topMenu) && (topMenu.actor.get_parent() == Main.uiGroup)) {
+         this._disconnectTimeOut();
+         //this._lastMenuTimeOut = Mainloop.timeout_add(500, Lang.bind(this, function() {
+         this._lastMenuTimeOut = Mainloop.idle_add(Lang.bind(this, function() {
+            this._disconnectTimeOut();
+            let focus = global.stage.key_focus;
+            if ((focus) && (topMenu.actor.contains(focus)))
+               this._onMenuSourceCompleteLeave(menu);
+         }));
+      }
+   },
+
+   _disconnectTimeOut: function() {
+      if(this._lastMenuTimeOut > 0) {
+         Mainloop.source_remove(this._lastMenuTimeOut);
+         this._lastMenuTimeOut = 0;
+      }
+   },
+
+   _onMenuSourceCompleteLeave: function(menu) {
+      if(!this._shouldMadeSourceAction(menu) || menu != this._activeMenu)
+         return false;
+
+      if (this._activeMenu) {
+         let oldMenu = this._activeMenu;
+         this._activeMenu = null;
+         oldMenu.close(false);
+      }
+      return false;
+   },
+
+   _onKeyFocusChanged: function() {
+      if (!this.grabbed || !this._activeMenu || DND.isDragging())
+         return;
+
+      let focus = global.stage.key_focus;
+      if (focus) {
+         if (this._activeMenuContains(focus))
             return;
+         if (this._menuStack.length > 0)
+            return;
+         if (focus._delegate && focus._delegate.menu &&
+            this._findMenu(focus._delegate.menu) != -1)
+            return;
+      }
 
-        let focus = global.stage.key_focus;
-        if (focus) {
-            if (this._activeMenuContains(focus))
-                return;
-            if (this._menuStack.length > 0)
-                return;
-            if (focus._delegate && focus._delegate.menu &&
-                this._findMenu(focus._delegate.menu) != -1)
-                return;
-        }
+      this._closeMenu();
+      //Mainloop.idle_add(Lang.bind(this, this._closeMenu));
+   },
 
-        this._closeMenu();
-        //Mainloop.idle_add(Lang.bind(this, this._closeMenu));
-    },
-
-    // FIXME The focus cloud be lost, if we have several menus opened.
-    // We need to used it, to properly find where is the focus?
-    _findFocusInStack: function(focus) {
-        for(pos in this._menuStack) {
-           if(this._menuStack[pos].actor.contains(focus))
-              return true;
-        }
-        return false;
-    },
-
-    // Override allow return false to active the parent menu actions.
-    _onEventCapture: function(actor, event) {
-        if (!this.grabbed)
-            return false;
-
-        if (this._owner.menuEventFilter &&
-            this._owner.menuEventFilter(event))
+   // FIXME The focus cloud be lost, if we have several menus opened.
+   // We need to used it, to properly find where is the focus?
+   _findFocusInStack: function(focus) {
+      for(pos in this._menuStack) {
+         if(this._menuStack[pos].actor.contains(focus))
             return true;
+      }
+      return false;
+   },
 
-        if (this._activeMenu != null && this._activeMenu.passEvents)
-            return false;
+   // Override allow return false to active the parent menu actions.
+   _onEventCapture: function(actor, event) {
+      if (!this.grabbed)
+         return false;
 
-        let activeMenuContains = this._eventIsOnActiveMenu(event);
-        let eventType = event.type();
+      if (this._owner.menuEventFilter &&
+         this._owner.menuEventFilter(event))
+         return true;
 
-        if (eventType == Clutter.EventType.BUTTON_RELEASE) {
-            if (!activeMenuContains)
-                this._closeMenu();
-            return false;
-        } else if (eventType == Clutter.EventType.BUTTON_PRESS && !activeMenuContains) {
+      if (this._activeMenu != null && this._activeMenu.passEvents)
+         return false;
+
+      let activeMenuContains = this._eventIsOnActiveMenu(event);
+      let eventType = event.type();
+
+      if (eventType == Clutter.EventType.BUTTON_RELEASE) {
+         if (!activeMenuContains)
             this._closeMenu();
+         return false;
+      } else if (eventType == Clutter.EventType.BUTTON_PRESS && !activeMenuContains) {
+         this._closeMenu();
+         return false;
+      } else if (!this._shouldBlockEvent(event)) {
+         return false;
+      }
+
+      return true;
+   },
+
+   _shouldBlockEvent: function(event) {
+      let src = event.get_source();
+
+      if (this._activeMenu != null && this._activeMenu.actor.contains(src))
+         return false;
+
+      // Override menu.actor.contains(src)
+      for (let i = 0; i < this._menus.length; i++) {
+         let menu = this._menus[i].menu;
+         if ((menu.sourceActor && !menu.blockSourceEvents && menu.sourceActor.contains(src)) ||
+             (menu.actor.contains(src))) {
             return false;
-        } else if (!this._shouldBlockEvent(event)) {
-            return false;
-        }
+         }
+      }
 
-        return true;
-    },
-
-    _shouldBlockEvent: function(event) {
-        let src = event.get_source();
-
-        if (this._activeMenu != null && this._activeMenu.actor.contains(src))
-            return false;
-
-        // Override menu.actor.contains(src)
-        for (let i = 0; i < this._menus.length; i++) {
-            let menu = this._menus[i].menu;
-            if ((menu.sourceActor && !menu.blockSourceEvents && menu.sourceActor.contains(src)) ||
-                (menu.actor.contains(src))) {
-                return false;
-            }
-        }
-
-        return true;
-    }
+      return true;
+   }
 };
 
 /**
@@ -927,14 +930,14 @@ ConfigurableMenuManager.prototype = {
  * The class that allow a lot of things on the menu API.
  */
 function ConfigurableMenu() {
-    this._init.apply(this, arguments);
+   this._init.apply(this, arguments);
 }
 
 ConfigurableMenu.prototype = {
-    // Compatibility reasons
-    //__proto__: PopupMenu.PopupMenuBase.prototype,
-    //__proto__: PopupMenu.PopupSubMenu.prototype,
-    __proto__: PopupMenu.PopupMenu.prototype, 
+   // Compatibility reasons
+   //__proto__: PopupMenu.PopupMenuBase.prototype,
+   //__proto__: PopupMenu.PopupSubMenu.prototype,
+   __proto__: PopupMenu.PopupMenu.prototype, 
 
 
    _init: function(launcher, arrowAlignment, orientation, floating) {
@@ -994,7 +997,6 @@ ConfigurableMenu.prototype = {
          this._boxPointer.actor.set_style_class_name('popup-menu-boxpointer');
          this._boxPointer.actor.add_style_class_name('popup-menu');
          this._boxPointer.actor.hide();
-         this._fixedPointer = this._boxPointer.actor.connect('parent-set', Lang.bind(this, this._onParentChanged));
          this._boxPointer.actor.connect('key-press-event', Lang.bind(this, this._onKeyPressEvent));
          Main.uiGroup.add_actor(this._boxPointer.actor);
          global.focus_manager.add_group(this._boxPointer.actor);
@@ -1006,22 +1008,13 @@ ConfigurableMenu.prototype = {
          this._boxPointer.bin.set_child(this._boxWrapper);
          this._scroll.add_actor(this.box);
 
-         //Init the launcher and the floating state.
+         // Init the launcher and the floating state.
          this.actor = this._scroll;
          this.setFloatingState(floating == true);
          this.setLauncher(launcher);
       } catch(e) {
          Main.notify("ErrorMenuCreation", e.message);
       }
-   },
-
-   _onParentChanged: function(actor, oldActor, event) {
-     /* let parent = this._boxPointer.actor.get_parent();
-      if((parent)&&(parent != Main.uiGroup)) {
-         parent.remove_actor(this._boxPointer.actor);
-      }
-      if(parent != Main.uiGroup)
-         Main.uiGroup.add_actor(this._boxPointer.actor);*/
    },
 
    addMenuItem: function(menuItem, position) {
@@ -1077,11 +1070,15 @@ ConfigurableMenu.prototype = {
       this._updateTopMenu();
    },
 
+   isInFloatingState: function(animate) {
+       return this._floating;
+   },
+
    setLauncher: function(launcher) {
       this.closeClean();      
       this.launcher = launcher;
       if(this.launcher) {
-         //this.sourceActor = this.launcher.actor;
+         this.sourceActor = this.launcher.actor;
          this._boxPointer.trySetPosition(this.launcher.actor, this._arrowAlignment);
          this._updateTopMenu();
       }
@@ -1108,7 +1105,6 @@ ConfigurableMenu.prototype = {
                     box.add(this.actor);
                 }
             } else {
-               // Main.notify("insert_last")
                 if (box.add) {
                    box.add(this.actor);
                 } else if(box.addActor) {
@@ -1268,7 +1264,6 @@ ConfigurableMenu.prototype = {
       }
    },
 
-//*************************************************//
    showBoxPointer: function(show) {
       this._boxPointer.showArrow(show);
    },
@@ -1291,8 +1286,6 @@ ConfigurableMenu.prototype = {
 
    repositionActor: function(actor) {
       if((this.launcher.actor)&&(this.launcher.actor != actor)) {
-         //actor._delegate = this.sourceActor._delegate;
-         //actor._applet = this.sourceActor._applet;
          this._boxPointer.trySetPosition(actor, this._arrowAlignment);
       }
    },
@@ -1306,7 +1299,6 @@ ConfigurableMenu.prototype = {
    },
 
    openClean: function(animate) {
-     try {
       if((this.isOpen)||(!this._reactive))
          return;
 
@@ -1349,7 +1341,6 @@ ConfigurableMenu.prototype = {
       // the monitor on Crome, so, request on idle.
       Mainloop.idle_add(Lang.bind(this, this._setChildsArrowSide));
       this.emit('open-state-changed', true);
-     } catch(e) {Main.notify("err2" , e.message)}
    },
 
    closeClean: function(animate) {
@@ -1530,7 +1521,7 @@ ConfigurableMenu.prototype = {
    },*/
 
    _effectWindowsOpen: function() {
-     let [startX, ay] = this.launcher.actor.get_transformed_position();
+      let [startX, ay] = this.launcher.actor.get_transformed_position();
       let monitor = Main.layoutManager.primaryMonitor;
       if(startX > monitor.x + monitor.width/2)
           startX = monitor.x + monitor.width + 3*this.actor.width/2;
@@ -1794,10 +1785,6 @@ ConfigurableMenu.prototype = {
 
    destroy: function() {
       if(this.actor) {
-         if(this._fixedPointer > 0) {
-            this._boxPointer.actor.disconnect(this._fixedPointer);
-            this._fixedPointer = 0;
-         }
          this._releaseActorState();
          this.actor = this._scroll;
          //this._boxWrapper.add_actor(this._scroll);
@@ -1862,7 +1849,7 @@ ConfigurablePopupSwitchMenuItem.prototype = {
       this._switch.setToggleState(state);
    },
 
-   get_state: function() {
+   getState: function() {
       return this._switch.state;
    },
 
@@ -2266,7 +2253,6 @@ ConfigurableMenuApplet.prototype = {
       ConfigurableMenu.prototype._init.call(this, launcher, 0.0, orientation, false);
       this._menuManager = menuManager;
       this.minItemWidth = 34;
-      this.default_displayed = !this._floating;
       this._autoActive = true;
 
       this.scale = 1;
@@ -2286,9 +2272,7 @@ ConfigurableMenuApplet.prototype = {
          this.actor.add(this.box);
          this.actor.hide();
       }
-      this.sourceActor = null;
       this._menuManager.addMenu(this);
-      this.sourceActor = this.launcher.actor;
    },
 
    open: function(animate) {
@@ -2299,6 +2283,7 @@ ConfigurableMenuApplet.prototype = {
          this.isOpen = true;
          this.actor.show();
          this._setChildsArrowSide();
+         this.emit('open-state-changed', true);
       }
    },
 
@@ -2308,6 +2293,7 @@ ConfigurableMenuApplet.prototype = {
       } else if(forced) {
          this.actor.hide();
          this.isOpen = false;
+         this.emit('open-state-changed', false);
       }
    },
 
@@ -2451,498 +2437,503 @@ ConfigurableMenuApplet.prototype = {
  * with an abstract representation of a menu.
  */
 function PopupMenuAbstractFactory() {
-    throw new TypeError('Trying to instantiate abstract class PopupMenuAbstractFactory');
+   throw new TypeError('Trying to instantiate abstract class PopupMenuAbstractFactory');
 }
 
 PopupMenuAbstractFactory.prototype = {
 
-    _init: function(id, children_ids, params) {
-        this._id = id;
-        this._children_ids = children_ids;
-        if(!this._children_ids)
-            this._children_ids = new Array();
-        this._internal_signals_handlers = new Array();
-        this._external_signals_handlers = new Array();
-        this._shell_item_signals_handlers = null;
-        this._shell_menu_signals_handlers = null;
-        this.shellItem = null;
-        this.parent = null;
-        this._shellItemDestroyId = 0;
-        this._shellMenuDestroyId = 0;
+   _init: function(id, children_ids, params) {
+      this._id = id;
+      this._children_ids = children_ids;
+      if(!this._children_ids)
+         this._children_ids = new Array();
+      this._internal_signals_handlers = new Array();
+      this._external_signals_handlers = new Array();
+      this._shell_item_signals_handlers = null;
+      this._shell_menu_signals_handlers = null;
+      this.shellItem = null;
+      this.parent = null;
+      this._shellItemDestroyId = 0;
+      this._shellMenuDestroyId = 0;
 
-        //properties
-        params = Params.parse (params, { label: "",
-                                         accel: "",
-                                         sensitive: true,
-                                         visible: true,
-                                         toggleType: "",
-                                         toggleState: false,
-                                         iconName: "",
-                                         iconData: null,
-                                         action:"",
-                                         paramType: "", //this is a variant
-                                         type: FactoryClassTypes.MenuItemClass
-                                       });
-        this._label = params.label;
-        this._accel = params.accel;
-        this._sensitive = params.sensitive;
-        this._visible = params.visible;
-        this._toggleType = params.toggleType;
-        this._toggleState = params.toggleState;
-        this._iconName = params.iconName;
-        this._iconData = params.iconData;
-        this._type = params.type;
-        this._action = params.action;
-        this._paramType = params.paramType;
-    },
-
-    getItemById: function(id) {throw new Error('Trying to use abstract function getItemById');},
-    handleEvent: function(event, params) {throw new Error('Trying to use abstract function handleEvent');},
-    //is_root: function() {throw new Error('Trying to use abstract function is_root');},
-
-    isVisible: function() {
-        return this._visible;
-    },
-
-    setVisible: function(visible) {
-        if (this._visible != visible) {
-            this._visible = visible;
-            this._updateVisible();
-        }
-    },
-
-    isSensitive: function() {
-        return this._sensitive;
-    },
-
-    setSensitive: function(sensitive) {
-        if (this._sensitive != sensitive) {
-            this._sensitive = sensitive;
-            this._updateSensitive();
-        }
-    },
-
-    getLabel: function() {
-        return this._label; 
-    },
-
-    setLabel: function(label) {
-        if (this._label != label) {
-            this._label = label;
-            this._updateLabel();
-        }
-    },
-
-    getAction: function() {
-        return this._action;
-    },
-
-    setAction: function(action) {
-        if (this._action != action) {
-            this._action = action;
-        }
-    },
-
-    getParamType: function() {
-       return this._paramType;
-    },
-
-    setParamType: function(paramType) {
-        if (this._paramType != paramType) {
-            this._paramType = paramType;
-        }
-    },
-
-    getFactoryType: function() {
-        return this._type;
-    },
-
-    setFactoryType: function(type) {
-        if ((type) && (this._type != type)) {
-            this._type = type;
-            this._updateType();
-        }
-    },
-
-    getIconName: function() {
-        return this._iconName;
-    },
-
-    setIconName: function(iconName) {
-        if (this._iconName != iconName) {
-            this._iconName = iconName;
-            this._updateImage();
-        }
-    },
-
-    getGdkIcon: function() {
-        return this._iconData;
-    },
-
-    setGdkIcon: function(iconData) {
-        if (this._iconData != iconData) {
-            this._iconData = iconData;
-            this._updateImage();
-        }
-    },
-
-    getToggleType: function() {
-        return this._toggleType;
-    },
-
-    setToggleType: function(toggleType) {
-        if (this._toggleType != toggleType) {
-            this._toggleType = toggleType;
-            this._updateOrnament();
-        }
-    },
-
-    getToggleState: function() {
-        return this._toggleState;
-    },
-
-    setToggleState: function(toggleState) {
-        if (this._toggleState != toggleState) {
-            this._toggleState = toggleState;
-            this._updateOrnament();
-        }
-    },
-
-    getAccel: function() {
-        return this._accel;
-    },
-
-    setAccel: function(accel) {
-        if (this._accel != accel) {
-            this._accel = accel;
-            this._updateAccel();
-        }
-    },
-
-    setShellItem: function(shellItem, handlers) {
-        if (this.shellItem != shellItem) {
-            if(this.shellItem) {
-                //this.shellItem.destroy();
-                global.logWarning("Attempt to override a shellItem, so we automatically destroy our original shellItem.");
-            }
-            this.shellItem = shellItem;
-
-            if (this.shellItem) {
-                // initialize our state
-                this._updateLabel();
-                this._updateOrnament();
-                this._updateAccel();
-                this._updateImage();
-                this._updateVisible();
-                this._updateSensitive();
-
-                this._connectAndSaveId(this, handlers, this._internal_signals_handlers);
-
-                if (this.shellItem.menu) {
-                    //this._shell_menu_signals_handlers = this._connectAndSaveId(this.shellItem.menu, menuHandlers);
-                    this._shell_menu_signals_handlers = this._connectAndSaveId(this.shellItem.menu, {
-                        'open-state-changed': Lang.bind(this, this._onOpenStateChanged)
-                    });
-                    this._shell_item_signals_handlers = this._connectAndSaveId(this.shellItem, {
-                        'activate':  Lang.bind(this, this._onActivate)
-                    });
-                    this._shellMenuDestroyId = this.shellItem.menu.connect('destroy', Lang.bind(this, this._onShellMenuDestroyed));
-                } else {
-                    this._shell_item_signals_handlers = this._connectAndSaveId(this.shellItem, {
-                        'open-state-changed': Lang.bind(this, this._onOpenStateChanged),
-                        'activate':  Lang.bind(this, this._onActivate)
-                    });
-                }
-                //this._shell_item_signals_handlers = this._connectAndSaveId(this.shellItem, shellItemHandlers);
-                this._shellItemDestroyId = this.shellItem.connect('destroy', Lang.bind(this, this._onShellItemDestroyed));
-            }
-        }
-    },
-
-    _updateLabel: function() {
-        if ((this.shellItem)&&(this.shellItem.label)) {
-            let label = this.getLabel();
-
-            if (this.shellItem.label) // especially on GS3.8, the separator item might not even have a hidden label
-                this.shellItem.label.set_text(label);
-        }
-    },
-
-    _updateOrnament: function() {
-        if ((this.shellItem)&&(this.shellItem.setOrnament)) { // separators and alike might not have gotten the polyfill
-            if (this.getToggleType() == "checkmark") {
-                this.shellItem.setOrnament(OrnamentType.CHECK, this.getToggleState());
-            } else if (this.getToggleType() == "radio") {
-                this.shellItem.setOrnament(OrnamentType.DOT, this.getToggleState());
-            } else {
-                this.shellItem.setOrnament(OrnamentType.NONE);
-            }
-        }
-    },
-
-    _updateAccel: function() {
-        if ((this.shellItem)&&(this.shellItem._accel)) {
-            let accel = this.getAccel();
-            if(accel) {
-                this.shellItem._accel.set_text(accel);
-            }
-        }
-    },
-
-    _updateImage: function() {
-        if ((this.shellItem)&&(this.shellItem._icon)) {// might be missing on submenus / separators
-            let iconName = this.getIconName();
-            if (iconName) {
-                if(this.shellItem.setIconName)
-                    this.shellItem.setIconName(iconName);
-                else if(this.shellItem._icon) {
-                    this.shellItem._icon.icon_name = iconName;
-                    this.shellItem._icon.show();
-                }
-            } else {
-                let gicon = this.getGdkIcon();
-                if (gicon) {
-                    if(this.shellItem.setGIcon)
-                        this.shellItem.setGIcon(gicon);
-                    else if(this.shellItem._icon) {
-                        this.shellItem._icon.gicon = gicon;
-                        this.shellItem._icon.show();
-                    }
-                }
-            }
-        }
-    },
-
-    _updateVisible: function() {
-        if (this.shellItem) {
-            this.shellItem.actor.visible = this.isVisible();
-        }
-    },
-
-    _updateSensitive: function() {
-        if ((this.shellItem)&&(this.shellItem.setSensitive)) {
-            this.shellItem.setSensitive(this.isSensitive());
-        }
-    },
-
-    _updateType: function() {
-        this.emit('type-changed');
-    },
-
-    getShellItem: function() {
-        return this.shellItem;
-    },
-
-    get_id: function() {
-        return this._id;
-    },
-
-    getChildrenIds: function() {
-        return this._children_ids.concat(); // clone it!
-    },
-
-    getChildren: function() {
-        return this._children_ids.map(function(child_id) {
-            return this.getItemById(child_id);
-        }, this);
-    },
-
-    getParent: function() {
-        return this.parent;
-    },
-
-    setParent: function(parent) {
-        this.parent = parent;
-    },
-
-    addChild: function(pos, child_id) {
-        let factoryItem = this.getItemById(child_id);
-        if(factoryItem) {
-            let shellItem = factoryItem.getShellItem();
-            //If our item is previusly asigned, so destroy first the shell item.
-            if(shellItem)
-                shellItem.destroy();
-            factoryItem.setParent(this);
-            this._children_ids.splice(pos, 0, child_id);
-            this.emit('child-added', factoryItem, pos);
-        }
-    },
-
-    removeChild: function(child_id) {
-        // find it
-        let pos = -1;
-        for (let i = 0; i < this._children_ids.length; ++i) {
-            if (this._children_ids[i] == child_id) {
-                pos = i;
-                break;
-            }
-        }
-
-        if (pos < 0) {
-            global.logError("Trying to remove child which doesn't exist");
-        } else {
-            this._children_ids.splice(pos, 1);
-            let factoryItem = this.getItemById(child_id);
-            if(factoryItem) {
-                factoryItem.setParent(null);
-                let shellItem = factoryItem.getShellItem();
-                if(shellItem)
-                    shellItem.destroy();
-                this.emit('child-removed', factoryItem);
-            }
-        }
-        if (this._children_ids.length == 0) {
-            this.emit('childs-empty');
-        }
-    },
-
-    moveChild: function(child_id, newpos) {
-        // find the old position
-        let oldpos = -1;
-        for (let i = 0; i < this._children_ids.length; ++i) {
-            if (this._children_ids[i] == child_id) {
-                oldpos = i;
-                break;
-            }
-        }
-
-        if (oldpos < 0) {
-            global.logError("tried to move child which wasn't in the list");
-            return;
-        }
-
-        if (oldpos != newpos) {
-            this._children_ids.splice(oldpos, 1);
-            this._children_ids.splice(newpos, 0, child_id);
-            this.emit('child-moved', oldpos, newpos, this.getItemById(child_id));
-        }
-    },
-
-    connectAndRemoveOnDestroy: function(handlers) { //handlers = { "signal": handler }
-        this._connectAndSaveId(this, handlers, this._external_signals_handlers);
-    },
-
-    _connectAndSaveId: function(target, handlers , idArray) {// handlers = { "signal": handler }
-        idArray = typeof idArray != 'undefined' ? idArray : [];
-        for (let signal in handlers) {
-            idArray.push(target.connect(signal, handlers[signal]));
-        }
-        return idArray;
-    },
-
-    _disconnectSignals: function(obj, signals_handlers) {
-        if ((obj)&&(signals_handlers)) {
-            for (let pos in signals_handlers)
-                obj.disconnect(signals_handlers[pos]);
-        }
-    },
-
-    _onActivate: function(shellItem, event, keepMenu) {
-        this.handleEvent("clicked");
-    },
-
-    _onOpenStateChanged: function(menu, open) {
-        //this._onShellMenuPreOpened(menu);
-        if (open) {
-            this.handleEvent("opened");
-        } else {
-            this.handleEvent("closed");
-        }
-    },
-
-    //HACK: When a submenu will close, also close all childs submenus. 
-/*    _onShellMenuPreOpened: function(menu) {
-        let top_menu = this._getTopMenu(menu);
-        if (top_menu) {
-            if ((top_menu._openedSubMenu)&&(menu != top_menu._openedSubMenu)&&
-                (top_menu._openedSubMenu.isOpen)&&(menu.isOpen)) {
-                top_menu._openedSubMenu.close(true);
-            }
-            if (menu.isOpen)
-               top_menu._openedSubMenu = menu;
-        }
-        if (!menu.isOpen)
-            this._closeAllSubmenuChilds(menu);
-    },
-
-    _closeAllSubmenuChilds: function(menu) {
-        let childs = this._getMenuItems(menu);
-        let child;
-        for (let i in childs) {
-            child = childs[i];
-            if (child instanceof PopupMenu.PopupMenuBase) {
-                this._closeAllSubmenuChilds(child);
-            }
-            else if ((child.menu)&&(child.menu.isOpen)) {
-                this._closeAllSubmenuChilds(child.menu);
-                child.menu.close();
-            }
-        }
-    },
-
-    _getTopMenu: function(shellItem) {
-        let actor = shellItem.actor.get_parent();
-        while (actor) {
-            if ((actor._delegate) && ((actor._delegate instanceof PopupMenu.PopupMenu) ||
-                (actor._delegate instanceof PopupMenu.PopupSubMenu)))
-               return actor._delegate;
-            actor = actor.get_parent();
-       }
-       return null;
+      // Properties
+      params = Params.parse (params, { label: "",
+                                       accel: "",
+                                       sensitive: true,
+                                       visible: true,
+                                       toggleType: "",
+                                       toggleState: false,
+                                       iconName: "",
+                                       iconData: null,
+                                       action:"",
+                                       paramType: "", //this is a variant
+                                       type: FactoryClassTypes.MenuItemClass
+                                     });
+      this._label = params.label;
+      this._accel = params.accel;
+      this._sensitive = params.sensitive;
+      this._visible = params.visible;
+      this._toggleType = params.toggleType;
+      this._toggleState = params.toggleState;
+      this._iconName = params.iconName;
+      this._iconData = params.iconData;
+      this._type = params.type;
+      this._action = params.action;
+      this._paramType = params.paramType;
    },
 
-    _getMenuItems: function(menu) {
-        return menu.box.get_children().map(Lang.bind(this, function (actor) {
+   getItemById: function(id) {throw new Error('Trying to use abstract function getItemById');},
+   handleEvent: function(event, params) {throw new Error('Trying to use abstract function handleEvent');},
+   //is_root: function() {throw new Error('Trying to use abstract function is_root');},
+
+   isVisible: function() {
+      return this._visible;
+   },
+
+   setVisible: function(visible) {
+      if (this._visible != visible) {
+         this._visible = visible;
+         this._updateVisible();
+      }
+   },
+
+   isSensitive: function() {
+      return this._sensitive;
+   },
+
+   setSensitive: function(sensitive) {
+      if (this._sensitive != sensitive) {
+         this._sensitive = sensitive;
+         this._updateSensitive();
+      }
+   },
+
+   getLabel: function() {
+      return this._label; 
+   },
+
+   setLabel: function(label) {
+      if (this._label != label) {
+         this._label = label;
+         this._updateLabel();
+      }
+   },
+
+   getAction: function() {
+      return this._action;
+   },
+
+   setAction: function(action) {
+      if (this._action != action) {
+         this._action = action;
+      }
+   },
+
+   getParamType: function() {
+      return this._paramType;
+   },
+
+   setParamType: function(paramType) {
+      if (this._paramType != paramType) {
+         this._paramType = paramType;
+      }
+   },
+
+   getFactoryType: function() {
+      return this._type;
+   },
+
+   setFactoryType: function(type) {
+      if ((type) && (this._type != type)) {
+         this._type = type;
+         this._updateType();
+      }
+   },
+
+   getIconName: function() {
+      return this._iconName;
+   },
+
+   setIconName: function(iconName) {
+      if (this._iconName != iconName) {
+         this._iconName = iconName;
+         this._updateImage();
+      }
+   },
+
+   getGdkIcon: function() {
+      return this._iconData;
+   },
+
+   setGdkIcon: function(iconData) {
+      if (this._iconData != iconData) {
+         this._iconData = iconData;
+         this._updateImage();
+      }
+   },
+
+   getToggleType: function() {
+      return this._toggleType;
+   },
+
+   setToggleType: function(toggleType) {
+      if (this._toggleType != toggleType) {
+         this._toggleType = toggleType;
+         this._updateOrnament();
+      }
+   },
+
+   getToggleState: function() {
+      return this._toggleState;
+   },
+
+   setToggleState: function(toggleState) {
+      if (this._toggleState != toggleState) {
+         this._toggleState = toggleState;
+         this._updateOrnament();
+      }
+   },
+
+   getAccel: function() {
+      return this._accel;
+   },
+
+   setAccel: function(accel) {
+      if (this._accel != accel) {
+         this._accel = accel;
+         this._updateAccel();
+      }
+   },
+
+   setShellItem: function(shellItem, handlers) {
+      if (this.shellItem != shellItem) {
+         if(this.shellItem) {
+            //this.shellItem.destroy();
+            global.logWarning("Attempt to override a shellItem, so we automatically destroy our original shellItem.");
+         }
+         this.shellItem = shellItem;
+
+         if (this.shellItem) {
+            // Initialize our state
+            this._updateLabel();
+            this._updateOrnament();
+            this._updateAccel();
+            this._updateImage();
+            this._updateVisible();
+            this._updateSensitive();
+
+            this._connectAndSaveId(this, handlers, this._internal_signals_handlers);
+
+            if (this.shellItem.menu) {
+               //this._shell_menu_signals_handlers = this._connectAndSaveId(this.shellItem.menu, menuHandlers);
+               this._shell_menu_signals_handlers = this._connectAndSaveId(this.shellItem.menu, {
+                  'open-state-changed': Lang.bind(this, this._onOpenStateChanged)
+               });
+               this._shell_item_signals_handlers = this._connectAndSaveId(this.shellItem, {
+                  'activate':  Lang.bind(this, this._onActivate)
+               });
+               this._shellMenuDestroyId = this.shellItem.menu.connect('destroy', Lang.bind(this, this._onShellMenuDestroyed));
+            } else {
+               this._shell_item_signals_handlers = this._connectAndSaveId(this.shellItem, {
+                  'open-state-changed': Lang.bind(this, this._onOpenStateChanged),
+                  'activate':  Lang.bind(this, this._onActivate)
+               });
+            }
+            //this._shell_item_signals_handlers = this._connectAndSaveId(this.shellItem, shellItemHandlers);
+            this._shellItemDestroyId = this.shellItem.connect('destroy', Lang.bind(this, this._onShellItemDestroyed));
+         }
+      }
+   },
+
+   _updateLabel: function() {
+      if ((this.shellItem)&&(this.shellItem.label)) {
+         let label = this.getLabel();
+         // Especially on GS3.8, the separator item might not even have a hidden label
+         if (this.shellItem.label) 
+            this.shellItem.label.set_text(label);
+      }
+   },
+
+   _updateOrnament: function() {
+      // Separators and alike might not have gotten the polyfill
+      if ((this.shellItem)&&(this.shellItem.setOrnament)) { 
+         if (this.getToggleType() == "checkmark") {
+            this.shellItem.setOrnament(OrnamentType.CHECK, this.getToggleState());
+         } else if (this.getToggleType() == "radio") {
+            this.shellItem.setOrnament(OrnamentType.DOT, this.getToggleState());
+         } else {
+            this.shellItem.setOrnament(OrnamentType.NONE);
+         }
+      }
+   },
+
+   _updateAccel: function() {
+      if ((this.shellItem)&&(this.shellItem._accel)) {
+         let accel = this.getAccel();
+         if(accel) {
+            this.shellItem._accel.set_text(accel);
+         }
+      }
+   },
+
+   _updateImage: function() {
+      // Might be missing on submenus / separators
+      if ((this.shellItem)&&(this.shellItem._icon)) {
+         let iconName = this.getIconName();
+         if (iconName) {
+            if(this.shellItem.setIconName)
+               this.shellItem.setIconName(iconName);
+            else if(this.shellItem._icon) {
+               this.shellItem._icon.icon_name = iconName;
+                this.shellItem._icon.show();
+            }
+         } else {
+            let gicon = this.getGdkIcon();
+            if (gicon) {
+               if(this.shellItem.setGIcon)
+                  this.shellItem.setGIcon(gicon);
+               else if(this.shellItem._icon) {
+                  this.shellItem._icon.gicon = gicon;
+                  this.shellItem._icon.show();
+               }
+            }
+         }
+      }
+   },
+
+   _updateVisible: function() {
+      if (this.shellItem) {
+         this.shellItem.actor.visible = this.isVisible();
+      }
+   },
+
+   _updateSensitive: function() {
+      if ((this.shellItem)&&(this.shellItem.setSensitive)) {
+         this.shellItem.setSensitive(this.isSensitive());
+      }
+   },
+
+   _updateType: function() {
+      this.emit('type-changed');
+   },
+
+   getShellItem: function() {
+      return this.shellItem;
+   },
+
+   getId: function() {
+      return this._id;
+   },
+
+   getChildrenIds: function() {
+      // Clone it!
+      return this._children_ids.concat();
+   },
+
+   getChildren: function() {
+      return this._children_ids.map(function(child_id) {
+         return this.getItemById(child_id);
+      }, this);
+   },
+
+   getParent: function() {
+      return this.parent;
+   },
+
+   setParent: function(parent) {
+      this.parent = parent;
+   },
+
+   addChild: function(pos, child_id) {
+      let factoryItem = this.getItemById(child_id);
+      if(factoryItem) {
+         let shellItem = factoryItem.getShellItem();
+         // If our item is previusly asigned, so destroy first the shell item.
+         if(shellItem)
+            shellItem.destroy();
+         factoryItem.setParent(this);
+         this._children_ids.splice(pos, 0, child_id);
+         this.emit('child-added', factoryItem, pos);
+      }
+   },
+
+   removeChild: function(child_id) {
+      // Find it
+      let pos = -1;
+      for (let i = 0; i < this._children_ids.length; ++i) {
+         if (this._children_ids[i] == child_id) {
+            pos = i;
+            break;
+         }
+      }
+
+      if (pos < 0) {
+         global.logError("Trying to remove child which doesn't exist");
+      } else {
+         this._children_ids.splice(pos, 1);
+         let factoryItem = this.getItemById(child_id);
+         if(factoryItem) {
+            factoryItem.setParent(null);
+            let shellItem = factoryItem.getShellItem();
+            if(shellItem)
+               shellItem.destroy();
+            this.emit('child-removed', factoryItem);
+         }
+      }
+      if (this._children_ids.length == 0) {
+         this.emit('childs-empty');
+      }
+   },
+
+   moveChild: function(child_id, newpos) {
+      // Find the old position
+      let oldpos = -1;
+      for (let i = 0; i < this._children_ids.length; ++i) {
+         if (this._children_ids[i] == child_id) {
+            oldpos = i;
+            break;
+         }
+      }
+
+      if (oldpos < 0) {
+         global.logError("tried to move child which wasn't in the list");
+         return;
+      }
+
+      if (oldpos != newpos) {
+         this._children_ids.splice(oldpos, 1);
+         this._children_ids.splice(newpos, 0, child_id);
+         this.emit('child-moved', oldpos, newpos, this.getItemById(child_id));
+      }
+   },
+
+   // handlers = { "signal": handler }
+   connectAndRemoveOnDestroy: function(handlers) { 
+      this._connectAndSaveId(this, handlers, this._external_signals_handlers);
+   },
+
+   // handlers = { "signal": handler }
+   _connectAndSaveId: function(target, handlers , idArray) {
+      idArray = typeof idArray != 'undefined' ? idArray : [];
+      for (let signal in handlers) {
+         idArray.push(target.connect(signal, handlers[signal]));
+      }
+      return idArray;
+   },
+
+   _disconnectSignals: function(obj, signals_handlers) {
+      if ((obj)&&(signals_handlers)) {
+         for (let pos in signals_handlers)
+            obj.disconnect(signals_handlers[pos]);
+      }
+   },
+
+   _onActivate: function(shellItem, event, keepMenu) {
+      this.handleEvent("clicked");
+   },
+
+   _onOpenStateChanged: function(menu, open) {
+      //this._onShellMenuPreOpened(menu);
+      if (open) {
+         this.handleEvent("opened");
+      } else {
+         this.handleEvent("closed");
+      }
+   },
+
+   //HACK: When a submenu will close, also close all childs submenus. 
+/* _onShellMenuPreOpened: function(menu) {
+      let top_menu = this._getTopMenu(menu);
+      if (top_menu) {
+         if ((top_menu._openedSubMenu)&&(menu != top_menu._openedSubMenu)&&
+             (top_menu._openedSubMenu.isOpen)&&(menu.isOpen)) {
+            top_menu._openedSubMenu.close(true);
+         }
+         if (menu.isOpen)
+            top_menu._openedSubMenu = menu;
+      }
+      if (!menu.isOpen)
+         this._closeAllSubmenuChilds(menu);
+   },
+
+   _closeAllSubmenuChilds: function(menu) {
+      let childs = this._getMenuItems(menu);
+      let child;
+      for (let i in childs) {
+         child = childs[i];
+         if (child instanceof PopupMenu.PopupMenuBase) {
+            this._closeAllSubmenuChilds(child);
+         }
+         else if ((child.menu)&&(child.menu.isOpen)) {
+            this._closeAllSubmenuChilds(child.menu);
+            child.menu.close();
+         }
+      }
+   },
+
+   _getTopMenu: function(shellItem) {
+      let actor = shellItem.actor.get_parent();
+      while (actor) {
+         if ((actor._delegate) && ((actor._delegate instanceof PopupMenu.PopupMenu) ||
+             (actor._delegate instanceof PopupMenu.PopupSubMenu)))
             return actor._delegate;
-        }));
-    },*/
+         actor = actor.get_parent();
+      }
+      return null;
+   },
 
-    _onShellItemDestroyed: function(shellItem) {
-        if ((this.shellItem)&&(this.shellItem == shellItem)) {
-            this.shellItem = null;
-            if (this._shellItemDestroyId > 0) {
-                shellItem.disconnect(this._shellItemDestroyId);
-                this._shellItemDestroyId = 0;
-            }
-            if (this._internal_signals_handlers) {
-                this._disconnectSignals(this, this._internal_signals_handlers);
-                this._internal_signals_handlers = [];
-            }
-            if (this._shell_item_signals_handler) {
-               this._disconnectSignals(shellItem, this._shell_item_signals_handlers);
-               this._shell_item_signals_handlers = null;
-            }
-        } else if (this.shellItem) {
-            global.logError("We are not conected with " + shellItem);
-        } else {
-            global.logWarning("We are not conected with any shellItem");
-        }
-    },
+   _getMenuItems: function(menu) {
+      return menu.box.get_children().map(Lang.bind(this, function (actor) {
+         return actor._delegate;
+      }));
+   },*/
 
-    _onShellMenuDestroyed: function(shellMenu) {
-        if (this._shellMenuDestroyId > 0) {
-            shellMenu.disconnect(this._shellMenuDestroyId);
-            this._shellMenuDestroyId = 0;
-        }
-        if (this._shell_menu_signals_handlers) {
-            this._disconnectSignals(shellMenu, this._shell_menu_signals_handlers);
-            this._shell_menu_signals_handlers = null;
-        }
-    },
+   _onShellItemDestroyed: function(shellItem) {
+      if ((this.shellItem)&&(this.shellItem == shellItem)) {
+         this.shellItem = null;
+         if (this._shellItemDestroyId > 0) {
+            shellItem.disconnect(this._shellItemDestroyId);
+            this._shellItemDestroyId = 0;
+         }
+         if (this._internal_signals_handlers) {
+            this._disconnectSignals(this, this._internal_signals_handlers);
+            this._internal_signals_handlers = [];
+         }
+         if (this._shell_item_signals_handler) {
+            this._disconnectSignals(shellItem, this._shell_item_signals_handlers);
+            this._shell_item_signals_handlers = null;
+         }
+      } else if (this.shellItem) {
+         global.logError("We are not conected with " + shellItem);
+      } else {
+         global.logWarning("We are not conected with any shellItem");
+      }
+   },
 
-    destroy: function() {
-       if (this._external_signals_handlers) {
-           // Emit the destroy first, to allow know to external lisener,
-           // then, disconnect the lisener handler.
-           this.emit("destroy");
-           if (this.shellItem)
-               this.shellItem.destroy();
-           this.shellItem = null;
-           this._disconnectSignals(this, this._external_signals_handlers);
-           this._external_signals_handlers = null;
-           this._internal_signals_handlers = null;
-       }
-    }
+   _onShellMenuDestroyed: function(shellMenu) {
+      if (this._shellMenuDestroyId > 0) {
+         shellMenu.disconnect(this._shellMenuDestroyId);
+         this._shellMenuDestroyId = 0;
+      }
+      if (this._shell_menu_signals_handlers) {
+         this._disconnectSignals(shellMenu, this._shell_menu_signals_handlers);
+         this._shell_menu_signals_handlers = null;
+      }
+   },
+
+   destroy: function() {
+      if (this._external_signals_handlers) {
+         // Emit the destroy first, to allow know to external lisener,
+         // then, disconnect the lisener handler.
+         this.emit("destroy");
+         if (this.shellItem)
+            this.shellItem.destroy();
+         this.shellItem = null;
+         this._disconnectSignals(this, this._external_signals_handlers);
+         this._external_signals_handlers = null;
+         this._internal_signals_handlers = null;
+      }
+   }
 };
 Signals.addSignalMethods(PopupMenuAbstractFactory.prototype);
 
@@ -2952,313 +2943,311 @@ Signals.addSignalMethods(PopupMenuAbstractFactory.prototype);
  * Processes events, creates the actors and handles the action on a bidirectional way.
  */
 function MenuFactory() {
-    this._init.apply(this, arguments);
+   this._init.apply(this, arguments);
 }
 
 MenuFactory.prototype = {
 
-    _init: function() {
-        this._menuLikend = new Array();
-        this._menuManager = new Array();
-    },
+   _init: function() {
+      this._menuLikend = new Array();
+      this._menuManager = new Array();
+   },
 
-    _createShellItem: function(factoryItem, launcher, orientation, menuManager) {
-        // Decide whether it's a submenu or not
-        let shellItem = null;
-        let item_type = factoryItem.getFactoryType();
-        if (item_type == FactoryClassTypes.RootMenuClass)
-            shellItem = new Applet.PopupMenu(launcher, orientation);
-        if (item_type == FactoryClassTypes.SubMenuMenuItemClass)
-            shellItem = new PopupMenu.PopupSubMenuMenuItem("FIXME");
-        else if (item_type == FactoryClassTypes.MenuSectionMenuItemClass)
-            shellItem = new PopupMenu.PopupMenuSection();
-        else if (item_type == FactoryClassTypes.SeparatorMenuItemClass)
-            shellItem = new PopupMenu.PopupSeparatorMenuItem('');
-        else if(item_type == FactoryClassTypes.MenuItemClass)
-            shellItem = new PopupMenu.PopupMenuItem("FIXME");
-        //else
-        //    throw new TypeError('Trying to instantiate a shell item with an invalid factory type');
-        return shellItem;
-    },
+   _createShellItem: function(factoryItem, launcher, orientation, menuManager) {
+      // Decide whether it's a submenu or not
+      let shellItem = null;
+      let item_type = factoryItem.getFactoryType();
+      if (item_type == FactoryClassTypes.RootMenuClass)
+         shellItem = new Applet.PopupMenu(launcher, orientation);
+      if (item_type == FactoryClassTypes.SubMenuMenuItemClass)
+         shellItem = new PopupMenu.PopupSubMenuMenuItem("FIXME");
+      else if (item_type == FactoryClassTypes.MenuSectionMenuItemClass)
+         shellItem = new PopupMenu.PopupMenuSection();
+      else if (item_type == FactoryClassTypes.SeparatorMenuItemClass)
+         shellItem = new PopupMenu.PopupSeparatorMenuItem('');
+      else if(item_type == FactoryClassTypes.MenuItemClass)
+         shellItem = new PopupMenu.PopupMenuItem("FIXME");
+      //else
+      //    throw new TypeError('Trying to instantiate a shell item with an invalid factory type');
+      return shellItem;
+   },
 
-    getShellMenu: function(factoryMenu) {
-        let index = this._menuLikend.indexOf(factoryMenu);
-        if (index != -1) {
-            return factoryMenu.getShellItem();
-        }
-        return null;
-    },
+   getShellMenu: function(factoryMenu) {
+      let index = this._menuLikend.indexOf(factoryMenu);
+      if (index != -1) {
+         return factoryMenu.getShellItem();
+      }
+      return null;
+   },
 
-    getMenuManager: function(factoryMenu) {
-        let index = this._menuLikend.indexOf(factoryMenu);
-        if (index != -1) {
-            return this._menuManager[index];
-        }
-        return null;
-    },
+   getMenuManager: function(factoryMenu) {
+      let index = this._menuLikend.indexOf(factoryMenu);
+      if (index != -1) {
+         return this._menuManager[index];
+      }
+      return null;
+   },
 
-    buildShellMenu: function(factoryMenu, launcher, orientation, menuManager) {
-        let shellItem = this.getShellMenu(factoryMenu);
-        if (factoryMenu.shellItem)
-            return factoryMenu.shellItem;
+   buildShellMenu: function(factoryMenu, launcher, orientation, menuManager) {
+      let shellItem = this.getShellMenu(factoryMenu);
+      if (factoryMenu.shellItem)
+         return factoryMenu.shellItem;
 
-        if (!(factoryMenu instanceof PopupMenuAbstractFactory)) {
-            throw new Error("MenuFactory: can't construct an instance of \
-                PopupMenu using a non instance of the class PopupMenuAbstractFactory");
-        }
-        // The shell menu
-        let shellItem = this._createShellItem(factoryMenu, launcher, orientation, menuManager);
-        this._attachToMenu(shellItem, factoryMenu);
-        this._menuManager.push(menuManager);
-        return shellItem;
-    },
+      if (!(factoryMenu instanceof PopupMenuAbstractFactory)) {
+         throw new Error("MenuFactory: can't construct an instance of \
+              PopupMenu using a non instance of the class PopupMenuAbstractFactory");
+      }
+      // The shell menu
+      let shellItem = this._createShellItem(factoryMenu, launcher, orientation, menuManager);
+      this._attachToMenu(shellItem, factoryMenu);
+      this._menuManager.push(menuManager);
+      return shellItem;
+   },
 
-    // This will attach the root factoryItem to an already existing menu that will be used as the root menu.
-    // it will also connect the factoryItem to be automatically destroyed when the menu dies.
-    _attachToMenu: function(shellItem, factoryItem) {
-        // cleanup: remove existing childs (just in case)
-        shellItem.removeAll();
+   // This will attach the root factoryItem to an already existing menu that will be used as the root menu.
+   // it will also connect the factoryItem to be automatically destroyed when the menu dies.
+   _attachToMenu: function(shellItem, factoryItem) {
+      // Cleanup: remove existing childs (just in case)
+      shellItem.removeAll();
 
-        // fill the menu for the first time
-        factoryItem.getChildren().forEach(function(child) {
-            shellItem.addMenuItem(this._createItem(child));
-        }, this);
+      // Fill the menu for the first time
+      factoryItem.getChildren().forEach(function(child) {
+         shellItem.addMenuItem(this._createItem(child));
+      }, this);
 
-        factoryItem.setShellItem(shellItem, {
-            //'type-changed':   Lang.bind(this, this._onTypeChanged),
-            'child-added'   : Lang.bind(this, this._onChildAdded),
-            'child-moved'   : Lang.bind(this, this._onChildMoved)
-        });
-        this._menuLikend.push(factoryItem);
-        factoryItem.connectAndRemoveOnDestroy({
-            'destroy'           : Lang.bind(this, this._onDestroyMainMenu)
-        });
-    },
+      factoryItem.setShellItem(shellItem, {
+         //'type-changed':   Lang.bind(this, this._onTypeChanged),
+         'child-added'   : Lang.bind(this, this._onChildAdded),
+         'child-moved'   : Lang.bind(this, this._onChildMoved)
+      });
+      this._menuLikend.push(factoryItem);
+      factoryItem.connectAndRemoveOnDestroy({
+         'destroy'           : Lang.bind(this, this._onDestroyMainMenu)
+      });
+   },
 
-    _onDestroyMainMenu: function(factoryItem) {
-        let index = this._menuLikend.indexOf(factoryItem);
-        if (index != -1)
-            this._menuLikend.splice(index, 1);
-    },
+   _onDestroyMainMenu: function(factoryItem) {
+      let index = this._menuLikend.indexOf(factoryItem);
+      if (index != -1)
+         this._menuLikend.splice(index, 1);
+   },
 
-    _setOrnamentPolyfill: function(ornamentType, state) {
-        if (ornamentType == OrnamentType.CHECK) {
-            if(state) {
-                this._ornament.set_text('\u2714');
-                if(this.actor.add_accessible_state)
-                    this.actor.add_accessible_state(Atk.StateType.CHECKED);
-            } else {
-                this._ornament.set_text('\u2752');
-                if(this.actor.remove_accessible_state)
-                    this.actor.remove_accessible_state(Atk.StateType.CHECKED);
-            }
-        } else if (ornamentType == OrnamentType.DOT) {
-            if(state) {
-                this._ornament.set_text('\u2022');
-                if(this.actor.add_accessible_state)
-                    this.actor.add_accessible_state(Atk.StateType.CHECKED);
-            } else {
-                this._ornament.set_text('\u274D');
-                if(this.actor.remove_accessible_state)
-                    this.actor.remove_accessible_state(Atk.StateType.CHECKED);
-            }
-        } else {
-            this._ornament.set_text('');
+   _setOrnamentPolyfill: function(ornamentType, state) {
+      if (ornamentType == OrnamentType.CHECK) {
+         if(state) {
+            this._ornament.set_text('\u2714');
+            if(this.actor.add_accessible_state)
+               this.actor.add_accessible_state(Atk.StateType.CHECKED);
+         } else {
+            this._ornament.set_text('\u2752');
             if(this.actor.remove_accessible_state)
-                this.actor.remove_accessible_state(Atk.StateType.CHECKED);
-        }
-    },
+               this.actor.remove_accessible_state(Atk.StateType.CHECKED);
+         }
+      } else if (ornamentType == OrnamentType.DOT) {
+         if(state) {
+            this._ornament.set_text('\u2022');
+            if(this.actor.add_accessible_state)
+               this.actor.add_accessible_state(Atk.StateType.CHECKED);
+         } else {
+            this._ornament.set_text('\u274D');
+            if(this.actor.remove_accessible_state)
+               this.actor.remove_accessible_state(Atk.StateType.CHECKED);
+         }
+      } else {
+         this._ornament.set_text('');
+         if(this.actor.remove_accessible_state)
+            this.actor.remove_accessible_state(Atk.StateType.CHECKED);
+      }
+   },
 
-    // GS3.8 uses a complicated system to compute the allocation for each child in pure JS
-    // we hack together a function that allocates space for our ornament, using the x
-    // calculations normally used for the dot and the y calculations used for every
-    // other item. Thank god they replaced that whole allocation stuff in 3.10, so I don't
-    // really need to understand how it works, as long as it looks right in 3.8
-    _allocateOrnament: function(actor, box, flags, shellItem) {
-        if (!shellItem._ornament) return;
+   // GS3.8 uses a complicated system to compute the allocation for each child in pure JS
+   // we hack together a function that allocates space for our ornament, using the x
+   // calculations normally used for the dot and the y calculations used for every
+   // other item. Thank god they replaced that whole allocation stuff in 3.10, so I don't
+   // really need to understand how it works, as long as it looks right in 3.8
+   _allocateOrnament: function(actor, box, flags, shellItem) {
+      if (!shellItem._ornament) return;
 
-        let height = box.y2 - box.y1;
-        let direction = actor.get_text_direction();
+      let height = box.y2 - box.y1;
+      let direction = actor.get_text_direction();
 
-        let dotBox = new Clutter.ActorBox();
-        let dotWidth = Math.round(box.x1 / 2);
+      let dotBox = new Clutter.ActorBox();
+      let dotWidth = Math.round(box.x1 / 2);
 
-        if (direction == Clutter.TextDirection.LTR) {
-            dotBox.x1 = Math.round(box.x1 / 4);
-            dotBox.x2 = dotBox.x1 + dotWidth;
-        } else {
-            dotBox.x2 = box.x2 + 3 * Math.round(box.x1 / 4);
-            dotBox.x1 = dotBox.x2 - dotWidth;
-        }
+      if (direction == Clutter.TextDirection.LTR) {
+         dotBox.x1 = Math.round(box.x1 / 4);
+         dotBox.x2 = dotBox.x1 + dotWidth;
+      } else {
+         dotBox.x2 = box.x2 + 3 * Math.round(box.x1 / 4);
+         dotBox.x1 = dotBox.x2 - dotWidth;
+      }
 
-        let [minHeight, naturalHeight] = shellItem._ornament.get_preferred_height(dotBox.x2 - dotBox.x1);
+      let [minHeight, naturalHeight] = shellItem._ornament.get_preferred_height(dotBox.x2 - dotBox.x1);
 
-        dotBox.y1 = Math.round(box.y1 + (height - naturalHeight) / 2);
-        dotBox.y2 = dotBox.y1 + naturalHeight;
+      dotBox.y1 = Math.round(box.y1 + (height - naturalHeight) / 2);
+      dotBox.y2 = dotBox.y1 + naturalHeight;
 
-        shellItem._ornament.allocate(dotBox, flags);
-    },
+      shellItem._ornament.allocate(dotBox, flags);
+   },
 
-    _createItem: function(factoryItem) {
-        // Don't allow to override previusly preasigned items, destroy the shell item first.
-        let shellItem = factoryItem.getShellItem();
-        if(shellItem)
-            shellItem.destroy();
-        shellItem = this._createShellItem(factoryItem);
-        this._hackShellItem(shellItem);
+   _createItem: function(factoryItem) {
+      // Don't allow to override previusly preasigned items, destroy the shell item first.
+      let shellItem = factoryItem.getShellItem();
+      if(shellItem)
+         shellItem.destroy();
+      shellItem = this._createShellItem(factoryItem);
+      this._hackShellItem(shellItem);
 
-        // initially create children on idle, to not stop cinnamon mainloop.
-        Mainloop.idle_add(Lang.bind(this, this._createChildrens, factoryItem));
+      // Initially create children on idle, to not stop cinnamon mainloop.
+      Mainloop.idle_add(Lang.bind(this, this._createChildrens, factoryItem));
 
-        // now, connect various events
-        factoryItem.setShellItem(shellItem, {
-            'type-changed':       Lang.bind(this, this._onTypeChanged),
-            'child-added':        Lang.bind(this, this._onChildAdded),
-            'child-moved':        Lang.bind(this, this._onChildMoved)
-        });
-        return shellItem;
-    },
+      // Now, connect various events
+      factoryItem.setShellItem(shellItem, {
+         'type-changed':       Lang.bind(this, this._onTypeChanged),
+         'child-added':        Lang.bind(this, this._onChildAdded),
+         'child-moved':        Lang.bind(this, this._onChildMoved)
+      });
+      return shellItem;
+   },
 
-    _createChildrens: function(factoryItem) {
-        if(factoryItem) {
-            let shellItem = factoryItem.getShellItem();
-            if (shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
-                let children = factoryItem.getChildren();
-                for (let i = 0; i < children.length; ++i) {
-                    let ch_item = this._createItem(children[i]);
-                    shellItem.menu.addMenuItem(ch_item);
-                }
-            } else if (shellItem instanceof PopupMenu.PopupMenuSection) {
-                let children = factoryItem.getChildren();
-                for (let i = 0; i < children.length; ++i) {
-                    let ch_item = this._createItem(children[i]);
-                    shellItem.addMenuItem(ch_item);
-                }
+   _createChildrens: function(factoryItem) {
+      if(factoryItem) {
+         let shellItem = factoryItem.getShellItem();
+         if (shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+            let children = factoryItem.getChildren();
+            for (let i = 0; i < children.length; ++i) {
+               let ch_item = this._createItem(children[i]);
+               shellItem.menu.addMenuItem(ch_item);
             }
-        }
-    },
-
-    _onChildAdded: function(factoryItem, child, position) {
-        let shellItem = factoryItem.getShellItem();
-        if(shellItem) {
-            if (shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
-                shellItem.menu.addMenuItem(this._createItem(child), position, "factor");
-            } else if ((shellItem instanceof PopupMenu.PopupMenuSection) ||
-                       (shellItem instanceof PopupMenu.PopupMenu)) {
-                shellItem.addMenuItem(this._createItem(child), position);
-            } else {
-                global.logWarning("Tried to add a child to non-submenu item. Better recreate it as whole");
-                this._onTypeChanged(factoryItem);
+         } else if (shellItem instanceof PopupMenu.PopupMenuSection) {
+            let children = factoryItem.getChildren();
+            for (let i = 0; i < children.length; ++i) {
+               let ch_item = this._createItem(children[i]);
+               shellItem.addMenuItem(ch_item);
             }
-        } else {
-            global.logWarning("Tried to add a child shell item to non existing shell item.");
-        }
+         }
+      }
+   },
 
-    },
+   _onChildAdded: function(factoryItem, child, position) {
+      let shellItem = factoryItem.getShellItem();
+      if(shellItem) {
+         if (shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+            shellItem.menu.addMenuItem(this._createItem(child), position, "factor");
+         } else if ((shellItem instanceof PopupMenu.PopupMenuSection) ||
+                    (shellItem instanceof PopupMenu.PopupMenu)) {
+            shellItem.addMenuItem(this._createItem(child), position);
+         } else {
+            global.logWarning("Tried to add a child to non-submenu item. Better recreate it as whole");
+            this._onTypeChanged(factoryItem);
+         }
+      } else {
+         global.logWarning("Tried to add a child shell item to non existing shell item.");
+      }
+   },
 
-    _onChildMoved: function(factoryItem, child, oldpos, newpos) {
-        let shellItem = factoryItem.getShellItem();
-        if(shellItem) {
-            if (shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
-                this._moveItemInMenu(shellItem.menu, child, newpos);
-            } else if ((shellItem instanceof PopupMenu.PopupMenuSection) ||
-                       (shellItem instanceof PopupMenu.PopupMenu)) {
-                this._moveItemInMenu(shellItem, child, newpos);
-            } else {
-                global.logWarning("Tried to move a child in non-submenu item. Better recreate it as whole");
-                this._onTypeChanged(factoryItem);
+   _onChildMoved: function(factoryItem, child, oldpos, newpos) {
+      let shellItem = factoryItem.getShellItem();
+      if(shellItem) {
+         if (shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+            this._moveItemInMenu(shellItem.menu, child, newpos);
+         } else if ((shellItem instanceof PopupMenu.PopupMenuSection) ||
+                    (shellItem instanceof PopupMenu.PopupMenu)) {
+            this._moveItemInMenu(shellItem, child, newpos);
+         } else {
+            global.logWarning("Tried to move a child in non-submenu item. Better recreate it as whole");
+            this._onTypeChanged(factoryItem);
+         }
+      } else {
+         global.logWarning("Tried to move a child shell item in non existing shell item.");
+      }
+   },
+
+   // If this function is apply, this mean that our old shellItem
+   // is not valid right now, so we can destroy it with all the deprecate
+   // submenu structure and then create again for the new factoryItem source.
+   _onTypeChanged: function(factoryItem) {
+      let shellItem = factoryItem.getShellItem();
+      let factoryItemParent = factoryItem.getParent();
+      let parentMenu = null;
+      if ((shellItem)&&(factoryItemParent)) {
+         let shellItemParent = factoryItemParent.getShellItem();
+         if (shellItemParent instanceof PopupMenu.PopupMenuSection)
+            parentMenu = shellItemParent;
+         else
+            parentMenu = shellItemParent.menu;
+      }
+      // First, we need to find our old position
+      let pos = -1;
+      if (parentMenu) {
+         let family = parentMenu._getMenuItems();
+         for (let i = 0; i < family.length; ++i) {
+            if (family[i] === shellItem)
+               pos = i;
+         }
+      }
+
+      if (pos < 0) {
+         throw new Error("FactoryMenu: can't replace non existing menu item");
+      } else if (parentMenu) {
+         let newShellItem = this._createItem(factoryItem);
+         // Add our new self while we're still alive
+         parentMenu.addMenuItem(newShellItem, pos);
+         // Now destroy our old self
+         shellItem.destroy();
+      }
+   },
+
+   _moveItemInMenu: function(menu, factoryItem, newpos) {
+      // HACK: we're really getting into the internals of the PopupMenu implementation
+      // First, find our wrapper. Children tend to lie. We do not trust the old positioning.
+      let shellItem = factoryItem.getShellItem();
+      if (shellItem) {
+         let family = menu._getMenuItems();
+         for (let i = 0; i < family.length; ++i) {
+            if (family[i] == shellItem) {
+               // Now, remove it
+               menu.box.remove_child(shellItem.actor);
+
+               // Add it again somewhere else
+               if (newpos < family.length && family[newpos] != shellItem)
+                  menu.box.insert_child_below(shellItem.actor, family[newpos].actor);
+               else
+                  menu.box.add(shellItem.actor);
+
+               // Skip the rest
+               break;
             }
-        } else {
-            global.logWarning("Tried to move a child shell item in non existing shell item.");
-        }
-    },
+         }
+      }
+   },
 
-    // If this function is apply, this mean that our old shellItem
-    // is not valid right now, so we can destroy it with all the deprecate
-    // submenu structure and then create again for the new factoryItem source.
-    _onTypeChanged: function(factoryItem) {
-        let shellItem = factoryItem.getShellItem();
-        let factoryItemParent = factoryItem.getParent();
-        let parentMenu = null;
-        if ((shellItem)&&(factoryItemParent)) {
-            let shellItemParent = factoryItemParent.getShellItem();
-            if (shellItemParent instanceof PopupMenu.PopupMenuSection)
-                parentMenu = shellItemParent;
-            else
-                parentMenu = shellItemParent.menu;
-        }
-        // first, we need to find our old position
-        let pos = -1;
-        if (parentMenu) {
-            let family = parentMenu._getMenuItems();
-            for (let i = 0; i < family.length; ++i) {
-                if (family[i] === shellItem)
-                    pos = i;
+   _hackShellItem: function(shellItem) {
+      if (shellItem instanceof PopupMenu.PopupMenuItem) {
+         if (!shellItem.setAccel) {
+            shellItem._accel = new St.Label();
+            if (shellItem.addActor) { //GS 3.8
+               shellItem.addActor(shellItem._accel);
+            } else { //GS >= 3.10
+               shellItem.actor.add_actor(shellItem._accel);
             }
-        }
-
-        if (pos < 0) {
-            throw new Error("FactoryMenu: can't replace non existing menu item");
-        } else if (parentMenu) {
-            let newShellItem = this._createItem(factoryItem);
-            // add our new self while we're still alive
-            parentMenu.addMenuItem(newShellItem, pos);
-            // now destroy our old self
-            shellItem.destroy();
-        }
-    },
-
-    _moveItemInMenu: function(menu, factoryItem, newpos) {
-        // HACK: we're really getting into the internals of the PopupMenu implementation
-        // First, find our wrapper. Children tend to lie. We do not trust the old positioning.
-        let shellItem = factoryItem.getShellItem();
-        if (shellItem) {
-            let family = menu._getMenuItems();
-            for (let i = 0; i < family.length; ++i) {
-                if (family[i] == shellItem) {
-                    // now, remove it
-                    menu.box.remove_child(shellItem.actor);
-
-                    // and add it again somewhere else
-                    if (newpos < family.length && family[newpos] != shellItem)
-                        menu.box.insert_child_below(shellItem.actor, family[newpos].actor);
-                    else
-                        menu.box.add(shellItem.actor);
-
-                    // skip the rest
-                    break;
-                }
+         }
+         // GS3.8: emulate the ornament stuff.
+         // this is similar to how the setShowDot function works
+         if (!shellItem.setOrnament) {
+            shellItem._icon = new St.Icon({ style_class: 'popup-menu-icon', x_align: St.Align.END });
+            if (shellItem.addActor) { //GS 3.8
+               shellItem.addActor(shellItem._icon, { align: St.Align.END });
+            } else { //GS >= 3.10
+               shellItem.actor.add(shellItem._icon, { x_align: St.Align.END });
+               shellItem.label.get_parent().child_set(shellItem.label, { expand: true });
             }
-        }
-    },
-
-    _hackShellItem: function(shellItem) {
-        if (shellItem instanceof PopupMenu.PopupMenuItem) {
-            if (!shellItem.setAccel) {
-                shellItem._accel = new St.Label();
-                if (shellItem.addActor) { //GS 3.8
-                    shellItem.addActor(shellItem._accel);
-                } else { //GS >= 3.10
-                    shellItem.actor.add_actor(shellItem._accel);
-                }
-            }
-            // GS3.8: emulate the ornament stuff.
-            // this is similar to how the setShowDot function works
-            if (!shellItem.setOrnament) {
-                shellItem._icon = new St.Icon({ style_class: 'popup-menu-icon', x_align: St.Align.END });
-                if (shellItem.addActor) { //GS 3.8
-                    shellItem.addActor(shellItem._icon, { align: St.Align.END });
-                } else { //GS >= 3.10
-                    shellItem.actor.add(shellItem._icon, { x_align: St.Align.END });
-                    shellItem.label.get_parent().child_set(shellItem.label, { expand: true });
-                }
-                shellItem._ornament = new St.Label();
-                shellItem.actor.add_actor(shellItem._ornament);
-                shellItem.setOrnament = this._setOrnamentPolyfill;
-                //GS doesn't disconnect that one, either
-                shellItem.actor.connect('allocate', Lang.bind(this, this._allocateOrnament, shellItem));
-                //shellItem.actor.set_margin_left(6.0);
-            }
-        }
-    }
+            shellItem._ornament = new St.Label();
+            shellItem.actor.add_actor(shellItem._ornament);
+            shellItem.setOrnament = this._setOrnamentPolyfill;
+            //GS doesn't disconnect that one, either
+            shellItem.actor.connect('allocate', Lang.bind(this, this._allocateOrnament, shellItem));
+         }
+      }
+   }
 };
