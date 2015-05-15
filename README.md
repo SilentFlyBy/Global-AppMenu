@@ -1,6 +1,6 @@
-Cinnamon Applet: Global Application Menu Version: v0.1-Beta
+Cinnamon Applet: Global Application Menu Version: v0.2-Beta
 
-Last update: 13 may 2015
+Last update: 15 may 2015
 
 ***
 Special thanks to:
