@@ -1019,7 +1019,39 @@ ConfigurableMenu.prototype = {
 
    addMenuItem: function(menuItem, position) {
       this._setShowItemIcon(menuItem);
-      PopupMenu.PopupMenu.prototype.addMenuItem.call(this, menuItem, position);
+      if (menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+         let before_item = null;
+         if (position == undefined) {
+            this.box.add(menuItem.actor);
+         } else {
+            let items = this._getMenuItems();
+            if (position < items.length) {
+               before_item = items[position].actor;
+               this.box.insert_before(menuItem.actor, before_item);
+            } else
+               this.box.add(menuItem.actor);
+         }
+         this._connectSubMenuSignals(menuItem, menuItem.menu);
+         this._connectItemSignals(menuItem);
+         menuItem._closingId = this.connect('open-state-changed', function(self, open) {
+            if (!open)
+               menuItem.menu.close(false);
+         });
+         this.addChildMenu(menuItem.menu);
+         this._setMenuInPosition(menuItem);
+      } else {
+         PopupMenu.PopupMenu.prototype.addMenuItem.call(this, menuItem, position);
+      }
+   },
+
+   _isFloating: function(menu) {
+      return ((menu.isInFloatingState) && (menu.isInFloatingState()));
+   },
+
+   _setMenuInPosition: function(menuItem) {
+      if((!menuItem.menu.isInFloatingState) || (!menuItem.menu.isInFloatingState())) {
+         this.box.insert_before(menuItem.menu.actor, menuItem.actor);
+      }
    },
 
    setShowItemIcon: function(show) {
@@ -1880,7 +1912,6 @@ RadioButton.prototype = {
 
    setToggleState: function(state) {
       if(state) this.actor.add_style_pseudo_class('checked');
-      else this.actor.remove_style_pseudo_class('checked');
       this.state = state;
    },
 
@@ -2035,7 +2066,7 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
  * to support the creation of an space area on some special context.
  */
 function ConfigurablePopupMenuSection() {
-    this._init.apply(this, arguments);
+   this._init.apply(this, arguments);
 }
 
 ConfigurablePopupMenuSection.prototype = {
@@ -2049,7 +2080,27 @@ ConfigurablePopupMenuSection.prototype = {
 
    addMenuItem: function(menuItem, position) {
       this._setShowItemIcon(menuItem);
-      PopupMenu.PopupMenuSection.prototype.addMenuItem.call(this, menuItem, position);
+      if ((menuItem instanceof PopupMenu.PopupSubMenuMenuItem)&&(this._isFloating(menuItem.menu))) {
+         let before_item = null;
+         if (position == undefined) {
+            this.box.add(menuItem.actor);
+         } else {
+            let items = this._getMenuItems();
+            if (position < items.length) {
+               before_item = items[position].actor;
+               this.box.insert_before(menuItem.actor, before_item);
+            } else
+               this.box.add(menuItem.actor);
+         }
+         this._connectSubMenuSignals(menuItem, menuItem.menu);
+         this._connectItemSignals(menuItem);
+         menuItem._closingId = this.connect('open-state-changed', function(self, open) {
+            if (!open)
+               menuItem.menu.close(false);
+         });
+      } else {
+         PopupMenu.PopupMenuSection.prototype.addMenuItem.call(this, menuItem, position);
+      }
    },
 
    setShowItemIcon: function(show) {
@@ -2061,6 +2112,10 @@ ConfigurablePopupMenuSection.prototype = {
             this._setShowItemIcon(menuItem);
          }
       }
+   },
+
+   _isFloating: function(menu) {
+      return ((menu.isInFloatingState) && (menu.isInFloatingState()));
    },
 
    _setShowItemIcon: function(menuItem) {
@@ -2747,10 +2802,8 @@ PopupMenuAbstractFactory.prototype = {
    addChild: function(pos, child_id) {
       let factoryItem = this.getItemById(child_id);
       if(factoryItem) {
-         let shellItem = factoryItem.getShellItem();
          // If our item is previusly asigned, so destroy first the shell item.
-         if(shellItem)
-            shellItem.destroy();
+         factoryItem.destroyShellItem();
          factoryItem.setParent(this);
          this._children_ids.splice(pos, 0, child_id);
          this.emit('child-added', factoryItem, pos);
@@ -2773,10 +2826,9 @@ PopupMenuAbstractFactory.prototype = {
          this._children_ids.splice(pos, 1);
          let factoryItem = this.getItemById(child_id);
          if(factoryItem) {
-            factoryItem.setParent(null);
             let shellItem = factoryItem.getShellItem();
-            if(shellItem)
-               shellItem.destroy();
+            this._destroyShellItem(shellItem);
+            factoryItem.setParent(null);
             this.emit('child-removed', factoryItem);
          }
       }
@@ -2803,13 +2855,39 @@ PopupMenuAbstractFactory.prototype = {
       if (oldpos != newpos) {
          this._children_ids.splice(oldpos, 1);
          this._children_ids.splice(newpos, 0, child_id);
-         this.emit('child-moved', oldpos, newpos, this.getItemById(child_id));
+         this.emit('child-moved', this.getItemById(child_id), oldpos, newpos);
       }
    },
 
    // handlers = { "signal": handler }
    connectAndRemoveOnDestroy: function(handlers) { 
       this._connectAndSaveId(this, handlers, this._external_signals_handlers);
+   },
+
+   destroyShellItem: function() {
+      this._destroyShellItem(this.shellItem);
+   },
+
+   // We try to not crash cinnamon if a shellItem will be destroyed,
+   // but while he (or she) has the focus and also the asociate menu would be
+   // open. A Cinnamon crash is not allowed now. Tested with firefox...
+   _destroyShellItem: function(shellItem) {
+      if(shellItem) {
+         let focus = global.stage.key_focus;
+         if(shellItem.close)
+            shellItem.close();
+         if(shellItem.menu)
+            shellItem.menu.close();
+         if(focus && shellItem.actor && shellItem.actor.contains(focus)) {
+            if (shellItem.sourceActor)
+               shellItem.sourceActor.grab_key_focus();
+            else if (shellItem.menu.sourceActor)
+               shellItem.menu.sourceActor.grab_key_focus();
+            else
+               global.stage.set_key_focus(null);
+         }
+         shellItem.destroy();
+      }
    },
 
    // handlers = { "signal": handler }
@@ -2926,8 +3004,7 @@ PopupMenuAbstractFactory.prototype = {
          // Emit the destroy first, to allow know to external lisener,
          // then, disconnect the lisener handler.
          this.emit("destroy");
-         if (this.shellItem)
-            this.shellItem.destroy();
+         this.destroyShellItem();
          this.shellItem = null;
          this._disconnectSignals(this, this._external_signals_handlers);
          this._external_signals_handlers = null;
@@ -3028,8 +3105,9 @@ MenuFactory.prototype = {
 
    _onDestroyMainMenu: function(factoryItem) {
       let index = this._menuLikend.indexOf(factoryItem);
-      if (index != -1)
+      if (index != -1) {
          this._menuLikend.splice(index, 1);
+      }
    },
 
    _setOrnamentPolyfill: function(ornamentType, state) {
@@ -3092,10 +3170,8 @@ MenuFactory.prototype = {
 
    _createItem: function(factoryItem) {
       // Don't allow to override previusly preasigned items, destroy the shell item first.
-      let shellItem = factoryItem.getShellItem();
-      if(shellItem)
-         shellItem.destroy();
-      shellItem = this._createShellItem(factoryItem);
+      factoryItem.destroyShellItem();
+      let shellItem = this._createShellItem(factoryItem);
       this._hackShellItem(shellItem);
 
       // Initially create children on idle, to not stop cinnamon mainloop.
@@ -3194,7 +3270,6 @@ MenuFactory.prototype = {
          // Add our new self while we're still alive
          parentMenu.addMenuItem(newShellItem, pos);
          // Now destroy our old self
-         shellItem.destroy();
       }
    },
 

@@ -779,10 +779,13 @@ DBusClientGtk.prototype = {
                         menuSection["children-display"] = GLib.Variant.new_string("submenu");
                         this._doLayoutUpdate(idSub, menuSection);
                     } else {
-                        // FIXME We used here the label of the item to identify an item,
+                        // FIXME We true to used here the label of the item to identify an item,
                         // but could be found a better id to handle this, the position
-                        // is not a good one.
-                        idSub = "" + id + "" + menuSection["label"].unpack();//+ pos;
+                        // is not a good one, label would not exsist (xchat example).
+                        if("label" in menuSection)
+                            idSub = "" + id + "" + menuSection["label"].unpack();
+                        else
+                            idSub = "" + id + "" + pos;
                         childrenIds.push(idSub);
                         this._doLayoutUpdate(idSub, menuSection);
                     }
@@ -851,7 +854,7 @@ DBusClientGtk.prototype = {
         if(actionId.indexOf("unity") == 0) {
             return this._proxyUnityAction;
         } else if(actionId.indexOf("win") == 0) {
-            return this._proxyWindowAction
+            return this._proxyWindowAction;
         } else if(actionId.indexOf("app") == 0) {
             return this._proxyAppAction;
         }
