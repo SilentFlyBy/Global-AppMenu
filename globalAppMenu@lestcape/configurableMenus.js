@@ -3266,10 +3266,11 @@ MenuFactory.prototype = {
       if (pos < 0) {
          throw new Error("FactoryMenu: can't replace non existing menu item");
       } else if (parentMenu) {
-         let newShellItem = this._createItem(factoryItem);
-         // Add our new self while we're still alive
-         parentMenu.addMenuItem(newShellItem, pos);
          // Now destroy our old self
+         factoryItem.destroyShellItem();
+         // Add our new self
+         let newShellItem = this._createItem(factoryItem);
+         parentMenu.addMenuItem(newShellItem, pos);
       }
    },
 
