@@ -30,8 +30,12 @@ http://stackoverflow.com/questions/30206099/what-is-the-current-behavior-of-fire
 
 Change log
 --------------
+0.2-Beta
+  - Not crash Cinnamon when firefox drop the menu.
+  - Fix xchat and possible other gtk applications.
+
 0.1-Beta
-   - Initial release.
+  - Initial release.
 
 This program is free software:
 --------------
@@ -72,13 +76,13 @@ Installation instructions:
 
 unity-gtk-module:
 --------------
-This applet is designed to be used with the standars gtk modules packages (https://launchpad.net/unity-gtk-module) and patches that ubuntu provide to
+This applet is designed to be used with the standars gtk modules packages (https://launchpad.net/unity-gtk-module) and patches that Ubuntu provide to
 be used on Unity desktop.
 
 Thats then will depend of your specific distro and possible you will need to use some equivalent different packages.
 
 * Ubuntu users, be happy, you don't need to do anything if unity is working. :)
-* Mint users, all Ubuntu packages that we needed are availables on mint repositories as well and can be installed.
+* Mint users, all Ubuntu packages that we needed are availables on Mint repositories as well and can be installed.
   - Minimum requirements: sudo apt-get install unity-gtk2-module unity-gtk3-module
 * Arch users, you will need to use the rilian-la-te source (https://aur.archlinux.org/packages/?SeB=m&K=rilian).
 

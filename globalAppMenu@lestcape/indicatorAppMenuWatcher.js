@@ -390,44 +390,21 @@ IndicatorAppMenuWatcher.prototype = {
         }
 
         if (xid in this._registeredWindows) {
-            /*if ((menubarPath) && (this._registeredWindows[xid].menubarObjectPath) && (this._registeredWindows[xid].menubarObjectPath != menubarPath))
-                Main.notify("Wrong menubarPath " + this._registeredWindows[xid].window + " " + wind.title);
-            if ((senderDbus) && (this._registeredWindows[xid].sender) && (this._registeredWindows[xid].sender != senderDbus))
-                Main.notify("Wrong sender");
-            if ((appTracker != null) && (this._registeredWindows[xid].application != null) && (this._registeredWindows[xid].application != appT))
-                Main.notify("Wrong application");
-            if ((wind != null) && (this._registeredWindows[xid].window != null) && (this._registeredWindows[xid].window != wind))
-                Main.notify("Wrong window");*/
-
-            //this._registeredWindows[xid].menubarObjectPath = menubarPath;
-            //this._registeredWindows[xid].sender = senderDbus;
-
-            //FIXME firefox is who called the Wrong menubarPath, so is here the problem?
-            //if ((menubarPath) && (!this._registeredWindows[xid].menubarObjectPath))
-            /*
+            // Firefox use the regitrar iface and also the gtk way, but it unsupported.
+            // We ask then for the new data and prevent the override of registrar.
             if(!this._registeredWindows[xid].menubarObjectPath)
                 this._registeredWindows[xid].menubarObjectPath = menubarPath;
             if(!this._registeredWindows[xid].appmenuObjectPath)
                 this._registeredWindows[xid].appmenuObjectPath = appmenuPath;
+            if(!this._registeredWindows[xid].windowObjectPath)
+                this._registeredWindows[xid].windowObjectPath = windowPath;
+            if(!this._registeredWindows[xid].appObjectPath)
+                this._registeredWindows[xid].appObjectPath = appPath;
             if(!this._registeredWindows[xid].sender)
                 this._registeredWindows[xid].sender = senderDbus;
             if(!this._registeredWindows[xid].application)
                 this._registeredWindows[xid].application = appTracker;
             if(!this._registeredWindows[xid].window)
-                this._registeredWindows[xid].window = wind;*/
-            if(menubarPath)
-                this._registeredWindows[xid].menubarObjectPath = menubarPath;
-            if(appmenuPath)
-                this._registeredWindows[xid].appmenuObjectPath = appmenuPath;
-            if(windowPath)
-                this._registeredWindows[xid].windowObjectPath = windowPath;
-            if(windowPath)
-                this._registeredWindows[xid].appObjectPath = appPath;
-            if(senderDbus)
-                this._registeredWindows[xid].sender = senderDbus;
-            if(appTracker)
-                this._registeredWindows[xid].application = appTracker;
-            if(wind)
                 this._registeredWindows[xid].window = wind;
         } else {
             this._registeredWindows[xid] = {
@@ -443,10 +420,11 @@ IndicatorAppMenuWatcher.prototype = {
                 appMenu: null
             };
         }
-        this._validateRegistration(xid)
+
+        this._tryToGetMenuClient(xid);
     },
 
-    _validateRegistration: function(xid) {
+    _tryToGetMenuClient: function(xid) {
         this._updateIcon(xid);
         if ((xid in this._registeredWindows) && (!this._registeredWindows[xid].appMenu)) {
             if ((this._registeredWindows[xid].menubarObjectPath) && (this._registeredWindows[xid].sender)) {
