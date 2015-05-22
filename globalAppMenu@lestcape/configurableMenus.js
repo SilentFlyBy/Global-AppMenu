@@ -1834,71 +1834,6 @@ ConfigurableMenu.prototype = {
 };
 
 /**
- * Switch
- *
- * Just a class to controlled a switch.
- */
-function ConfigurablePopupSwitchMenuItem() {
-   this._init.apply(this, arguments);
-}
-
-ConfigurablePopupSwitchMenuItem.prototype = {
-   __proto__: PopupMenu.PopupBaseMenuItem.prototype,
-
-   _init: function(text, imageOn, imageOff, active, params) {
-      PopupMenu.PopupBaseMenuItem.prototype._init.call(this, params);
-      this.actor._delegate = this;
-
-      this._imageOn = imageOn;
-      this._imageOff = imageOff;
-
-      let table = new St.Table({ homogeneous: false, reactive: true });
-
-      this.label = new St.Label({ text: text });
-      this.label.set_margin_left(6.0);
-
-      this._switch = new PopupMenu.Switch(active);
-      this._switch.actor.set_style_class_name("toggle-switch");
-      this._switch.actor.add_style_class_name("toggle-switch-intl");
-
-      if(active)
-         this.icon = new St.Icon({ icon_name: this._imageOn, icon_type: St.IconType.FULLCOLOR, style_class: 'popup-menu-icon' });
-      else
-         this.icon = new St.Icon({ icon_name: this._imageOff, icon_type: St.IconType.FULLCOLOR, style_class: 'popup-menu-icon' });
-
-      this._statusBin = new St.Bin({ x_align: St.Align.END });
-      this._statusBin.set_margin_left(6.0);
-      this._statusLabel = new St.Label({ text: '', style_class: 'popup-inactive-menu-item' });
-      this._statusBin.child = this._switch.actor;
-
-      table.add(this.icon, {row: 0, col: 0, col_span: 1, x_expand: false, x_align: St.Align.START});
-      table.add(this.label, {row: 0, col: 1, col_span: 1, y_fill: false, y_expand: true, x_align: St.Align.MIDDLE, y_align: St.Align.MIDDLE});
-      table.add(this._statusBin, {row: 0, col: 2, col_span: 1, x_expand: true, x_align: St.Align.END});
-
-      this.addActor(table, { expand: true, span: 1, align: St.Align.START});
-   },
-
-   setToggleState: function(state) {
-      if(state)
-         this.icon.set_icon_name(this._imageOn);
-      else
-         this.icon.set_icon_name(this._imageOff);
-      this._switch.setToggleState(state);
-   },
-
-   getState: function() {
-      return this._switch.state;
-   },
-
-   destroy: function() {
-      if(this.actor) {
-         PopupMenu.PopupBaseMenuItem.prototype.destroy.call(this);
-         this.actor = null;
-      }
-   }
-};
-
-/**
  * RadioButton
  *
  * Just a class to show a radio button.
@@ -1909,19 +1844,25 @@ function RadioButton() {
 
 RadioButton.prototype = {
    _init: function(state) {
-      this.actor = new St.Bin({ style_class: 'radiobutton' });
-      //this.actor.set_style_class_name("check-box");
-      this.setToggleState(state);
-      this.actor.style = "background-image: url('radiobutton-off.svg');";
+      this.actor = new St.Button({ style_class: 'radiobutton',
+                                   button_mask: St.ButtonMask.ONE,
+                                   toggle_mode: true,
+                                   can_focus: true,
+                                   x_fill: true,
+                                   y_fill: true,
+                                   y_align: St.Align.MIDDLE });
+      this._container = new St.Bin();
+      this.actor.set_child(this._container);
+      this.actor._delegate = this;
+      this.actor.checked = state;
    },
 
    setToggleState: function(state) {
-      if(state) this.actor.add_style_pseudo_class('checked');
-      this.state = state;
+      this.actor.checked = state;
    },
 
    toggle: function() {
-      this.setToggleState(!this.state);
+      this.setToggleState(!this.actor.checked);
    }
 };
 
@@ -1945,6 +1886,7 @@ Switch.prototype = {
       // switches containing "O" and "|"). Other values will
       // simply result in invisible toggle switches.
       this.actor.add_style_class_name("toggle-switch-intl");
+      this.actor._delegate = this;
       this.setToggleState(state);
    },
 
@@ -2274,25 +2216,30 @@ ConfigurableApplicationMenuItem.prototype = {
       this._accel.set_text(accel);
    },
 
-   setOrnament: function(ornamentType, status) {
-      if(this._ornament.child)
-         this._ornament.child.destroy();
-      let ornament;
+   setOrnament: function(ornamentType, state) {
       switch (ornamentType) {
       case OrnamentType.CHECK:
-         let switchOrn = new Switch(status);
-         this._ornament.child = switchOrn.actor;
+         if((this._ornament.child)&&(!(this._ornament.child._delegate instanceof Switch))) {
+             this._ornament.child.destroy();
+             this._ornament.child = null;
+         }
+         if(!this._ornament.child) {
+             let switchOrn = new Switch(state);
+             this._ornament.child = switchOrn.actor;
+         } else {
+             this._ornament.child._delegate.setToggleState(state);
+         }
          break;
       case OrnamentType.DOT:
-         this._ornament.child = new St.Label();
-         if(status) {
-            this._ornament.child.set_text('\u2022');
-            if(this.actor.add_accessible_state)
-               this.actor.add_accessible_state(Atk.StateType.CHECKED);
+         if((this._ornament.child)&&(!(this._ornament.child._delegate instanceof RadioButton))) {
+             this._ornament.child.destroy();
+             this._ornament.child = null;
+         }
+         if(!this._ornament.child) {
+             let radioOrn = new RadioButton(state);
+             this._ornament.child = radioOrn.actor;
          } else {
-            this._ornament.child.set_text('\u274D');
-            if(this.actor.remove_accessible_state)
-               this.actor.remove_accessible_state(Atk.StateType.CHECKED);
+             this._ornament.child._delegate.setToggleState(state);
          }
          break;
       }
