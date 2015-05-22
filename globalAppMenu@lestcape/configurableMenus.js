@@ -145,6 +145,13 @@ ConfigurablePointer.prototype = {
       }
    },
 
+   setArrowSide: function(side) {
+      // Need not trigger any other function. Menu position is
+      // recalculated every time it is shown
+      this._arrowSide = side;
+      this._border.queue_repaint();
+   },
+
    _maxPanelSize: function() {
       if(Main.panelManager) {
          if(this._sourceActor) {
@@ -181,9 +188,9 @@ ConfigurablePointer.prototype = {
       return 0;
    },
 
-   _fixCorner: function(x, y, sourceActor, sourceAllocation, monitor, gap, borderWidth) {
-      if((this.fixScreen)||(this.fixCorner)) {
-         let [ax, ay] = sourceActor.get_transformed_position();
+   _fixCorner: function(x, y, sourceActor, sourceAllocation, monitor, maxPHV, gap, borderWidth) {
+      let [ax, ay] = sourceActor.get_transformed_position();
+      if(((this.fixScreen)||(this.fixCorner))/*&&(ay + this.actor.height + gap  < monitor.y + monitor.height - maxPHV)*/) {
          if((this._arrowSide == St.Side.TOP)||(this._arrowSide == St.Side.BOTTOM)) {
             if(sourceAllocation.x1 < monitor.x + monitor.width/2) {
                if(this.fixScreen) {
@@ -268,6 +275,7 @@ ConfigurablePointer.prototype = {
       let gap = this.themeNode.get_length('-boxpointer-gap');
 
       let resX, resY;
+      let maxPHV = 0;
 
       switch (this._arrowSide) {
       case St.Side.TOP:
@@ -299,7 +307,7 @@ ConfigurablePointer.prototype = {
       case St.Side.RIGHT:
          resY = sourceCenterY - (halfMargin + (natHeight - margin) * alignment);
          let [maxHeightBottom, maxHeightTop] = this._maxPanelSize();
-         let maxPHV = Math.max(maxHeightBottom, maxHeightTop);
+         maxPHV = Math.max(maxHeightBottom, maxHeightTop);
          resY = Math.max(resY, monitor.y + maxPHV);
          let topMenu = this._getTopMenu(sourceActor);
          if(Main.panelManager) {
@@ -326,7 +334,7 @@ ConfigurablePointer.prototype = {
          [success, x, y] = parent.transform_stage_point(resX, resY);
          parent = parent.get_parent();
       }
-      this._fixCorner(x, y, sourceActor, sourceAllocation, monitor, gap, borderWidth);
+      this._fixCorner(x, y, sourceActor, sourceAllocation, monitor, maxPHV, gap, borderWidth);
       this._xPosition = x;
       this._yPosition = y;
       this._shiftActor();
@@ -1066,15 +1074,10 @@ ConfigurableMenu.prototype = {
    },
 
    _setShowItemIcon: function(menuItem) {
-      if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
-         if(menuItem.setShowItemIcon)
-            menuItem.setShowItemIcon(this._showItemIcon);
-         if(menuItem.menu.setShowItemIcon)
-            menuItem.menu.setShowItemIcon(this._showItemIcon);
-      } else {
-         if(menuItem.setShowItemIcon)
-            menuItem.setShowItemIcon(this._showItemIcon);
-      }
+      if((menuItem instanceof PopupMenu.PopupSubMenuMenuItem)&&(menuItem.menu.setShowItemIcon))
+         menuItem.menu.setShowItemIcon(this._showItemIcon);
+      if(menuItem.setShowItemIcon)
+         menuItem.setShowItemIcon(this._showItemIcon);
    },
 
    setMenuReactive: function(reactive) {
@@ -1348,6 +1351,8 @@ ConfigurableMenu.prototype = {
          }));
          if(!this._boxPointer._sourceActor)
             this._boxPointer.setPosition(this.launcher.actor, this._arrowAlignment);
+         else
+            this._boxPointer.setPosition(this._boxPointer._sourceActor, this._arrowAlignment);
          if(this._automatic_open_control) {
             this._paint_id = this.actor.connect("paint", Lang.bind(this, this._on_paint));
             Main.popup_rendering = true;
@@ -1976,10 +1981,6 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
       this._arrowSide = St.Side.LEFT;
       this._hide_expander = hide_expander;
 
-      this._icon = new St.Icon({ style_class: 'popup-menu-icon' });
-      this.actor.insert_before(this._icon, this.label);
-      this._icon.hide();
-
       this._triangle = new St.Icon({ icon_name: "media-playback-start",
                                      icon_type: St.IconType.SYMBOLIC,
                                      style_class: 'popup-menu-icon' });
@@ -1992,6 +1993,25 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
       this.menu = new ConfigurableMenu(this, 0.0, St.Side.LEFT, false);
       this.menu.connect('open-state-changed', Lang.bind(this, this._subMenuOpenStateChanged));
       this.actor.connect('notify::mapped', Lang.bind(this, this._onMapped));
+   },
+
+   haveIcon: function() {
+      return ((this._icon.icon_name && this._icon.icon_name != "") || (this._icon.gicon));
+   },
+
+   setShowItemIcon: function(show) {
+      this._displayIcon = show;
+      this._icon.visible = (this._displayIcon)&&(this.haveIcon());
+   },
+
+   setIconName: function(name) {
+      this._icon.visible = ((this._displayIcon) && (name && name != ""));
+      this._icon.icon_name = iconName;
+   },
+
+   setGIcon: function(gicon) {
+      this._icon.visible = ((this._displayIcon) && (gicon != null));
+      this._icon.gicon = gicon;
    },
 
    setArrowSide: function(side) {
@@ -2013,7 +2033,8 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
                      this._triangle.rotation_angle_z = 180;
                   if(this._arrowSide != St.Side.RIGHT) {
                      this.actor.remove_actor(this._triangle);
-                     this.actor.insert_before(this._triangle, this.label);
+                     //this.actor.insert_before(this._triangle, this.label);
+                     this.actor.insert_before(this._triangle, this._icon);
                   }
                   break;
             }
@@ -2119,15 +2140,10 @@ ConfigurablePopupMenuSection.prototype = {
    },
 
    _setShowItemIcon: function(menuItem) {
-      if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
-         if(menuItem.setShowItemIcon)
-            menuItem.setShowItemIcon(this._showItemIcon);
-         if(menuItem.menu.setShowItemIcon)
-            menuItem.menu.setShowItemIcon(this._showItemIcon);
-      } else {
-         if(menuItem.setShowItemIcon)
-            menuItem.setShowItemIcon(this._showItemIcon);
-      }
+      if((menuItem instanceof PopupMenu.PopupSubMenuMenuItem)&&(menuItem.menu.setShowItemIcon))
+         menuItem.menu.setShowItemIcon(this._showItemIcon);
+      if(menuItem.setShowItemIcon)
+         menuItem.setShowItemIcon(this._showItemIcon);
    },
 
    destroy: function() {
@@ -2178,6 +2194,7 @@ ConfigurablePopupMenuItem.prototype = {
       this._activatable = params.reactive && params.activate;
       this.sensitive = true;
       this.focusOnHover = params.focusOnHover;
+      this._displayIcon = false;
 
       this.setSensitive(this._activatable && params.sensitive);
 
@@ -2197,7 +2214,29 @@ ConfigurablePopupMenuItem.prototype = {
 
       this.label = new St.Label({ text: text });
       this.actor.label_actor = this.label;
+      this._icon = new St.Icon({ style_class: 'popup-menu-icon' });
+      this._icon.hide();
+      this.actor.add(this._icon);
       this.actor.add(this.label, { y_align: St.Align.MIDDLE, y_fill:false, expand: true });
+   },
+
+   haveIcon: function() {
+      return ((this._icon.icon_name && this._icon.icon_name != "") || (this._icon.gicon));
+   },
+
+   setShowItemIcon: function(show) {
+      this._displayIcon = show;
+      this._icon.visible = (this._displayIcon)&&(this.haveIcon());
+   },
+
+   setIconName: function(name) {
+      this._icon.visible = ((this._displayIcon) && (name && name != ""));
+      this._icon.icon_name = iconName;
+   },
+
+   setGIcon: function(gicon) {
+      this._icon.visible = ((this._displayIcon) && (gicon != null));
+      this._icon.gicon = gicon;
    },
 
    destroy: function() {
@@ -2224,35 +2263,11 @@ ConfigurableApplicationMenuItem.prototype = {
    _init: function(text) {
       ConfigurablePopupMenuItem.prototype._init.call(this, text);
       this.actor._delegate = this;
-      this.displayIcon = true;
 
-      this._icon = new St.Icon({ style_class: 'popup-menu-icon' });
       this._accel = new St.Label();
       this._ornament = new St.Bin();
-      this.actor.insert_before(this._icon, this.label);
       this.actor.add(this._accel,    { x_align: St.Align.END, y_align: St.Align.MIDDLE, x_fill:false });
       this.actor.add(this._ornament, { x_align: St.Align.END, y_align: St.Align.MIDDLE, x_fill:false });
-      this._icon.hide();
-   },
-
-   setShowItemIcon: function(show) {
-      this.displayIcon = show;
-      if(this.displayIcon) {
-         if ((this._icon.icon_name && this._icon.icon_name != "") ||
-             (this._icon.gicon))
-             this._icon.visible = true;
-      } else
-         this._icon.visible = false;
-   },
-
-   setIconName: function(name) {
-      this._icon.visible = ((this.displayIcon) && (name && name != ""));
-      this._icon.icon_name = iconName;
-   },
-
-   setGIcon: function(gicon) {
-      this._icon.visible = ((this.displayIcon) && (gicon != null));
-      this._icon.gicon = gicon;
    },
 
    setAccel: function(accel) {
@@ -2363,19 +2378,7 @@ ConfigurableMenuApplet.prototype = {
       ConfigurableMenu.prototype.setArrowSide.call(this, side);
       if(!this._floating) {
          for(let pos in this._childMenus) {
-            let menu = this._childMenus[pos];
-            menu.setArrowSide(side);
-         }
-      }
-   },
-
-   _setChildsArrowSide: function() {
-      if(this._floating) {
-         ConfigurableMenu.prototype._setChildsArrowSide.call(this);
-      } else {
-         for(let pos in this._childMenus) {
-            let menu = this._childMenus[pos];
-            menu.setArrowSide(this._arrowSide);
+            this._childMenus[pos].setArrowSide(side);
          }
       }
    },
@@ -2410,14 +2413,10 @@ ConfigurableMenuApplet.prototype = {
          let menuItem = items[pos];
          if (menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
             this._setMenuInPosition(menuItem);
+            this._setShowItemIcon(menuItem);
+            menuItem.menu.fixToCorner(menuItem.menu.fixCorner);
          }
       }
-   },
-
-   _releaseItemBox: function() {
-      let parent = this.box.get_parent();
-      if(parent != null)
-          parent.remove_actor(this.box);
    },
 
    addMenuItem: function(menuItem, position) {
@@ -2440,11 +2439,39 @@ ConfigurableMenuApplet.prototype = {
                menuItem.menu.close(false);
          });
          this._setMenuInPosition(menuItem);
+         this._setShowItemIcon(menuItem);
          this.addChildMenu(menuItem.menu);
          menuItem.actor.connect('button-press-event', Lang.bind(this, this._onButtonPressEvent));
       } else {
          ConfigurableMenu.prototype.addMenuItem.call(this, menuItem, position);
       }
+   },
+
+   _setChildsArrowSide: function() {
+      if(this._floating) {
+         ConfigurableMenu.prototype._setChildsArrowSide.call(this);
+      } else {
+         for(let pos in this._childMenus) {
+            let menu = this._childMenus[pos];
+            menu.setArrowSide(this._arrowSide);
+         }
+      }
+   },
+
+   _releaseItemBox: function() {
+      let parent = this.box.get_parent();
+      if(parent != null)
+          parent.remove_actor(this.box);
+   },
+
+   _setShowItemIcon: function(menuItem) {
+      if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+         if(menuItem.menu.setShowItemIcon)
+             menuItem.menu.setShowItemIcon(this._showItemIcon);
+         if(menuItem.setShowItemIcon)
+             menuItem.setShowItemIcon((this._showItemIcon)&&(this._floating));
+      } else if(menuItem.setShowItemIcon)
+         menuItem.setShowItemIcon(this._showItemIcon);
    },
 
    _setMenuInPosition: function(menuItem) {
@@ -3308,9 +3335,8 @@ MenuFactory.prototype = {
                shellItem.actor.add_actor(shellItem._accel);
             }
          }
-         // GS3.8: emulate the ornament stuff.
-         // this is similar to how the setShowDot function works
-         if (!shellItem.setOrnament) {
+
+         if (!shellItem._icon) {
             shellItem._icon = new St.Icon({ style_class: 'popup-menu-icon', x_align: St.Align.END });
             if (shellItem.addActor) { //GS 3.8
                shellItem.addActor(shellItem._icon, { align: St.Align.END });
@@ -3318,6 +3344,12 @@ MenuFactory.prototype = {
                shellItem.actor.add(shellItem._icon, { x_align: St.Align.END });
                shellItem.label.get_parent().child_set(shellItem.label, { expand: true });
             }
+         }
+
+         // GS3.8: emulate the ornament stuff.
+         // this is similar to how the setShowDot function works
+         if (!shellItem.setOrnament) {
+
             shellItem._ornament = new St.Label();
             shellItem.actor.add_actor(shellItem._ornament);
             shellItem.setOrnament = this._setOrnamentPolyfill;

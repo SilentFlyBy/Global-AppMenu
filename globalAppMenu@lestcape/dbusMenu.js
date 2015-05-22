@@ -672,8 +672,7 @@ DBusClientGtk.prototype = {
     },
 
     _createIconForActionId: function(id, actionId) {
-        if ((id in this._items)&&(!this._items[id].getGdkIcon())&&
-            (this._items[id].getFactoryType() == ConfigurableMenus.FactoryClassTypes.MenuItemClass)) {
+        if ((id in this._items)&&(!this._items[id].getGdkIcon())) {
             let action = actionId.replace("unity.", "").replace("win.", "").replace("app.", "");
             try {
                 // FIXME we need to find a better way to get more standar gtk icons
