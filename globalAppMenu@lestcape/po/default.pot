@@ -139,6 +139,14 @@ msgstr ""
 msgid "Select if you want to show the application icon in the panel."
 msgstr ""
 
+#. globalAppMenu@lestcape->settings-schema.json->desaturate-item-icon->description
+msgid "Desaturate icons in the menu items"
+msgstr ""
+
+#. globalAppMenu@lestcape->settings-schema.json->desaturate-item-icon->tooltip
+msgid "Select if you want to desaturate icons in the menu items."
+msgstr ""
+
 #. globalAppMenu@lestcape->metadata.json->description
 msgid "Adds global application menu support to Cinnamon"
 msgstr ""

@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Global Application Menu 0.1-Beta\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-05-14 06:58-0500\n"
-"PO-Revision-Date: 2015-05-14 08:52-0600\n"
+"PO-Revision-Date: 2015-05-24 06:34-0600\n"
 "Last-Translator: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "Language-Team: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -139,6 +139,14 @@ msgstr "Show the application icon in the panel"
 #. globalAppMenu@lestcape->settings-schema.json->show-app-icon->tooltip
 msgid "Select if you want to show the application icon in the panel."
 msgstr "Select if you want to show the application icon in the panel."
+
+#. globalAppMenu@lestcape->settings-schema.json->desaturate-item-icon->description
+msgid "Desaturate icons in the menu items"
+msgstr "Desaturate icons in the menu items"
+
+#. globalAppMenu@lestcape->settings-schema.json->desaturate-item-icon->tooltip
+msgid "Select if you want to desaturate icons in the menu items."
+msgstr "Select if you want to desaturate icons in the menu items."
 
 #. globalAppMenu@lestcape->metadata.json->description
 msgid "Adds global application menu support to Cinnamon"

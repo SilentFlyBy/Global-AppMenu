@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Global Application Menu 0.1-Beta\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-05-14 06:58-0500\n"
-"PO-Revision-Date: 2015-05-14 08:52-0600\n"
+"PO-Revision-Date: 2015-05-24 06:34-0600\n"
 "Last-Translator: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "Language-Team: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -49,11 +49,11 @@ msgstr "Submenú"
 
 #. globalAppMenu@lestcape->settings-schema.json->show-item-icon->description
 msgid "Show icons in the menu items"
-msgstr "Mostrar iconos en los elementos del menú"
+msgstr "Mostrar los iconos en los elementos del menú"
 
 #. globalAppMenu@lestcape->settings-schema.json->show-item-icon->tooltip
 msgid "Select if you want to show icons in the menu items."
-msgstr "Seleccione si desea mostrar los iconos de los elementos de menú."
+msgstr "Seleccione si desea mostrar los iconos de los elementos del menú."
 
 #. globalAppMenu@lestcape->settings-schema.json->align-menu-
 #. launcher->description
@@ -118,7 +118,7 @@ msgstr "Seleccione si desea mostrar el menú principal en el panel."
 
 #. globalAppMenu@lestcape->settings-schema.json->head-menuitem->description
 msgid "Menu items"
-msgstr "Elementos de menú"
+msgstr "Elementos del menú"
 
 #. globalAppMenu@lestcape->settings-schema.json->head-application->description
 msgid "Applications"
@@ -141,6 +141,14 @@ msgstr "Mostrar el icono de la aplicación en el panel"
 msgid "Select if you want to show the application icon in the panel."
 msgstr "Seleccione si desea mostrar el icono de la aplicación en el panel."
 
+#. globalAppMenu@lestcape->settings-schema.json->desaturate-item-icon->description
+msgid "Desaturate icons in the menu items"
+msgstr "Desaturar los iconos de los elementos del menú"
+
+#. globalAppMenu@lestcape->settings-schema.json->desaturate-item-icon->tooltip
+msgid "Select if you want to desaturate icons in the menu items."
+msgstr "Seleccione si desea desaturar los iconos de los elementos del menú."
+
 #. globalAppMenu@lestcape->metadata.json->description
 msgid "Adds global application menu support to Cinnamon"
-msgstr "Añadir soporte de menú global de aplicaciones a Cinnamon"
+msgstr "Añadir soporte del menú global de aplicaciones a Cinnamon"

@@ -598,6 +598,7 @@ ConfigurableMenuManager.prototype = {
       this._showBoxPointer = true;
       this._alignSubMenu = false;
       this._showItemIcon = true;
+      this._desaturateItemIcon = false;
    },
 
    addMenu: function(menu, position) {
@@ -622,6 +623,8 @@ ConfigurableMenuManager.prototype = {
             menu.fixToCorner(this._alignSubMenu);
          if(menu.setShowItemIcon)
             menu.setShowItemIcon(this._showItemIcon);
+         if(menu.desaturateItemIcon)
+            menu.desaturateItemIcon(this._desaturateItemIcon);
 
          let source = menu.sourceActor;
          if (source) {
@@ -704,6 +707,16 @@ ConfigurableMenuManager.prototype = {
          for(let pos in this._menus) {
             if(this._menus[pos].menu.setShowItemIcon)
                this._menus[pos].menu.setShowItemIcon(this._showItemIcon);
+         }
+      }
+   },
+
+   desaturateItemIcon: function(desaturate) {
+      if(this._desaturateItemIcon != desaturate) {
+         this._desaturateItemIcon = desaturate;
+         for(let pos in this._menus) {
+            if(this._menus[pos].menu.desaturateItemIcon)
+               this._menus[pos].menu.desaturateItemIcon(this._desaturateItemIcon);
          }
       }
    },
@@ -962,6 +975,7 @@ ConfigurableMenu.prototype = {
          this._floating = false;
          this._topMenu = null;
          this._showItemIcon = true;
+         this._desaturateItemIcon = false;
 
          this.launcher = null;
          this._openedSubMenu = null;
@@ -1027,6 +1041,7 @@ ConfigurableMenu.prototype = {
 
    addMenuItem: function(menuItem, position) {
       this._setShowItemIcon(menuItem);
+      this._setDesaturateItemIcon(menuItem);
       if (menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
          let before_item = null;
          if (position == undefined) {
@@ -1073,9 +1088,31 @@ ConfigurableMenu.prototype = {
       }
    },
 
+   desaturateItemIcon: function(desaturate) {
+      if(this._desaturateItemIcon != desaturate) {
+         this._desaturateItemIcon = desaturate;
+         let items = this._getMenuItems();
+         for(let pos in items) {
+            let menuItem = items[pos];
+            this._setDesaturateItemIcon(menuItem);
+         }
+      }
+   },
+
+   _setDesaturateItemIcon: function(menuItem) {
+      if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+         if(menuItem.menu.desaturateItemIcon)
+             menuItem.menu.desaturateItemIcon(this._desaturateItemIcon);
+      }
+      if(menuItem.desaturateItemIcon)
+          menuItem.desaturateItemIcon(this._desaturateItemIcon);
+   },
+
    _setShowItemIcon: function(menuItem) {
-      if((menuItem instanceof PopupMenu.PopupSubMenuMenuItem)&&(menuItem.menu.setShowItemIcon))
-         menuItem.menu.setShowItemIcon(this._showItemIcon);
+      if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+         if(menuItem.menu.setShowItemIcon)
+             menuItem.menu.setShowItemIcon(this._showItemIcon);
+      }
       if(menuItem.setShowItemIcon)
          menuItem.setShowItemIcon(this._showItemIcon);
    },
@@ -1946,6 +1983,16 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
       this._icon.visible = (this._displayIcon)&&(this.haveIcon());
    },
 
+   desaturateItemIcon: function(desaturate) {
+      if(this._desaturateIcon != desaturate) {
+         this._desaturateIcon = desaturate;
+         if(desaturate)
+            this._icon.add_effect_with_name("desaturate", new Clutter.DesaturateEffect());
+         else
+            this._icon.remove_effect_by_name("desaturate");
+      }
+   },
+
    setIconName: function(name) {
       this._icon.visible = ((this._displayIcon) && (name && name != ""));
       this._icon.icon_name = iconName;
@@ -2039,10 +2086,12 @@ ConfigurablePopupMenuSection.prototype = {
       PopupMenu.PopupMenuSection.prototype._init.call(this);
       this.actor._delegate = this;
       this._showItemIcon = true;
+      this._desaturateItemIcon = false;
    },
 
    addMenuItem: function(menuItem, position) {
       this._setShowItemIcon(menuItem);
+      this._setDesaturateItemIcon(menuItem);
       if ((menuItem instanceof PopupMenu.PopupSubMenuMenuItem)&&(this._isFloating(menuItem.menu))) {
          let before_item = null;
          if (position == undefined) {
@@ -2077,13 +2126,35 @@ ConfigurablePopupMenuSection.prototype = {
       }
    },
 
+   desaturateItemIcon: function(desaturate) {
+      if(this._desaturateItemIcon != desaturate) {
+         this._desaturateItemIcon = desaturate;
+         let items = this._getMenuItems();
+         for(let pos in items) {
+            let menuItem = items[pos];
+            this._setDesaturateItemIcon(menuItem);
+         }
+      }
+   },
+
    _isFloating: function(menu) {
       return ((menu.isInFloatingState) && (menu.isInFloatingState()));
    },
 
+   _setDesaturateItemIcon: function(menuItem) {
+      if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+         if(menuItem.menu.desaturateItemIcon)
+             menuItem.menu.desaturateItemIcon(this._desaturateItemIcon);
+      }
+      if(menuItem.desaturateItemIcon)
+          menuItem.desaturateItemIcon(this._desaturateItemIcon);
+   },
+
    _setShowItemIcon: function(menuItem) {
-      if((menuItem instanceof PopupMenu.PopupSubMenuMenuItem)&&(menuItem.menu.setShowItemIcon))
-         menuItem.menu.setShowItemIcon(this._showItemIcon);
+      if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+         if(menuItem.menu.setShowItemIcon)
+             menuItem.menu.setShowItemIcon(this._showItemIcon);
+      }
       if(menuItem.setShowItemIcon)
          menuItem.setShowItemIcon(this._showItemIcon);
    },
@@ -2137,6 +2208,7 @@ ConfigurablePopupMenuItem.prototype = {
       this.sensitive = true;
       this.focusOnHover = params.focusOnHover;
       this._displayIcon = false;
+      this._desaturateIcon = false;
 
       this.setSensitive(this._activatable && params.sensitive);
 
@@ -2174,6 +2246,16 @@ ConfigurablePopupMenuItem.prototype = {
    setIconName: function(name) {
       this._icon.visible = ((this._displayIcon) && (name && name != ""));
       this._icon.icon_name = iconName;
+   },
+
+   desaturateItemIcon: function(desaturate) {
+      if(this._desaturateIcon != desaturate) {
+         this._desaturateIcon = desaturate;
+         if(desaturate)
+            this._icon.add_effect_with_name("desaturate", new Clutter.DesaturateEffect());
+         else
+            this._icon.remove_effect_by_name("desaturate");
+      }
    },
 
    setGIcon: function(gicon) {
@@ -2387,6 +2469,7 @@ ConfigurableMenuApplet.prototype = {
          });
          this._setMenuInPosition(menuItem);
          this._setShowItemIcon(menuItem);
+         this._setDesaturateItemIcon(menuItem);
          this.addChildMenu(menuItem.menu);
          menuItem.actor.connect('button-press-event', Lang.bind(this, this._onButtonPressEvent));
       } else {
@@ -2409,6 +2492,15 @@ ConfigurableMenuApplet.prototype = {
       let parent = this.box.get_parent();
       if(parent != null)
           parent.remove_actor(this.box);
+   },
+
+   _setDesaturateItemIcon: function(menuItem) {
+      if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+         if(menuItem.menu.desaturateItemIcon)
+             menuItem.menu.desaturateItemIcon(this._desaturateItemIcon);
+      }
+      if(menuItem.desaturateItemIcon)
+          menuItem.desaturateItemIcon(this._desaturateItemIcon);
    },
 
    _setShowItemIcon: function(menuItem) {

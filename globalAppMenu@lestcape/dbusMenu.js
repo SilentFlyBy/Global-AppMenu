@@ -277,7 +277,7 @@ DbusMenuItem.prototype = {
                 return GdkPixbuf.Pixbuf.new_from_stream(stream, null);
             }
         } catch(e) {
-            global.log("Error loading icon.");
+            global.log("Error loading icon: " + e.message);
         }
         return null;
     },
@@ -351,7 +351,7 @@ DBusClient.prototype = {
         if(this._proxyMenu) {
             this._proxyMenu.AboutToShowRemote(id, Lang.bind(this, function(result, error) {
                 if (error)
-                    global.logWarning("while calling AboutToShow: "+error);
+                    global.logWarning("while calling AboutToShow: " + error);
                 else if (result && result[0])
                     this._requestLayoutUpdate();
             }));
@@ -405,7 +405,7 @@ DBusClient.prototype = {
 
     _endRequestProperties: function(result, error) {
         if (error) {
-            global.logWarning("Could not retrieve properties: "+error);
+            global.logWarning("Could not retrieve properties: " + error);
         } else if (this._items) {
             // For some funny reason, the result array is hidden in an array
             result[0].forEach(function([id, properties]) {
@@ -451,7 +451,7 @@ DBusClient.prototype = {
 
     _endLayoutUpdate: function(result, error) {
         if (error) {
-            global.logWarning("While reading menu layout: "+error);
+            global.logWarning("While reading menu layout: " + error);
             return;
         }
 
@@ -517,7 +517,7 @@ DBusClient.prototype = {
     _clientReady: function(result, error) {
         if (error) {
             //FIXME: show message to the user?
-            global.logWarning("Could not initialize menu proxy: "+error);
+            global.logWarning("Could not initialize menu proxy: " + error);
             return;
         }
         this._requestLayoutUpdate();
@@ -535,7 +535,7 @@ DBusClient.prototype = {
             this._proxyMenu.GetLayoutRemote(0, -1, [ 'type', 'children-display' ],
                 Lang.bind(this, function(result, error) {
                     if (error) {
-                        global.logWarning("Could call GetLayout: "+error);
+                        global.logWarning("Could call GetLayout: " + error);
                         //FIXME: show message to the user?
                     }
                     let [ revision, root ] = result;
@@ -674,16 +674,100 @@ DBusClientGtk.prototype = {
     _createIconForActionId: function(id, actionId) {
         if ((id in this._items)&&(!this._items[id].getGdkIcon())) {
             let action = actionId.replace("unity.", "").replace("win.", "").replace("app.", "");
+            let gtkIconName = null;
             try {
                 // FIXME we need to find a better way to get more standar gtk icons
                 // using the gtk-action-id.
-                let gtkIconName = action.toLowerCase();
-                if(IconTheme.has_icon(gtkIconName)) {
+                let actionName = action.toLowerCase();
+                if(IconTheme.has_icon(actionName)) {
+                    gtkIconName = actionName;
+                } else if(IconTheme.has_icon("gtk-" + actionName)) {
+                    gtkIconName = "gtk-" + actionName;
+                } else if(actionName.indexOf("replace") != -1) {
+                    gtkIconName = "gtk-find-and-replace";
+                } else if((actionName.indexOf("select") != -1)&&(actionName.indexOf("all") != -1)) {
+                    gtkIconName = "gtk-select-all";
+                } else if((actionName.indexOf("spell") != -1)&&(actionName.indexOf("check") != -1)) {
+                    gtkIconName = "gtk-spell-check";
+                } else if((actionName.indexOf("-cut") != -1)||(actionName.indexOf("cut-") != -1)) {
+                    gtkIconName = "gtk-cut";
+                } else if(actionName.indexOf("connect") != -1) {
+                    gtkIconName = "gtk-connect";
+                } else if(actionName.indexOf("fullscreen") != -1) {
+                    gtkIconName = "gtk-fullscreen";
+                } else if(actionName.indexOf("execute") != -1) {
+                    gtkIconName = "gtk-execute";
+                } else if(actionName.indexOf("open") != -1) {
+                    gtkIconName = "gtk-open";
+                } else if(actionName.indexOf("undo") != -1) {
+                    gtkIconName = "gtk-undo-ltr";
+                } else if(actionName.indexOf("clear") != -1) {
+                    gtkIconName = "gtk-clear";
+                } else if(actionName.indexOf("cancel") != -1) {
+                    gtkIconName = "gtk-cancel";
+                } else if(actionName.indexOf("stop") != -1) {
+                    gtkIconName = "gtk-stop";
+                } else if(actionName.indexOf("refresh") != -1) {
+                    gtkIconName = "gtk-refresh";
+                } else if(actionName.indexOf("trash") != -1) {
+                    gtkIconName = "emptytrash";
+                } else if(actionName.indexOf("redo") != -1) {
+                    gtkIconName = "gtk-redo-ltr";
+                } else if(actionName.indexOf("properties") != -1) {
+                    gtkIconName = "gtk-properties";
+                } else if(actionName.indexOf("preference") != -1) {
+                    gtkIconName = "gtk-preferences";
+                } else if(actionName.indexOf("paste") != -1) {
+                    gtkIconName = "gtk-paste";
+                } else if(actionName.indexOf("remove") != -1) {
+                    gtkIconName = "gtk-remove";
+                } else if(actionName.indexOf("open") != -1) {
+                    gtkIconName = "gtk-open";
+                } else if(actionName.indexOf("add") != -1) {
+                    gtkIconName = "gtk-add";
+                } else if(actionName.indexOf("add") != -1) {
+                    gtkIconName = "gtk-add";
+                } else if(actionName.indexOf("quit") != -1) {
+                    gtkIconName = "gtk-quit";
+                } else if(actionName.indexOf("close") != -1) {
+                    gtkIconName = "gtk-close";
+                } else if(actionName.indexOf("new") != -1) {
+                    gtkIconName = "gtk-new";
+                } else if(actionName.indexOf("about") != -1) {
+                    gtkIconName = "gtk-about";
+                } else if(actionName.indexOf("help") != -1) {
+                    gtkIconName = "gtk-help";
+                } else if(actionName.indexOf("find") != -1) {
+                    gtkIconName = "gtk-find";
+                } else if(actionName.indexOf("copy") != -1) {
+                    gtkIconName = "gtk-copy";
+                } else if(actionName.indexOf("edit") != -1) {
+                    gtkIconName = "gtk-edit";
+                } else if(actionName.indexOf("save") != -1) {
+                    if(actionName.indexOf("all") != -1) {
+                        gtkIconName = "gtk-save-all", 25;
+                    } else {
+                        gtkIconName = "gtk-save";
+                    }
+                } else if(actionName.indexOf("print") != -1) {
+                    if(actionName.indexOf("preview") != -1) {
+                        gtkIconName = "gtk-print-preview";
+                    } else {
+                        gtkIconName = "gtk-print";
+                    }
+                } else if(actionName.indexOf("zoom") != -1) {
+                    if(actionName.indexOf("out") != -1) {
+                        gtkIconName = "gtk-zoom-out";
+                    } else {
+                        gtkIconName = "gtk-zoom-in";
+                    }
+                }
+                if((gtkIconName)&&(IconTheme.has_icon(gtkIconName))) {
                     let icon = IconTheme.load_icon(gtkIconName, 25, Gtk.IconLookupFlags.GENERIC_FALLBACK);
                     this._items[id].setGdkIcon(icon);
                 }
             } catch(e) {
-                global.logWarning("While reading icon for actions ids: " + error);
+                global.logWarning("While reading icon for actions ids: " + e.message);
             }
         }
     },
@@ -827,7 +911,7 @@ DBusClientGtk.prototype = {
                 //this._requestProperties(id);
             }
         } catch (e) {
-            global.log("Error " + e.message);
+            global.log("Error: " + e.message);
         }
         return id;
     },
@@ -875,7 +959,7 @@ DBusClientGtk.prototype = {
     _clientReady: function(result, error) {
         if (error) {
             //FIXME: show message to the user?
-            global.logWarning("Could not initialize menu proxy: "+error);
+            global.logWarning("Could not initialize menu proxy: " + error);
             return;
         }
 
@@ -898,7 +982,7 @@ DBusClientGtk.prototype = {
     _clientActionReady: function(result, error, type) {
         if (error) {
             //FIXME: show message to the user?
-            global.logWarning("Could not initialize menu proxy: "+error);
+            global.logWarning("Could not initialize menu proxy: " + error);
             return;
         }
         if(type == "unity") {

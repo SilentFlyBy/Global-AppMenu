@@ -1,12 +1,12 @@
 {
-    "separator-application-top": {
+    "separator-application-top" : {
         "type": "separator"
     },
     "head-application" : {
         "type" : "header",
         "description" : "Applications"
     },
-    "separator-application-bottom": {
+    "separator-application-bottom" : {
         "type": "separator"
     },
     "show-app-icon" : {
@@ -41,14 +41,14 @@
         "indent": true,
         "dependency": "show-app-name"
     },
-    "separator-mainmenu-top": {
+    "separator-mainmenu-top" : {
         "type": "separator"
     },
     "head-mainmenu" : {
         "type" : "header",
         "description" : "Main menu"
     },
-    "separator-mainmenu-bottom": {
+    "separator-mainmenu-bottom" : {
         "type": "separator"
     },
     "display-in-panel" : {
@@ -65,14 +65,14 @@
         "indent": true,
         "dependency": "display-in-panel"
     },
-    "separator-submenu-top": {
+    "separator-submenu-top" : {
         "type": "separator"
     },
     "head-submenu" : {
         "type" : "header",
         "description" : "Submenu"
     },
-    "separator-submenu-bottom": {
+    "separator-submenu-bottom" : {
         "type": "separator"
     },
     "close-active-submenu" : {
@@ -93,14 +93,14 @@
         "description": "Align all menus with his launcher",
         "tooltip": "Select if you want to align all menus with his launcher."
     },
-    "separator-menuitem-top": {
+    "separator-menuitem-top" : {
         "type": "separator"
     },
     "head-menuitem" : {
         "type" : "header",
         "description" : "Menu items"
     },
-    "separator-menuitem-bottom": {
+    "separator-menuitem-bottom" : {
         "type": "separator"
     },
     "show-item-icon" : {
@@ -108,5 +108,13 @@
         "default" : true,
         "description": "Show icons in the menu items",
         "tooltip": "Select if you want to show icons in the menu items."
+    },
+    "desaturate-item-icon" : {
+        "type" : "checkbox",
+        "default" : false,
+        "description": "Desaturate icons in the menu items",
+        "tooltip": "Select if you want to desaturate icons in the menu items.",
+        "indent": true,
+        "dependency": "show-item-icon"
     }
 }

@@ -55,6 +55,7 @@ MyMenuFactory.prototype = {
       this._floatingSubMenu = true;
       this._alignSubMenu = false;
       this._showItemIcon = true;
+      this._desaturateItemIcon = false;
       this._arrowSide = St.Side.BOTTOM;
    },
 
@@ -125,6 +126,15 @@ MyMenuFactory.prototype = {
       }
    },
 
+   desaturateItemIcon: function(desaturate) {
+      if(this._desaturateItemIcon != desaturate) {
+         this._desaturateItemIcon = desaturate;
+         for (let pos in this._menuManager) {
+            this._menuManager[pos].desaturateItemIcon(this._desaturateItemIcon);
+         }
+      }
+   },
+
    _createShellItem: function(factoryItem, launcher, orientation, menuManager) {
       // Decide whether it's a submenu or not
       this._arrowSide = orientation;
@@ -133,6 +143,7 @@ MyMenuFactory.prototype = {
          menuManager.setCloseSubMenu(this._closeSubMenu);
          menuManager.setAlignSubMenu(this._alignSubMenu);
          menuManager.setShowItemIcon(this._showItemIcon);
+         menuManager.desaturateItemIcon(this._desaturateItemIcon);
       }
       let shellItem = null;
       let item_type = factoryItem.getFactoryType();
@@ -271,6 +282,7 @@ MyApplet.prototype = {
          this.showBoxPointer = true;
          this.alignMenuLauncher = false;
          this.showItemIcon = true;
+         this.desaturateItemIcon = false;
 
          this.actorIcon = new St.Bin();
 
@@ -310,6 +322,7 @@ MyApplet.prototype = {
       this.settings.bindProperty(Settings.BindingDirection.IN, "align-menu-launcher", "alignMenuLauncher", this._onAlignMenuLauncherChange, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "display-in-panel", "displayInPanel", this._onDisplayInPanelChange, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "show-item-icon", "showItemIcon", this._onShowItemIconChange, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "desaturate-item-icon", "desaturateItemIcon", this._onDesaturateItemIconChange, null);
 
       this._onDisplayInPanelChange();
       this._onShowAppIconChange();
@@ -321,6 +334,7 @@ MyApplet.prototype = {
       this._onShowBoxPointerChange();
       this._onAlignMenuLauncherChange();
       this._onShowItemIconChange();
+      this._onDesaturateItemIconChange();
    },
 
    _onDisplayInPanelChange: function() {
@@ -365,6 +379,10 @@ MyApplet.prototype = {
 
    _onShowItemIconChange: function() {
       this.menuFactory.setShowItemIcon(this.showItemIcon);
+   },
+
+   _onDesaturateItemIconChange: function() {
+      this.menuFactory.desaturateItemIcon(this.desaturateItemIcon);
    },
 
    _on_appmenu_changed: function(indicator, window) {
