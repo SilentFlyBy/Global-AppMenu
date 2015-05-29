@@ -290,8 +290,7 @@ MyApplet.prototype = {
          this.actor.add(this.actorIcon, { y_align: St.Align.MIDDLE, y_fill: false });
          this.actor.add(this.gradient.actor, { y_align: St.Align.MIDDLE, y_fill: false });
 
-         this.menuFactory = new MyMenuFactory(instance_id);
-         this.settings = new Settings.AppletSettings(this, this.uuid, instance_id);
+         this.menuFactory = new MyMenuFactory();
          this._create_settings();
 
          this.indicatorDbus = new IndicatorAppMenuWatcher.IndicatorAppMenuWatcher(
@@ -310,8 +309,8 @@ MyApplet.prototype = {
       }
    },
 
-   _create_settings: function(instance_id) {
-      this.settings = new Settings.AppletSettings(this, this.uuid, instance_id);
+   _create_settings: function() {
+      this.settings = new Settings.AppletSettings(this, this.uuid, this.instance_id);
       this.settings.bindProperty(Settings.BindingDirection.IN, "show-app-icon", "showAppIcon", this._onShowAppIconChange, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "desaturate-app-icon", "desaturateAppIcon", this._onDesaturateAppIconChange, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "show-app-name", "showAppName", this._onShowAppNameChange, null);

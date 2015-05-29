@@ -317,7 +317,7 @@ DBusClient.prototype = {
         this._items[initId] = new DbusMenuItem(initId, [],
             { 'children-display': GLib.Variant.new_string('rootmenu'), 'visible': GLib.Variant.new_boolean(false) }, this);
 
-        this._proxyMenu = this._startMainProxy();
+        this._startMainProxy();
     },
 
     getShellMenu: function() {
@@ -370,9 +370,8 @@ DBusClient.prototype = {
     },
 
     _startMainProxy: function() {
-        let proxy = new BusClientProxy(Gio.DBus.session, this._busName, this._busPath,
+        this._proxyMenu = new BusClientProxy(Gio.DBus.session, this._busName, this._busPath,
             Lang.bind(this, this._clientReady));
-        return proxy;
     },
 
     _requestLayoutUpdate: function() {
@@ -613,9 +612,8 @@ DBusClientGtk.prototype = {
     },
 
     _startMainProxy: function() {
-        let proxy = new BusGtkClientProxy(Gio.DBus.session, this._busName, this._busPath,
+        this._proxyMenu = new BusGtkClientProxy(Gio.DBus.session, this._busName, this._busPath,
             Lang.bind(this, this._clientReady));
-        return proxy;
     },
 
     _requestActionsUpdate: function(proxy, type) {
@@ -917,6 +915,10 @@ DBusClientGtk.prototype = {
     },
 
     sendAboutToShow: function(id) {
+        if (id == this.getRootId()) {
+            this._idLayoutUpdate = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE,
+                Lang.bind(this, this._requestLayoutUpdate));
+        }
     },
 
     sendEvent: function(id, event, params, timestamp) {//FIXME no match signal id
@@ -932,6 +934,8 @@ DBusClientGtk.prototype = {
             proxy.ActivateRemote(action, params, plataform,
                 function(result, error) {}); // We don't care
         }
+        if(event == ConfigurableMenus.FactoryEventTypes.opened)
+            this.sendAboutToShow(id);
     },
 
     _findProxyForActionType: function(actionId) {
