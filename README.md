@@ -2,6 +2,10 @@ Cinnamon Applet: Global Application Menu Version: v0.2-Beta
 
 Last update: 15 may 2015
 
+This is not true at all. I'm no developer of Cinnamon or Mint:
+http://compizomania.blogspot.com/2015/05/cinnamon.html
+
+
 ***
 Special thanks to:
 
