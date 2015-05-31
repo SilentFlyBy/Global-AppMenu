@@ -1,8 +1,6 @@
-Cinnamon Applet: Global Application Menu Version: v0.2-Beta
+Cinnamon Applet: Global Application Menu Version: v0.3-Beta
 
-Last update: 15 may 2015
-
-**Warrning:** This is a third-party applet, not official.
+Last update: 30 may 2015
 
 ***
 Special thanks to:
@@ -17,6 +15,8 @@ Special thanks to:
 
 Description
 --------------
+**Warning:** This is a third-party applet, is not official.
+
 This applet integrates the Ubuntu Application Menu (Global Menu) support into the Cinnamon Desktop.
 
 It's used the same idea of the Gnome Shell extension made by rgcjonas:
@@ -32,6 +32,14 @@ http://stackoverflow.com/questions/30206099/what-is-the-current-behavior-of-fire
 
 Change log
 --------------
+0.3-Beta
+ - Don't show icon on the panel submenu item, is ugly and out of the standard.
+ - Use the Cinnamon radiobutton instead of an special text.
+ - Try to add more gtk icons using the action context (could be wrong).
+ - Add an option to desaturate the internal items icon.
+ - Fixed the applet instance id problem in settings.
+ - Try to fix Open Office (Is possible that will not show the menu on some contexts).
+
 0.2-Beta
   - Not crash Cinnamon when firefox drop the menu.
   - Fix xchat and possible other gtk applications.
