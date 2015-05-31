@@ -3312,7 +3312,7 @@ MenuFactory.prototype = {
       let shellItem = factoryItem.getShellItem();
       let factoryItemParent = factoryItem.getParent();
       let parentMenu = null;
-      if ((shellItem)&&(factoryItemParent)) {
+      if (factoryItemParent) {
          let shellItemParent = factoryItemParent.getShellItem();
          if (shellItemParent instanceof PopupMenu.PopupMenuSection)
             parentMenu = shellItemParent;
@@ -3321,19 +3321,19 @@ MenuFactory.prototype = {
       }
       // First, we need to find our old position
       let pos = -1;
-      if (parentMenu) {
+      if ((parentMenu)&&(shellItem)) {
          let family = parentMenu._getMenuItems();
          for (let i = 0; i < family.length; ++i) {
-            if (family[i] === shellItem)
+            if (family[i] == shellItem)
                pos = i;
          }
       }
-
-      if (pos < 0) {
-         throw new Error("FactoryMenu: can't replace non existing menu item");
-      } else if (parentMenu) {
-         // Now destroy our old self
-         factoryItem.destroyShellItem();
+      // if not insert the item in first position.
+      if (pos < 0)
+         pos = 0;
+      // Now destroy our old self
+      factoryItem.destroyShellItem();
+      if (parentMenu) {
          // Add our new self
          let newShellItem = this._createItem(factoryItem);
          parentMenu.addMenuItem(newShellItem, pos);
