@@ -730,8 +730,6 @@ ConfigurableMenuManager.prototype = {
       if (position == -1) 
          return;
 
-
-
       let menudata = this._menus[position];
       menu.disconnect(menudata.openStateChangeId);
       menu.disconnect(menudata.childMenuAddedId);
@@ -761,8 +759,6 @@ ConfigurableMenuManager.prototype = {
          this._activeMenu = menu;
       } else if (this._menuStack.length > 0) {
          this._activeMenu = this._menuStack.pop();
-      } else if (this._activeMenu) {
-         this._activeMenu.close();
       }
 
       // Check what the focus was before calling pushModal/popModal
@@ -823,6 +819,7 @@ ConfigurableMenuManager.prototype = {
          newMenu.open(false);
       } else
          newMenu.open(true);
+      newMenu.actor.grab_key_focus();
    },
 
    _isFloating: function(menu) {
@@ -830,7 +827,8 @@ ConfigurableMenuManager.prototype = {
    },
 
    _onMenuSourceEnter: function(menu) {
-      if((!this._isFloating(menu)) || (!this._shouldMadeSourceAction(menu)) || (menu == this._activeMenu))
+      if((!this._isFloating(menu)) || (!this._shouldMadeSourceAction(menu)) ||
+         ((!this._closeSubMenu)&&(menu == this._activeMenu)))
          return false;
 
       this._changeMenu(menu);

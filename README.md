@@ -35,6 +35,7 @@ Change log
 0.4-Beta
  - Now the gtk submenu will be updated when opening (will fix some other problems for Open Office).
  - Fixed the applet domain translation.
+ - Corrections in the submenus operations.
  - Fixed other internal problems.
 
 0.3-Beta
