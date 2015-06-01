@@ -1,4 +1,4 @@
-Cinnamon Applet: Global Application Menu Version: v0.3-Beta
+Cinnamon Applet: Global Application Menu Version: v0.4-Beta
 
 Last update: 30 may 2015
 
@@ -32,6 +32,11 @@ http://stackoverflow.com/questions/30206099/what-is-the-current-behavior-of-fire
 
 Change log
 --------------
+0.4-Beta
+ - Now the gtk submenu will be updated when opening (will fix some other problems for Open Office).
+ - Fixed the applet domain translation.
+ - Fixed other internal problems.
+
 0.3-Beta
  - Don't show icon on the panel submenu item, is ugly and out of the standard.
  - Use the Cinnamon radiobutton instead of an special text.

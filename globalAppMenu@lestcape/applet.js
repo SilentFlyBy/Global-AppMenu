@@ -513,7 +513,7 @@ MyApplet.prototype = {
                }
             }
          }
-         Gettext.bindtextdomain(this.uuid, localeFolder);
+         Gettext.bindtextdomain(this.uuid, localeFolder.get_path());
       } catch(e) {
          global.logWarning("Error %s".format(e.message));
       }

@@ -730,6 +730,8 @@ ConfigurableMenuManager.prototype = {
       if (position == -1) 
          return;
 
+
+
       let menudata = this._menus[position];
       menu.disconnect(menudata.openStateChangeId);
       menu.disconnect(menudata.childMenuAddedId);
@@ -1066,6 +1068,15 @@ ConfigurableMenu.prototype = {
          PopupMenu.PopupMenu.prototype.addMenuItem.call(this, menuItem, position);
       }
    },
+
+    addChildMenu: function(menu) {
+        if (this.isChildMenu(menu))
+            return;
+
+        this._childMenus.push(menu);
+        menu.connect('destroy', Lang.bind(this, this.removeChildMenu));
+        this.emit('child-menu-added', menu);
+    },
 
    _isFloating: function(menu) {
       return ((menu.isInFloatingState) && (menu.isInFloatingState()));

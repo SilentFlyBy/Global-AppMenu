@@ -861,9 +861,10 @@ DBusClientGtk.prototype = {
                         menuSection["children-display"] = GLib.Variant.new_string("submenu");
                         this._doLayoutUpdate(idSub, menuSection);
                     } else {
-                        // FIXME We true to used here the label of the item to identify an item,
-                        // but could be found a better id to handle this, the position
-                        // is not a good one, label would not exsist (xchat example).
+                        // FIXME Aparently we can not used the label of the item here 
+                        // to identify an item. Could be found a better id to handle this?
+                        // The label would not exsist (xchat example). The position is
+                        // not a good one aparently.
                         if("label" in menuSection)
                             idSub = "" + id + "" + menuSection["label"].unpack();
                         else
@@ -915,10 +916,8 @@ DBusClientGtk.prototype = {
     },
 
     sendAboutToShow: function(id) {
-        if (id == this.getRootId()) {
-            this._idLayoutUpdate = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE,
-                Lang.bind(this, this._requestLayoutUpdate));
-        }
+        this._idLayoutUpdate = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE,
+             Lang.bind(this, this._requestLayoutUpdate));
     },
 
     sendEvent: function(id, event, params, timestamp) {//FIXME no match signal id
