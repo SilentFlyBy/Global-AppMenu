@@ -819,7 +819,6 @@ ConfigurableMenuManager.prototype = {
          newMenu.open(false);
       } else
          newMenu.open(true);
-      newMenu.actor.grab_key_focus();
    },
 
    _isFloating: function(menu) {
