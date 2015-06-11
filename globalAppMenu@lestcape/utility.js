@@ -346,8 +346,8 @@ SystemProperties.prototype = {
    },
 
    activeUnityMenuProxy: function(active) {
-      let env_ubu = GLib.getenv('UBUNTU_MENUPROXY');
-      if(env_ubu != "1") {
+      let envMenuProxy = GLib.getenv('UBUNTU_MENUPROXY');
+      if(envMenuProxy != "1") {
          GLib.setenv('UBUNTU_MENUPROXY', "1", true);
          return false;
       }
@@ -361,20 +361,20 @@ SystemProperties.prototype = {
             let status = values[xsetting]
             if(status != 1) {
                values[xsetting] = GLib.Variant.new('i', 1);
-               let return_value = GLib.Variant.new('a{sv}', values);
-               this.xSetting.set_value('overrides', return_value);
+               let returnValue = GLib.Variant.new('a{sv}', values);
+               this.xSetting.set_value('overrides', returnValue);
             }
          } else {
             values[xsetting] = GLib.Variant.new('i', 1);
-            let return_value = GLib.Variant.new('a{sv}', values);
-            this.xSetting.set_value('overrides', return_value);
+            let returnValue = GLib.Variant.new('a{sv}', values);
+            this.xSetting.set_value('overrides', returnValue);
          }
       } else if(xsetting in values) {
          let status = values[xsetting]
          if(status != 0) {
             values[xsetting] = GLib.Variant.new('i', 0); 
-            let return_value = GLib.Variant.new('a{sv}', values);
-            this.xSetting.set_value('overrides', return_value);
+            let returnValue = GLib.Variant.new('a{sv}', values);
+            this.xSetting.set_value('overrides', returnValue);
          }
       }
    },
@@ -407,8 +407,8 @@ SystemProperties.prototype = {
    },
 
    _isCinnamonSessionStart: function() {
-      let string_file = this._readFile(GLib.get_home_dir() + "/.xsession-errors");
-      return ((!string_file) || (string_file.indexOf("About to start Cinnamon") == string_file.lastIndexOf("About to start Cinnamon")));
+      let stringFile = this._readFile(GLib.get_home_dir() + "/.xsession-errors");
+      return ((!stringFile) || (stringFile.indexOf("About to start Cinnamon") == stringFile.lastIndexOf("About to start Cinnamon")));
    },
 
    _readFile: function(path) {

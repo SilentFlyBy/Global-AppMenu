@@ -146,20 +146,20 @@ MyMenuFactory.prototype = {
          menuManager.desaturateItemIcon(this._desaturateItemIcon);
       }
       let shellItem = null;
-      let item_type = factoryItem.getFactoryType();
-      if (item_type == ConfigurableMenus.FactoryClassTypes.RootMenuClass)
+      let itemType = factoryItem.getFactoryType();
+      if (itemType == ConfigurableMenus.FactoryClassTypes.RootMenuClass)
          shellItem = new ConfigurableMenus.ConfigurableMenuApplet(launcher, orientation, menuManager);
-      if (item_type == ConfigurableMenus.FactoryClassTypes.SubMenuMenuItemClass)
+      if (itemType == ConfigurableMenus.FactoryClassTypes.SubMenuMenuItemClass)
          shellItem = new ConfigurableMenus.ConfigurablePopupSubMenuMenuItem("FIXME");
-      else if (item_type == ConfigurableMenus.FactoryClassTypes.MenuSectionMenuItemClass)
+      else if (itemType == ConfigurableMenus.FactoryClassTypes.MenuSectionMenuItemClass)
          shellItem = new ConfigurableMenus.ConfigurablePopupMenuSection();
-      else if (item_type == ConfigurableMenus.FactoryClassTypes.SeparatorMenuItemClass)
+      else if (itemType == ConfigurableMenus.FactoryClassTypes.SeparatorMenuItemClass)
          shellItem = new PopupMenu.PopupSeparatorMenuItem('');
-      else if(item_type == ConfigurableMenus.FactoryClassTypes.MenuItemClass)
+      else if(itemType == ConfigurableMenus.FactoryClassTypes.MenuItemClass)
          shellItem = new ConfigurableMenus.ConfigurableApplicationMenuItem("FIXME");
       //else
       //    throw new TypeError('Trying to instantiate a shell item with an invalid factory type');
-      if (item_type == ConfigurableMenus.FactoryClassTypes.RootMenuClass)
+      if (itemType == ConfigurableMenus.FactoryClassTypes.RootMenuClass)
          shellItem.setFloatingState(this._floatingMenu);
       return shellItem;
    }
@@ -254,15 +254,15 @@ GradientLabel.prototype = {
    }
 };
 
-function MyApplet(metadata, orientation, panel_height, instance_id) {
-   this._init(metadata, orientation, panel_height, instance_id);
+function MyApplet() {
+   this._init.apply(this, arguments);
 }
 
 MyApplet.prototype = {
    __proto__: Applet.Applet.prototype,
 
-   _init: function(metadata, orientation, panel_height, instance_id) {
-      Applet.Applet.prototype._init.call(this, orientation, panel_height, instance_id);
+   _init: function(metadata, orientation, panelHeight, instanceId) {
+      Applet.Applet.prototype._init.call(this, orientation, panelHeight, instanceId);
       try {
          this.uuid = metadata["uuid"];
          this.orientation = orientation;
@@ -270,8 +270,6 @@ MyApplet.prototype = {
          this.execInstallLanguage();
 
          this.set_applet_tooltip(_("Global Application Menu"));
-         this.status_notifier_watcher = null;
-         this._indicator_icons = [];
 
          this.showAppIcon = true;
          this.showAppName = true;
@@ -291,14 +289,14 @@ MyApplet.prototype = {
          this.actor.add(this.gradient.actor, { y_align: St.Align.MIDDLE, y_fill: false });
 
          this.menuFactory = new MyMenuFactory();
-         this._create_settings();
+         this._createSettings();
 
          this.indicatorDbus = new IndicatorAppMenuWatcher.IndicatorAppMenuWatcher(
-                IndicatorAppMenuWatcher.AppmenuMode.MODE_STANDARD, this._get_icon_size());
+                IndicatorAppMenuWatcher.AppmenuMode.MODE_STANDARD, this._getIconSize());
 
          if(this.indicatorDbus.canWatch()) {
              this.indicatorDbus.watch();
-             this.indicatorDbus.connect('on_appmenu_changed', Lang.bind(this, this._on_appmenu_changed));
+             this.indicatorDbus.connect('appmenu-changed', Lang.bind(this, this._onAppmenuChange));
          } else {
              Main.notify(_("You need restart your computer, to active the unity-gtk-module"));
          }
@@ -309,7 +307,7 @@ MyApplet.prototype = {
       }
    },
 
-   _create_settings: function() {
+   _createSettings: function() {
       this.settings = new Settings.AppletSettings(this, this.uuid, this.instance_id);
       this.settings.bindProperty(Settings.BindingDirection.IN, "show-app-icon", "showAppIcon", this._onShowAppIconChange, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "desaturate-app-icon", "desaturateAppIcon", this._onDesaturateAppIconChange, null);
@@ -361,7 +359,7 @@ MyApplet.prototype = {
 
    _automaticActiveMainMenuChange: function() {
       if(this.automaticActiveMainMenu)
-         this._close_menu();
+         this._closeMenu();
    },
 
    _onCloseActiveSubmenuChange: function() {
@@ -384,7 +382,7 @@ MyApplet.prototype = {
       this.menuFactory.desaturateItemIcon(this.desaturateItemIcon);
    },
 
-   _on_appmenu_changed: function(indicator, window) {
+   _onAppmenuChange: function(indicator, window) {
       let newLabel = null;
       let newIcon = null;
       let newMenu = null;
@@ -393,70 +391,70 @@ MyApplet.prototype = {
          if(app) {
             newIcon = this.indicatorDbus.getIconForWindow(window);
             newLabel = app.get_name();
-            let dbus_menu = this.indicatorDbus.getMenuForWindow(window);
-            if(dbus_menu) {
-               newMenu = this.menuFactory.getShellMenu(dbus_menu);
+            let dbusMenu = this.indicatorDbus.getMenuForWindow(window);
+            if(dbusMenu) {
+               newMenu = this.menuFactory.getShellMenu(dbusMenu);
                if(!newMenu) {
                   let menuManager = new ConfigurableMenus.ConfigurableMenuManager(this);
-                  newMenu = this.menuFactory.buildShellMenu(dbus_menu, this, this.orientation, menuManager);
+                  newMenu = this.menuFactory.buildShellMenu(dbusMenu, this, this.orientation, menuManager);
                }
             }
          }
       }
-      this._try_to_show(newLabel, newIcon, newMenu);
+      this._tryToShow(newLabel, newIcon, newMenu);
    },
 
-   _try_to_show: function(newLabel, newIcon, newMenu) {
+   _tryToShow: function(newLabel, newIcon, newMenu) {
       if((newLabel != null)&&(newIcon != null)) {
-         this._change_appmenu(newLabel, newIcon, newMenu);
+         this._changeAppmenu(newLabel, newIcon, newMenu);
       } else  {
-         this._clean_appmenu();
+         this._cleanAppmenu();
       } 
    },
 
-   _change_appmenu: function(newLabel, newIcon, newMenu) {
-      if(this._is_new_menu(newMenu)) {
-         this._close_menu();
+   _changeAppmenu: function(newLabel, newIcon, newMenu) {
+      if(this._isNewMenu(newMenu)) {
+         this._closeMenu();
          this.menu = newMenu;
          if((this.menu)&&(!this.menu.isInFloatingState())&&(this.automaticActiveMainMenu))
             this.menu.open();
       }
-      if(this._is_new_app(newLabel, newIcon)) {
+      if(this._isNewApp(newLabel, newIcon)) {
          this.gradient.setText(newLabel);
          this.actorIcon.set_child(newIcon);
       }
    },
 
-   _close_menu: function() {
+   _closeMenu: function() {
       if((this.menu)&&(this.menu.isOpen))
          this.menu.close(false, true);
    },
 
-   _clean_appmenu: function() {
-      this._close_menu();
+   _cleanAppmenu: function() {
+      this._closeMenu();
       this.menu = null;
       this.actorIcon.set_child(null);
       this.gradient.setText("");
    },
 
-   _is_new_app: function(newLabel, newIcon) {
+   _isNewApp: function(newLabel, newIcon) {
       return ((newIcon != this.actorIcon.get_child())||
               (newLabel != this.gradient.text));
    },
 
-   _is_new_menu: function(newMenu) {
+   _isNewMenu: function(newMenu) {
       return (newMenu != this.menu);
    },
 
-   _get_icon_size: function() {
-      let icon_size;
+   _getIconSize: function() {
+      let iconSize;
       let ui_scale = global.ui_scale;
       if(!ui_scale) ui_scale = 1;
       if (this._scaleMode)
-         icon_size = this._panelHeight * Applet.COLOR_ICON_HEIGHT_FACTOR / ui_scale;
+         iconSize = this._panelHeight * Applet.COLOR_ICON_HEIGHT_FACTOR / ui_scale;
       else
-         icon_size = Applet.FALLBACK_ICON_HEIGHT;
-      return icon_size;
+         iconSize = Applet.FALLBACK_ICON_HEIGHT;
+      return iconSize;
    },
 
    on_orientation_changed: function(orientation) {
@@ -465,8 +463,8 @@ MyApplet.prototype = {
    },
 
    on_panel_height_changed: function() {
-      let icon_size = this._get_icon_size();
-      this.indicatorDbus.setIconSize(icon_size);
+      let iconSize = this._getIconSize();
+      this.indicatorDbus.setIconSize(iconSize);
    },
 
    on_applet_removed_from_panel: function() {

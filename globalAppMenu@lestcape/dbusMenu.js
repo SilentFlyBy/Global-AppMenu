@@ -244,23 +244,23 @@ DbusMenuItem.prototype = {
         return params;
     },
 
-    _getAccel: function(accel_name) {
-        if (accel_name) {
-            [key, mods] = Gtk.accelerator_parse(accel_name);
+    _getAccel: function(accelName) {
+        if (accelName) {
+            [key, mods] = Gtk.accelerator_parse(accelName);
             return Gtk.accelerator_get_label(key, mods);
         }
         return null;
     },
 
-    _getFactoryType: function(child_display, child_type) {
-        if((child_display) || (child_type)) {
-            if ((child_display == "rootmenu")||(this._id == this._client.getRootId()))
+    _getFactoryType: function(childDisplay, childType) {
+        if((childDisplay) || (childType)) {
+            if ((childDisplay == "rootmenu")||(this._id == this._client.getRootId()))
                 return ConfigurableMenus.FactoryClassTypes.RootMenuClass;
-            if (child_display == "submenu")
+            if (childDisplay == "submenu")
                 return ConfigurableMenus.FactoryClassTypes.SubMenuMenuItemClass;
-            else if (child_display == "section")
+            else if (childDisplay == "section")
                 return ConfigurableMenus.FactoryClassTypes.MenuSectionMenuItemClass;
-            else if (child_type == "separator")
+            else if (childType == "separator")
                 return ConfigurableMenus.FactoryClassTypes.SeparatorMenuItemClass;
             /*else if (this._client.getRoot() == this)
                 return ConfigurableMenus.FactoryClassTypes.SeparatorMenuItemClass;*/
@@ -501,8 +501,8 @@ DBusClient.prototype = {
                 }
 
                 // Remove any old children that weren't reused
-                oldChildrenIds.forEach(function(child_id) {
-                    this._items[id].removeChild(child_id); 
+                oldChildrenIds.forEach(function(childId) {
+                    this._items[id].removeChild(childId); 
                 }, this);
             } else {
                 // We don't, so let's create us
@@ -541,8 +541,8 @@ DBusClient.prototype = {
                     let [ id, properties, children ] = root;
                     let childrenUnpacked = children.map(function(child) { return child.deep_unpack(); });
                     let childrenIds = childrenUnpacked.map(function(child) { return child[0]; });
-                    childrenIds.forEach(function(child_id) {
-                        this._proxyMenu.AboutToShowRemote(child_id, 
+                    childrenIds.forEach(function(childId) {
+                        this._proxyMenu.AboutToShowRemote(childId, 
                             Lang.bind(this, function(result, error){})); // We don't care
                     }, this);
                 })
@@ -901,8 +901,8 @@ DBusClientGtk.prototype = {
                 }
 
                 // Remove any old children that weren't reused
-                oldChildrenIds.forEach(function(child_id) { 
-                    this._items[id].removeChild(child_id); 
+                oldChildrenIds.forEach(function(childId) { 
+                    this._items[id].removeChild(childId); 
                 }, this);
             } else {
                 // We don't, so let's create us

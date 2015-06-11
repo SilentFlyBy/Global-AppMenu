@@ -196,7 +196,7 @@ IndicatorAppMenuWatcher.prototype = {
                 this._updateIcon(xid);
             }
             if(this._xidLast) {
-                this.emit('on_appmenu_changed', this._registeredWindows[this._xidLast].window);
+                this.emit('appmenu-changed', this._registeredWindows[this._xidLast].window);
             }
         }
     },
@@ -297,7 +297,7 @@ IndicatorAppMenuWatcher.prototype = {
                 this._emitWindowUnregistered(xid);
             }
             if(this._xidLast == xid)
-                this.emit('on_appmenu_changed', this._registeredWindows[xid].window);
+                this.emit('appmenu-changed', this._registeredWindows[xid].window);
         }
     },
 
@@ -490,7 +490,7 @@ IndicatorAppMenuWatcher.prototype = {
         }
         if(xid in this._registeredWindows)
             wind = this._registeredWindows[xid].window;
-        this.emit('on_appmenu_changed', wind);
+        this.emit('appmenu-changed', wind);
         this._xidLast = xid;
     },
 

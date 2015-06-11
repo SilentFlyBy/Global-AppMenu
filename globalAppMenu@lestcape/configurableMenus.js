@@ -967,9 +967,9 @@ ConfigurableMenu.prototype = {
          this._arrowSide = orientation;
          this.effectType = "none";
          this.effectTime = 0.4;
-         this._automatic_open_control = true;
-         this._paint_id = 0;
-         this._paint_count = 0;
+         this._automaticOpenControl = true;
+         this._paintId = 0;
+         this._paintCount = 0;
          this._reactive = true;
          this._floating = false;
          this._topMenu = null;
@@ -1042,14 +1042,14 @@ ConfigurableMenu.prototype = {
       this._setShowItemIcon(menuItem);
       this._setDesaturateItemIcon(menuItem);
       if (menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
-         let before_item = null;
+         let beforeItem = null;
          if (position == undefined) {
             this.box.add(menuItem.actor);
          } else {
             let items = this._getMenuItems();
             if (position < items.length) {
-               before_item = items[position].actor;
-               this.box.insert_before(menuItem.actor, before_item);
+               beforeItem = items[position].actor;
+               this.box.insert_before(menuItem.actor, beforeItem);
             } else
                this.box.add(menuItem.actor);
          }
@@ -1179,8 +1179,8 @@ ConfigurableMenu.prototype = {
                 let items = box._delegate._getMenuItems();
                 let position = items.indexOf(this.launcher) + 1;
                 if ((position != 0) && (position < items.length)) {
-                    let before_item = items[position].actor;
-                    box.insert_before(this.actor, before_item);
+                    let beforeItem = items[position].actor;
+                    box.insert_before(this.actor, beforeItem);
                 } else {
                     box.add(this.actor);
                 }
@@ -1196,14 +1196,14 @@ ConfigurableMenu.prototype = {
    },
 
    setAutomaticOpenControl: function(active) {
-      if(this._automatic_open_control != active) {
-          this._automatic_open_control = active;
-          if(!this._automatic_open_control) {
+      if(this._automaticOpenControl != active) {
+          this._automaticOpenControl = active;
+          if(!this._automaticOpenControl) {
              if(Main.popup_rendering)
                 Main.popup_rendering = false;
-             if(this._paint_id > 0)
-                this.actor.disconnect(this._paint_id);
-             this._paint_id = 0;
+             if(this._paintId > 0)
+                this.actor.disconnect(this._paintId);
+             this._paintId = 0;
           }
       }
    },
@@ -1213,17 +1213,17 @@ ConfigurableMenu.prototype = {
    },
 
    _on_paint: function(actor) {
-      if (this._paint_count < 2 || this.animating) {
-         this._paint_count++;
+      if (this._paintCount < 2 || this.animating) {
+         this._paintCount++;
          return;
       }
 
-      if (this._paint_id > 0) {
-         this.actor.disconnect(this._paint_id);
-         this._paint_id = 0;
+      if (this._paintId > 0) {
+         this.actor.disconnect(this._paintId);
+         this._paintId = 0;
       }
 
-      this._paint_count = 0;
+      this._paintCount = 0;
       Main.popup_rendering = false;
    },
 
@@ -1398,8 +1398,8 @@ ConfigurableMenu.prototype = {
             this._boxPointer.setPosition(this.launcher.actor, this._arrowAlignment);
          else
             this._boxPointer.setPosition(this._boxPointer._sourceActor, this._arrowAlignment);
-         if(this._automatic_open_control) {
-            this._paint_id = this.actor.connect("paint", Lang.bind(this, this._on_paint));
+         if(this._automaticOpenControl) {
+            this._paintId = this.actor.connect("paint", Lang.bind(this, this._on_paint));
             Main.popup_rendering = true;
          } else {
             Main.popup_rendering = false;
@@ -2044,10 +2044,10 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
       if(open) {
          this.actor.add_style_pseudo_class('open');
          if((!this._hide_expander)&&(!this.menu._floating)) {
-             let rotation_angle = 90;
+             let rotationAngle = 90;
              if (this.actor.get_direction() == St.TextDirection.RTL)
-                rotation_angle = 270;
-             this._triangle.rotation_angle_z = rotation_angle;
+                rotationAngle = 270;
+             this._triangle.rotation_angle_z = rotationAngle;
          }
       } else {
          this.actor.remove_style_pseudo_class('open');
@@ -2101,14 +2101,14 @@ ConfigurablePopupMenuSection.prototype = {
       this._setShowItemIcon(menuItem);
       this._setDesaturateItemIcon(menuItem);
       if ((menuItem instanceof PopupMenu.PopupSubMenuMenuItem)&&(this._isFloating(menuItem.menu))) {
-         let before_item = null;
+         let beforeItem = null;
          if (position == undefined) {
             this.box.add(menuItem.actor);
          } else {
             let items = this._getMenuItems();
             if (position < items.length) {
-               before_item = items[position].actor;
-               this.box.insert_before(menuItem.actor, before_item);
+               beforeItem = items[position].actor;
+               this.box.insert_before(menuItem.actor, beforeItem);
             } else
                this.box.add(menuItem.actor);
          }
@@ -2458,14 +2458,14 @@ ConfigurableMenuApplet.prototype = {
 
    addMenuItem: function(menuItem, position) {
       if (menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
-         let before_item = null;
+         let beforeItem = null;
          if (position == undefined) {
             this.box.add(menuItem.actor);
          } else {
             let items = this._getMenuItems();
             if (position < items.length) {
-               before_item = items[position].actor;
-               this.box.insert_before(menuItem.actor, before_item);
+               beforeItem = items[position].actor;
+               this.box.insert_before(menuItem.actor, beforeItem);
             } else
                this.box.add(menuItem.actor);
          }
@@ -2571,20 +2571,19 @@ function PopupMenuAbstractFactory() {
 
 PopupMenuAbstractFactory.prototype = {
 
-   _init: function(id, children_ids, params) {
+   _init: function(id, childrenIds, params) {
       this._id = id;
-      this._children_ids = children_ids;
-      if(!this._children_ids)
-         this._children_ids = new Array();
+      this._childrenIds = childrenIds;
+      if(!this._childrenIds)
+         this._childrenIds = new Array();
 
-      this._internal_signals_handlers = new Array();
-      this._external_signals_handlers = new Array();
-      this._shell_menu_signals_handlers = null;
+      this._internalSignalsHandlers = new Array();
+      this._externalSignalsHandlers = new Array();
+      this._shellItemSignalsHandlers = null;
+      this._shellMenuSignalsHandlers = null;
 
       this.shellItem = null;
       this.parent = null;
-      //this._shellItemDestroyId = 0;
-      //this._shellMenuDestroyId = 0;
 
       // Properties
       params = Params.parse (params, { label: "",
@@ -2614,7 +2613,7 @@ PopupMenuAbstractFactory.prototype = {
 
    getItemById: function(id) {throw new Error('Trying to use abstract function getItemById');},
    handleEvent: function(event, params) {throw new Error('Trying to use abstract function handleEvent');},
-   //is_root: function() {throw new Error('Trying to use abstract function is_root');},
+   //isRoot: function() {throw new Error('Trying to use abstract function isRoot');},
 
    isVisible: function() {
       return this._visible;
@@ -2752,22 +2751,22 @@ PopupMenuAbstractFactory.prototype = {
             this._updateVisible();
             this._updateSensitive();
 
-            this._connectAndSaveId(this, handlers, this._internal_signals_handlers);
+            this._connectAndSaveId(this, handlers, this._internalSignalsHandlers);
 
+            this._shellItemSignalsHandlers = this._connectAndSaveId(this.shellItem, {
+               'activate':  Lang.bind(this, this._onActivate),
+               'destroy' :  Lang.bind(this, this._onShellItemDestroyed)
+            });
             if (this.shellItem.menu) {
-               this._shell_menu_signals_handlers = this._connectAndSaveId(this.shellItem.menu, {
+               this._shellMenuSignalsHandlers = this._connectAndSaveId(this.shellItem.menu, {
                   'open-state-changed': Lang.bind(this, this._onOpenStateChanged),
                   'destroy'           : Lang.bind(this, this._onShellMenuDestroyed)
                });
             } else {
                this._connectAndSaveId(this.shellItem, {
                   'open-state-changed': Lang.bind(this, this._onOpenStateChanged),
-               }, this._internal_signals_handlers);
+               }, this._shellItemSignalsHandlers);
             }
-            this._internal_signals_handlers = this._connectAndSaveId(this.shellItem, {
-               'activate':  Lang.bind(this, this._onActivate),
-               'destroy' :  Lang.bind(this, this._onShellItemDestroyed)
-            });
          }
       }
    },
@@ -2854,12 +2853,12 @@ PopupMenuAbstractFactory.prototype = {
 
    getChildrenIds: function() {
       // Clone it!
-      return this._children_ids.concat();
+      return this._childrenIds.concat();
    },
 
    getChildren: function() {
-      return this._children_ids.map(function(child_id) {
-         return this.getItemById(child_id);
+      return this._childrenIds.map(function(childId) {
+         return this.getItemById(childId);
       }, this);
    },
 
@@ -2871,22 +2870,22 @@ PopupMenuAbstractFactory.prototype = {
       this.parent = parent;
    },
 
-   addChild: function(pos, child_id) {
-      let factoryItem = this.getItemById(child_id);
+   addChild: function(pos, childId) {
+      let factoryItem = this.getItemById(childId);
       if(factoryItem) {
          // If our item is previusly asigned, so destroy first the shell item.
          factoryItem.destroyShellItem();
          factoryItem.setParent(this);
-         this._children_ids.splice(pos, 0, child_id);
+         this._childrenIds.splice(pos, 0, childId);
          this.emit('child-added', factoryItem, pos);
       }
    },
 
-   removeChild: function(child_id) {
+   removeChild: function(childId) {
       // Find it
       let pos = -1;
-      for (let i = 0; i < this._children_ids.length; ++i) {
-         if (this._children_ids[i] == child_id) {
+      for (let i = 0; i < this._childrenIds.length; ++i) {
+         if (this._childrenIds[i] == childId) {
             pos = i;
             break;
          }
@@ -2895,8 +2894,8 @@ PopupMenuAbstractFactory.prototype = {
       if (pos < 0) {
          global.logError("Trying to remove child which doesn't exist");
       } else {
-         this._children_ids.splice(pos, 1);
-         let factoryItem = this.getItemById(child_id);
+         this._childrenIds.splice(pos, 1);
+         let factoryItem = this.getItemById(childId);
          if(factoryItem) {
             let shellItem = factoryItem.getShellItem();
             this._destroyShellItem(shellItem);
@@ -2904,16 +2903,16 @@ PopupMenuAbstractFactory.prototype = {
             this.emit('child-removed', factoryItem);
          }
       }
-      if (this._children_ids.length == 0) {
+      if (this._childrenIds.length == 0) {
          this.emit('childs-empty');
       }
    },
 
-   moveChild: function(child_id, newpos) {
+   moveChild: function(childId, newpos) {
       // Find the old position
       let oldpos = -1;
-      for (let i = 0; i < this._children_ids.length; ++i) {
-         if (this._children_ids[i] == child_id) {
+      for (let i = 0; i < this._childrenIds.length; ++i) {
+         if (this._childrenIds[i] == childId) {
             oldpos = i;
             break;
          }
@@ -2925,15 +2924,15 @@ PopupMenuAbstractFactory.prototype = {
       }
 
       if (oldpos != newpos) {
-         this._children_ids.splice(oldpos, 1);
-         this._children_ids.splice(newpos, 0, child_id);
-         this.emit('child-moved', this.getItemById(child_id), oldpos, newpos);
+         this._childrenIds.splice(oldpos, 1);
+         this._childrenIds.splice(newpos, 0, childId);
+         this.emit('child-moved', this.getItemById(childId), oldpos, newpos);
       }
    },
 
    // handlers = { "signal": handler }
    connectAndRemoveOnDestroy: function(handlers) { 
-      this._connectAndSaveId(this, handlers, this._external_signals_handlers);
+      this._connectAndSaveId(this, handlers, this._externalSignalsHandlers);
    },
 
    destroyShellItem: function() {
@@ -2971,10 +2970,10 @@ PopupMenuAbstractFactory.prototype = {
       return idArray;
    },
 
-   _disconnectSignals: function(obj, signals_handlers) {
-      if ((obj)&&(signals_handlers)) {
-         for (let pos in signals_handlers)
-            obj.disconnect(signals_handlers[pos]);
+   _disconnectSignals: function(obj, signalsHandlers) {
+      if ((obj)&&(signalsHandlers)) {
+         for (let pos in signalsHandlers)
+            obj.disconnect(signalsHandlers[pos]);
       }
    },
 
@@ -2993,14 +2992,14 @@ PopupMenuAbstractFactory.prototype = {
 
    //HACK: When a submenu will close, also close all childs submenus. 
 /* _onShellMenuPreOpened: function(menu) {
-      let top_menu = this._getTopMenu(menu);
-      if (top_menu) {
-         if ((top_menu._openedSubMenu)&&(menu != top_menu._openedSubMenu)&&
-             (top_menu._openedSubMenu.isOpen)&&(menu.isOpen)) {
-            top_menu._openedSubMenu.close(true);
+      let topMenu = this._getTopMenu(menu);
+      if (topMenu) {
+         if ((topMenu._openedSubMenu)&&(menu != topMenu._openedSubMenu)&&
+             (topMenu._openedSubMenu.isOpen)&&(menu.isOpen)) {
+            topMenu._openedSubMenu.close(true);
          }
          if (menu.isOpen)
-            top_menu._openedSubMenu = menu;
+            topMenu._openedSubMenu = menu;
       }
       if (!menu.isOpen)
          this._closeAllSubmenuChilds(menu);
@@ -3041,9 +3040,13 @@ PopupMenuAbstractFactory.prototype = {
    _onShellItemDestroyed: function(shellItem) {
       if ((this.shellItem)&&(this.shellItem == shellItem)) {
          this.shellItem = null;
-         if (this._internal_signals_handlers) {
-            this._disconnectSignals(this, this._internal_signals_handlers);
-            this._internal_signals_handlers = [];
+         if (this._internalSignalsHandlers) {
+            this._disconnectSignals(this, this._internalSignalsHandlers);
+            this._internalSignalsHandlers = [];
+         }
+         if (this._shellItemSignalsHandlers) {
+            this._disconnectSignals(shellItem, this._shellItemSignalsHandlers);
+            this._shellItemSignalsHandlers = null;
          }
       } else if (this.shellItem) {
          global.logError("We are not conected with " + shellItem);
@@ -3053,22 +3056,22 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    _onShellMenuDestroyed: function(shellMenu) {
-      if (this._shell_menu_signals_handlers) {
-         this._disconnectSignals(shellMenu, this._shell_menu_signals_handlers);
-         this._shell_menu_signals_handlers = null;
+      if (this._shellMenuSignalsHandlers) {
+         this._disconnectSignals(shellMenu, this._shellMenuSignalsHandlers);
+         this._shellMenuSignalsHandlers = null;
       }
    },
 
    destroy: function() {
-      if (this._external_signals_handlers) {
+      if (this._externalSignalsHandlers) {
          // Emit the destroy first, to allow know to external lisener,
          // then, disconnect the lisener handler.
          this.emit("destroy");
          this.destroyShellItem();
          this.shellItem = null;
-         this._disconnectSignals(this, this._external_signals_handlers);
-         this._external_signals_handlers = null;
-         this._internal_signals_handlers = null;
+         this._disconnectSignals(this, this._externalSignalsHandlers);
+         this._externalSignalsHandlers = null;
+         this._internalSignalsHandlers = null;
       }
    }
 };
@@ -3252,14 +3255,14 @@ MenuFactory.prototype = {
          if (shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
             let children = factoryItem.getChildren();
             for (let i = 0; i < children.length; ++i) {
-               let ch_item = this._createItem(children[i]);
-               shellItem.menu.addMenuItem(ch_item);
+               let chItem = this._createItem(children[i]);
+               shellItem.menu.addMenuItem(chItem);
             }
          } else if (shellItem instanceof PopupMenu.PopupMenuSection) {
             let children = factoryItem.getChildren();
             for (let i = 0; i < children.length; ++i) {
-               let ch_item = this._createItem(children[i]);
-               shellItem.addMenuItem(ch_item);
+               let chItem = this._createItem(children[i]);
+               shellItem.addMenuItem(chItem);
             }
          }
       }
