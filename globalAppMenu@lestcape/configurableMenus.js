@@ -2003,7 +2003,7 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
 
    setIconName: function(name) {
       this._icon.visible = ((this._displayIcon) && (name && name != ""));
-      this._icon.icon_name = iconName;
+      this._icon.icon_name = name;
    },
 
    setGIcon: function(gicon) {
@@ -2576,14 +2576,15 @@ PopupMenuAbstractFactory.prototype = {
       this._children_ids = children_ids;
       if(!this._children_ids)
          this._children_ids = new Array();
+
       this._internal_signals_handlers = new Array();
       this._external_signals_handlers = new Array();
-      this._shell_item_signals_handlers = null;
       this._shell_menu_signals_handlers = null;
+
       this.shellItem = null;
       this.parent = null;
-      this._shellItemDestroyId = 0;
-      this._shellMenuDestroyId = 0;
+      //this._shellItemDestroyId = 0;
+      //this._shellMenuDestroyId = 0;
 
       // Properties
       params = Params.parse (params, { label: "",
@@ -2754,22 +2755,19 @@ PopupMenuAbstractFactory.prototype = {
             this._connectAndSaveId(this, handlers, this._internal_signals_handlers);
 
             if (this.shellItem.menu) {
-               //this._shell_menu_signals_handlers = this._connectAndSaveId(this.shellItem.menu, menuHandlers);
                this._shell_menu_signals_handlers = this._connectAndSaveId(this.shellItem.menu, {
-                  'open-state-changed': Lang.bind(this, this._onOpenStateChanged)
-               });
-               this._shell_item_signals_handlers = this._connectAndSaveId(this.shellItem, {
-                  'activate':  Lang.bind(this, this._onActivate)
-               });
-               this._shellMenuDestroyId = this.shellItem.menu.connect('destroy', Lang.bind(this, this._onShellMenuDestroyed));
-            } else {
-               this._shell_item_signals_handlers = this._connectAndSaveId(this.shellItem, {
                   'open-state-changed': Lang.bind(this, this._onOpenStateChanged),
-                  'activate':  Lang.bind(this, this._onActivate)
+                  'destroy'           : Lang.bind(this, this._onShellMenuDestroyed)
                });
+            } else {
+               this._connectAndSaveId(this.shellItem, {
+                  'open-state-changed': Lang.bind(this, this._onOpenStateChanged),
+               }, this._internal_signals_handlers);
             }
-            //this._shell_item_signals_handlers = this._connectAndSaveId(this.shellItem, shellItemHandlers);
-            this._shellItemDestroyId = this.shellItem.connect('destroy', Lang.bind(this, this._onShellItemDestroyed));
+            this._internal_signals_handlers = this._connectAndSaveId(this.shellItem, {
+               'activate':  Lang.bind(this, this._onActivate),
+               'destroy' :  Lang.bind(this, this._onShellItemDestroyed)
+            });
          }
       }
    },
@@ -2955,7 +2953,7 @@ PopupMenuAbstractFactory.prototype = {
          if(focus && shellItem.actor && shellItem.actor.contains(focus)) {
             if (shellItem.sourceActor)
                shellItem.sourceActor.grab_key_focus();
-            else if (shellItem.menu.sourceActor)
+            else if ((shellItem.menu)&&(shellItem.menu.sourceActor))
                shellItem.menu.sourceActor.grab_key_focus();
             else
                global.stage.set_key_focus(null);
@@ -3043,17 +3041,9 @@ PopupMenuAbstractFactory.prototype = {
    _onShellItemDestroyed: function(shellItem) {
       if ((this.shellItem)&&(this.shellItem == shellItem)) {
          this.shellItem = null;
-         if (this._shellItemDestroyId > 0) {
-            shellItem.disconnect(this._shellItemDestroyId);
-            this._shellItemDestroyId = 0;
-         }
          if (this._internal_signals_handlers) {
             this._disconnectSignals(this, this._internal_signals_handlers);
             this._internal_signals_handlers = [];
-         }
-         if (this._shell_item_signals_handler) {
-            this._disconnectSignals(shellItem, this._shell_item_signals_handlers);
-            this._shell_item_signals_handlers = null;
          }
       } else if (this.shellItem) {
          global.logError("We are not conected with " + shellItem);
@@ -3063,10 +3053,6 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    _onShellMenuDestroyed: function(shellMenu) {
-      if (this._shellMenuDestroyId > 0) {
-         shellMenu.disconnect(this._shellMenuDestroyId);
-         this._shellMenuDestroyId = 0;
-      }
       if (this._shell_menu_signals_handlers) {
          this._disconnectSignals(shellMenu, this._shell_menu_signals_handlers);
          this._shell_menu_signals_handlers = null;
