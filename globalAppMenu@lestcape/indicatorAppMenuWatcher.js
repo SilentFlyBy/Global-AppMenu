@@ -175,6 +175,15 @@ IndicatorAppMenuWatcher.prototype = {
         return null;
     },
 
+    updateMenuForWindow: function(wind) {
+        let xid = this._guessWindowXId(wind);
+        if((xid) && (xid in this._registeredWindows)) {
+            let appmenu = this._registeredWindows[xid].appMenu;
+            if (appmenu)
+                appmenu.sendAboutToShow(appmenu.getRootId());
+        }
+    },
+
     getAppForWindow: function(wind) {
         let xid = this._guessWindowXId(wind);
         if((xid) && (xid in this._registeredWindows))

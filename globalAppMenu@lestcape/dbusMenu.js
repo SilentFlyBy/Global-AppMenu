@@ -827,6 +827,10 @@ DBusClientGtk.prototype = {
                 }
             }
             this._doLayoutUpdate(initId, { "children-display": GLib.Variant.new_string("rootmenu"), 'visible': GLib.Variant.new_boolean(false) } );
+
+            this._requestActionsUpdate(this._proxyUnityAction, "unity");
+            this._requestActionsUpdate(this._proxyWindowAction, "win");
+            this._requestActionsUpdate(this._proxyAppAction, "app");
         }
 
         this._gcItems();
@@ -869,8 +873,10 @@ DBusClientGtk.prototype = {
                             idSub = "" + id + "" + menuSection["label"].unpack();
                         else
                             idSub = "" + id + "" + pos;
-                        childrenIds.push(idSub);
-                        this._doLayoutUpdate(idSub, menuSection);
+                        if(childrenIds.indexOf(idSub) == -1) { 
+                           childrenIds.push(idSub);
+                           this._doLayoutUpdate(idSub, menuSection);
+                        }
                     }
                 }
             }

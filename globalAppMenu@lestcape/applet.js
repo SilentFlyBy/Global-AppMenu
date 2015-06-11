@@ -271,6 +271,7 @@ MyApplet.prototype = {
 
          this.set_applet_tooltip(_("Global Application Menu"));
 
+         this.currentWindow = null;
          this.showAppIcon = true;
          this.showAppName = true;
          this.desaturateAppIcon = false;
@@ -287,6 +288,7 @@ MyApplet.prototype = {
          this.gradient = new GradientLabel("", 10);
          this.actor.add(this.actorIcon, { y_align: St.Align.MIDDLE, y_fill: false });
          this.actor.add(this.gradient.actor, { y_align: St.Align.MIDDLE, y_fill: false });
+         this.actor.connect("enter-event", Lang.bind(this, this._updateMenu));
 
          this.menuFactory = new MyMenuFactory();
          this._createSettings();
@@ -386,6 +388,7 @@ MyApplet.prototype = {
       let newLabel = null;
       let newIcon = null;
       let newMenu = null;
+      this.currentWindow = window;
       if(window) {
          let app = this.indicatorDbus.getAppForWindow(window);
          if(app) {
@@ -455,6 +458,11 @@ MyApplet.prototype = {
       else
          iconSize = Applet.FALLBACK_ICON_HEIGHT;
       return iconSize;
+   },
+
+   _updateMenu: function() {
+      if(this.currentWindow)
+         this.indicatorDbus.updateMenuForWindow(this.currentWindow);
    },
 
    on_orientation_changed: function(orientation) {
