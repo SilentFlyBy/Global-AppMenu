@@ -935,7 +935,7 @@ ConfigurableMenuManager.prototype = {
       for (let i = 0; i < this._menus.length; i++) {
          let menu = this._menus[i].menu;
          if ((menu.sourceActor && !menu.blockSourceEvents && menu.sourceActor.contains(src)) ||
-             (menu.actor.contains(src))) {
+             (menu.actor && menu.actor.contains(src))) {
             return false;
          }
       }

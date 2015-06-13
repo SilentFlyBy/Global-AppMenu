@@ -25,12 +25,14 @@ const GdkPixbuf = imports.gi.GdkPixbuf;
 const Main = imports.ui.main;
 
 const AppletPath = imports.ui.appletManager.applets['globalAppMenu@lestcape'];
-const Utility = AppletPath.utility;
-const ConfigurableMenus = AppletPath.configurableMenus;
+const AppletDir = imports.ui.appletManager.appletMeta['globalAppMenu@lestcape'].path;
+const InterfacesDir = Gio.file_new_for_path(AppletDir).get_child("interfaces-xml");
+const BusClientProxy = Gio.DBusProxy.makeProxyWrapper(loadInterfaceXml("DBusMenu.xml"));
+const BusGtkClientProxy = Gio.DBusProxy.makeProxyWrapper(loadInterfaceXml("DBusGtkMenu.xml"));
+const ActionsGtkClientProxy = Gio.DBusProxy.makeProxyWrapper(loadInterfaceXml("ActionsGtk.xml"));
 
-const BusClientProxy = Gio.DBusProxy.makeProxyWrapper(Utility.DBusMenu);
-const BusGtkClientProxy = Gio.DBusProxy.makeProxyWrapper(Utility.DBusGtkMenu);
-const ActionsGtkClientProxy = Gio.DBusProxy.makeProxyWrapper(Utility.ActionsGtk);
+const ConfigurableMenus = AppletPath.configurableMenus;
+const IconTheme = Gtk.IconTheme.get_default();
 
 // We list all the properties we know and use here, so we won' have to deal with unexpected type mismatches
 const MandatedTypes = {
@@ -58,7 +60,26 @@ const DefaultValues = {
     // Elements not in here must return null
 };
 
-const IconTheme = Gtk.IconTheme.get_default();
+/**
+ * loads a xml file into an in-memory string
+ */
+function loadInterfaceXml(filename) {
+
+    let file = InterfacesDir.get_child(filename);
+
+    let [ result, contents ] = GLib.file_get_contents(file.get_path());
+
+    if (result) {
+        //HACK: The "" + trick is important as hell because file_get_contents returns
+        // an object (WTF?) but Gio.makeProxyWrapper requires `typeof() == "string"`
+        // Otherwise, it will try to check `instanceof XML` and fail miserably because there
+        // is no `XML` on very recent SpiderMonkey releases (or, if SpiderMonkey is old enough,
+        // will spit out a TypeError soon).
+        return "<node>" + contents + "</node>";
+    } else {
+        throw new Error("AppIndicatorSupport: Could not load file: "+filename);
+    }
+};
 
 //////////////////////////////////////////////////////////////////////////
 // PART ONE: "ViewModel" backend implementation.
@@ -528,32 +549,24 @@ DBusClient.prototype = {
         }
     },
 
-    // Fake about to show for firefox: https://bugs.launchpad.net/plasma-widget-menubar/+bug/878165
+    // FIXME: Fake about to show for firefox: https://bugs.launchpad.net/plasma-widget-menubar/+bug/878165
+    // We can try to fix the firefox delay when loading the menu with something like this, but the result of
+    // AboutToShowRemote return false, then we not recive any menu item. Is because we need to wait some time?
     _fakeSendAboutToShow: function() {
         if(this._proxyMenu) {
-            this._proxyMenu.GetLayoutRemote(0, -1, [ 'type', 'children-display' ],
-                Lang.bind(this, function(result, error) {
-                    if (error) {
-                        global.logWarning("Could call GetLayout: " + error);
-                        //FIXME: show message to the user?
-                    }
-                    let [ revision, root ] = result;
-                    let [ id, properties, children ] = root;
-                    let childrenUnpacked = children.map(function(child) { return child.deep_unpack(); });
-                    let childrenIds = childrenUnpacked.map(function(child) { return child[0]; });
-                    childrenIds.forEach(function(childId) {
-                        this._proxyMenu.AboutToShowRemote(childId, 
-                            Lang.bind(this, function(result, error){})); // We don't care
-                    }, this);
-                })
-            );
+            this.isValid = false;
+            for(let id in this._items) {
+                let type = this._items[id].getFactoryType();
+                if(type == ConfigurableMenus.FactoryClassTypes.SubMenuMenuItemClass) {
+                    GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, Lang.bind(this, function() {
+                        this._proxyMenu.AboutToShowRemote(id, Lang.bind(this, function(result, error) {}));
+                    }));
+                }
+            }
         }
     },
 
     _onLayoutUpdated: function(proxy, sender, items) {
-        //if(items[1] == 0)
-        //    this._fakeSendAboutToShow();
-        //else
         if(this._idLayoutUpdate == 0) {
             this._idLayoutUpdate = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE,
                 Lang.bind(this, this._requestLayoutUpdate));

@@ -24,8 +24,8 @@ const Signals = imports.signals;
 const Main = imports.ui.main;
 
 const AppletPath = imports.ui.appletManager.applets['globalAppMenu@lestcape'];
-const Utility = AppletPath.utility;
 const DBusMenu = AppletPath.dbusMenu;
+const DBusRegistrar = DBusMenu.loadInterfaceXml("DBusRegistrar.xml");
 
 const WATCHER_INTERFACE = 'com.canonical.AppMenu.Registrar';
 const WATCHER_OBJECT = '/com/canonical/AppMenu/Registrar';
@@ -37,26 +37,166 @@ const AppmenuMode = {
 };
 
 const LOG_NAME = "Indicator AppMenu Whatcher:";
-/*
-const STUBS_BLACKLIST = [
-    // Firefox
-    "/firefox.desktop",
-    // Thunderbird
-    "/thunderbird.desktop",
-    // Open Office
-    "/openoffice.org-base.desktop",
-    "/openoffice.org-impress.desktop",
-    "/openoffice.org-calc.desktop",
-    "/openoffice.org-math.desktop",
-    "/openoffice.org-draw.desktop",
-    "/openoffice.org-writer.desktop",
-    // Blender
-    "/blender-fullscreen.desktop",
-    "/blender-windowed.desktop",
-    // Eclipse
-    "/eclipse.desktop"
+
+//Some GTK APP that use Register iface or not export the menu.
+const GTK_BLACKLIST = [
+    "firefox.desktop",
+    "thunderbird.desktop",
+    "blender-fullscreen.desktop",
+    "blender-windowed.desktop"
 ];
-*/
+
+function SystemProperties() {
+   this._init.apply(this, arguments);
+}
+
+SystemProperties.prototype = {
+
+   _init: function() {
+      this.xSetting = new Gio.Settings({ schema: 'org.cinnamon.settings-daemon.plugins.xsettings' });
+   },
+
+   shellShowAppmenu: function(show) {
+      this._overrideBoolXSetting('Gtk/ShellShowsAppMenu', show);
+   },
+
+   shellShowMenubar: function(show) {
+      this._overrideBoolXSetting('Gtk/ShellShowsMenubar', show);
+   },
+
+   activeUnityGtkModule: function(active) {
+      let isReady = false;
+      let envGtk = this._getEnvGtkModules();
+      let xSettingGtk = this._getXSettingGtkModules();
+      if(active) {
+         if(envGtk) {
+            if(envGtk.indexOf("unity-gtk-module") == -1) {
+               envGtk.push("unity-gtk-module");
+               this._setEnvGtkModules(envGtk);
+            } else {
+               isReady = true;
+            }
+         } else  {
+            envGtk = ["unity-gtk-module"];
+            this._setEnvGtkModules(envGtk);
+         }
+         if(xSettingGtk) {
+            if(xSettingGtk.indexOf("unity-gtk-module") == -1) {
+               xSettingGtk.push("unity-gtk-module");
+               this._setXSettingGtkModules(xSettingGtk);
+            } else {
+               isReady = true;
+            }
+         } else  {
+            xSettingGtk = ["unity-gtk-module"];
+            this._setXSettingGtkModules(xSettingGtk);
+         }
+      } else {
+         if(envGtk) {
+            let pos = envGtk.indexOf("unity-gtk-module")
+            if(pos != -1) {
+               envGtk.splice(pos, -1);
+               this._setEnvGtkModules(envGtk);
+            } else {
+               isReady = true;
+            }
+         } else if(xSettingGtk) {
+            let pos = xSettingGtk.indexOf("unity-gtk-module")
+            if(pos != -1) {
+               xSettingGtk.splice(pos, -1);
+               this._setXSettingGtkModules(xSettingGtk);
+            } else {
+               isReady = true;
+            }
+         } else  {
+            isReady = true;
+         }
+      }
+      return isReady;
+   },
+
+   activeUnityMenuProxy: function(active) {
+      let envMenuProxy = GLib.getenv('UBUNTU_MENUPROXY');
+      if(envMenuProxy != "1") {
+         GLib.setenv('UBUNTU_MENUPROXY', "1", true);
+         return false;
+      }
+      return true;
+   },
+
+   _overrideBoolXSetting: function(xsetting, show) {
+      let values = this.xSetting.get_value('overrides').deep_unpack();
+      if(show) {
+         if(xsetting in values) {
+            let status = values[xsetting]
+            if(status != 1) {
+               values[xsetting] = GLib.Variant.new('i', 1);
+               let returnValue = GLib.Variant.new('a{sv}', values);
+               this.xSetting.set_value('overrides', returnValue);
+            }
+         } else {
+            values[xsetting] = GLib.Variant.new('i', 1);
+            let returnValue = GLib.Variant.new('a{sv}', values);
+            this.xSetting.set_value('overrides', returnValue);
+         }
+      } else if(xsetting in values) {
+         let status = values[xsetting]
+         if(status != 0) {
+            values[xsetting] = GLib.Variant.new('i', 0); 
+            let returnValue = GLib.Variant.new('a{sv}', values);
+            this.xSetting.set_value('overrides', returnValue);
+         }
+      }
+   },
+
+   _getEnvGtkModules: function() {
+      let envGtk = GLib.getenv('GTK_MODULES');
+      if(envGtk)
+         return envGtk.split(":");
+      return null;
+   },
+
+   _setEnvGtkModules: function(envGtkList) {
+      let envGtk = "";
+      for(let i in envGtkList) {
+         if(i == 0) {
+            envGtk += envGtkList[i];
+         } else if(envGtk.indexOf("unity-gtk-module" ) == -1) {
+            envGtk += ":" + envGtkList[i];
+         }
+      }
+      GLib.setenv('GTK_MODULES', envGtk, true);
+   },
+
+   _getXSettingGtkModules: function() {
+      return this.xSetting.get_strv('enabled-gtk-modules');
+   },
+
+   _setXSettingGtkModules: function(envGtkList) {
+      this.xSetting.set_strv('enabled-gtk-modules', envGtkList);
+   },
+
+   _isCinnamonSessionStart: function() {
+      let stringFile = this._readFile(GLib.get_home_dir() + "/.xsession-errors");
+      return ((!stringFile) || (stringFile.indexOf("About to start Cinnamon") == stringFile.lastIndexOf("About to start Cinnamon")));
+   },
+
+   _readFile: function(path) {
+      try {
+         let file = Gio.file_new_for_path(path);
+         if(file.query_exists(null)) {
+            let fstream = file.read(null);
+            let dstream = new Gio.DataInputStream({ base_stream: fstream });
+            let data = dstream.read_until("", null);
+            fstream.close(null);
+            return data.toString();
+         }
+      } catch(e) {
+         global.logError("Error:" + e.message);
+      }
+      return null;
+   }
+};
 
 /*
  * The IndicatorAppMenuWatcher class implements the IndicatorAppMenu dbus object
@@ -80,18 +220,18 @@ IndicatorAppMenuWatcher.prototype = {
         this._notifyWorkspacesId = 0;
         this._focusWindowId = 0;
 
-        this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(Utility.DBusRegistrar, this);
-        this._dbusImpl.export(Gio.DBus.session, WATCHER_OBJECT);
-
+        this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(DBusRegistrar, this);
         this._tracker = Cinnamon.WindowTracker.get_default();
-        this._system = Utility.system;
+        this._system = new SystemProperties();
         this._isReady = this._initEnviroment();
     },
 
     // DBus Functions
     RegisterWindowAsync: function(params, invocation) {
-        let [xid, menubarObjectPath] = params;
         let wind = null;
+        let [xid, menubarObjectPath] = params;
+        // Return a value Firefox and Thunderbird are waiting for it.
+        invocation.return_value(new GLib.Variant('()', []));  
         this._registerWindowXId(xid, wind, menubarObjectPath, invocation.get_sender());
         this._emitWindowRegistered(xid, invocation.get_sender(), menubarObjectPath);
     },
@@ -134,6 +274,7 @@ IndicatorAppMenuWatcher.prototype = {
     // Public functions
     watch: function() {
         if ((this._isReady)&&(!this._ownName)) {
+            this._dbusImpl.export(Gio.DBus.session, WATCHER_OBJECT);
             this._ownName = Gio.DBus.session.own_name(WATCHER_INTERFACE,
                                   Gio.BusNameOwnerFlags.NONE,
                                   Lang.bind(this, this._acquiredName),
@@ -341,8 +482,11 @@ IndicatorAppMenuWatcher.prototype = {
             for(let pos in winList) {
                 let wind = winList[pos];
                 let xid = this._guessWindowXId(wind);
-                if(xid)
+                if(xid) {
+                    if((xid in this._registeredWindows)&&(this._registeredWindows[xid].fail))
+                        continue;
                     this._registerWindowXId(xid, wind);
+                }
             }
         }
     },
@@ -389,12 +533,14 @@ IndicatorAppMenuWatcher.prototype = {
         if(wind) {
             appTracker = this._tracker.get_window_app(wind);
             if((!menubarPath)||(!senderDbus)) {
-                menubarPath = wind.get_gtk_menubar_object_path();
-                appmenuPath = wind.get_gtk_app_menu_object_path();
-                windowPath  = wind.get_gtk_window_object_path();
-                appPath     = wind.get_gtk_application_object_path();
-                senderDbus  = wind.get_gtk_unique_bus_name();
-                isGtkApp    = (senderDbus != null);
+               if((appTracker)&&(GTK_BLACKLIST.indexOf(appTracker.get_id()) == -1)) {
+                  menubarPath = wind.get_gtk_menubar_object_path();
+                  appmenuPath = wind.get_gtk_app_menu_object_path();
+                  windowPath  = wind.get_gtk_window_object_path();
+                  appPath     = wind.get_gtk_application_object_path();
+                  senderDbus  = wind.get_gtk_unique_bus_name();
+                  isGtkApp    = (senderDbus != null);
+               }
             }
         }
 
@@ -426,7 +572,8 @@ IndicatorAppMenuWatcher.prototype = {
                 sender: senderDbus,
                 isGtk: isGtkApp,
                 icon: null,
-                appMenu: null
+                appMenu: null,
+                fail: false
             };
         }
 
@@ -437,70 +584,36 @@ IndicatorAppMenuWatcher.prototype = {
         this._updateIcon(xid);
         if ((xid in this._registeredWindows) && (!this._registeredWindows[xid].appMenu)) {
             if ((this._registeredWindows[xid].menubarObjectPath) && (this._registeredWindows[xid].sender)) {
-                this._getMenuClient(xid, Lang.bind(this, this._onMenuClientReady));
+               this._getMenuClient(xid, Lang.bind(this, this._onMenuClientReady));
             } else {
-                try {
-                    let command = "xprop -id " + xid + " -notype _GTK_UNIQUE_BUS_NAME && " +
-                                  "xprop -id " + xid + " -notype _GTK_MENUBAR_OBJECT_PATH && " +
-                                  "xprop -id " + xid + " -notype _GTK_APP_MENU_OBJECT_PATH && " +
-                                  "xprop -id " + xid + " -notype _GTK_WINDOW_OBJECT_PATH && " +
-                                  "xprop -id " + xid + " -notype _GTK_APPLICATION_OBJECT_PATH";
-                    let terminal = new Utility.TerminalReader(command, Lang.bind(this, this._onTerminalRead));
-                    terminal.executeReader();
-                } catch(e){
-                    global.log("%s Not found properties for %d windows id".format(LOG_NAME, xid));
-                }
-            } 
-        }
-    },
-
-    _fillTerminalValues: function(lines, gtkKeys) {
-        let lineIndex = 0;
-        let result = true;
-        let index;
-        for (let key in gtkKeys) {
-            if(lineIndex < lines.length) {
-                index = lines[lineIndex].indexOf(key + " = ");
-                if(index == 0)
-                    gtkKeys[key] = lines[0].substring(key.length + 4, lines[0].length-1);
-                else
-                    gtkKeys[key] = null;
+               this._registeredWindows[xid].fail = true;
             }
-        }
-    },
-
-    _onTerminalRead: function(command, sucess, result) {
-        if(sucess) {
-            let xid = parseInt(command.substring(10, command.indexOf(" -notype")));
-            let lines = result.split("\n");
-            let gtkKeys = { "_GTK_UNIQUE_BUS_NAME":null,
-                            "_GTK_MENUBAR_OBJECT_PATH":null,
-                            "_GTK_APP_MENU_OBJECT_PATH":null,
-                            "_GTK_WINDOW_OBJECT_PATH":null,
-                            "_GTK_APPLICATION_OBJECT_PATH":null
-                          };
-            this._fillTerminalValues(lines, gtkKeys);
-            this._registeredWindows[xid].sender = gtkKeys["_GTK_UNIQUE_BUS_NAME"];
-            this._registeredWindows[xid].menubarObjectPath = gtkKeys["_GTK_MENUBAR_OBJECT_PATH"];
-            this._registeredWindows[xid].appmenuObjectPath = gtkKeys["_GTK_APP_MENU_OBJECT_PATH"];
-            this._registeredWindows[xid].windowObjectPath = gtkKeys["_GTK_WINDOW_OBJECT_PATH"];
-            this._registeredWindows[xid].appObjectPath = gtkKeys["_GTK_APPLICATION_OBJECT_PATH"];
-            this._registeredWindows[xid].isGtk = true;
-            if ((this._registeredWindows[xid].sender) && (this._registeredWindows[xid].menubarObjectPath))
-                this._getMenuClient(xid, Lang.bind(this, this._onMenuClientReady));
-        }
+        }  
     },
 
     _onWindowChanged: function() {
-        let wind = null;
         let xid = this._guessWindowXId(global.display.focus_window);
-        if((xid) && (!(xid in this._registeredWindows) || (!this._registeredWindows[xid].appMenu))) {
-            this._registerAllWindows();
+        if(xid) {
+           let registerWin = null;
+           if(xid in this._registeredWindows) {
+              registerWin = this._registeredWindows[xid];
+              if ((!registerWin.fail) && (!registerWin.appMenu)) {
+                 this._registerAllWindows();
+                 registerWin = this._registeredWindows[xid];
+              }
+           } else {
+              this._registerAllWindows();
+              if(xid in this._registeredWindows)
+                 registerWin = this._registeredWindows[xid];
+           }
+           if(registerWin) {
+              this.emit('appmenu-changed', registerWin.window);
+              this._xidLast = xid;
+           }
+        } else {
+           this.emit('appmenu-changed', null);
+           this._xidLast = null;
         }
-        if(xid in this._registeredWindows)
-            wind = this._registeredWindows[xid].window;
-        this.emit('appmenu-changed', wind);
-        this._xidLast = xid;
     },
 
     // NOTE: we prefer to use the window's XID but this is not stored

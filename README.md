@@ -1,6 +1,6 @@
-Cinnamon Applet: Global Application Menu Version: v0.4-Beta
+Cinnamon Applet: Global Application Menu Version: v0.5-Beta
 
-Last update: 30 may 2015
+Last update: 13 June 2015
 
 ***
 Special thanks to:
@@ -9,6 +9,7 @@ Special thanks to:
 - Canonical devs       (http://www.canonical.com/)                 The protocols and patches.
 - Cinnamon devs        (https://github.com/linuxmint/Cinnamon)     The support (specially: https://github.com/mtwebster).
 - rilian-la-te         (https://github.com/rilian-la-te)           Understand and fix a lot of things.
+- collinss             (https://github.com/collinss)               Has helped fix the behavior of firefox and thunderbird.
 
 --------------
 ![](https://raw.githubusercontent.com/lestcape/Global-AppMenu/master/globalAppMenu%40lestcape/Capture.png)
@@ -25,13 +26,17 @@ https://github.com/rgcjonas/gnome-shell-extension-appindicator
 
 Known issues (Try at your own risk):
 --------------
-* The applet could takes ages to load and can freeze Cinnamon forever. This is probably caused by the insane amount of embedded PNG icons. 
-* There are some unsupported application that can not be integrate into the applet, like Firefox, as is dropping the menu after some time.
-
-http://stackoverflow.com/questions/30206099/what-is-the-current-behavior-of-firefox-for-the-ubuntu-menu-bar
+* Not all apps are tested and then the applet could takes ages to load and can freeze Cinnamon forever.
+* There are some unsupported apps that can not be integrate into the applet, like Blender, as has his own GUI toolkit.
+* For some untested applications, it is possible a failure caused by a bug in the applet. Please, report it if is working in Unity.
 
 Change log
 --------------
+0.5-Beta
+ - Fixed Firefox, Thunderbird and Mint Update Manager.
+ - Some little performance improvement.
+ - Removed the utility file.
+
 0.4-Beta
  - Now the gtk submenu will be updated when opening (will fix some other problems for Open Office).
  - Fixed the applet domain translation.
