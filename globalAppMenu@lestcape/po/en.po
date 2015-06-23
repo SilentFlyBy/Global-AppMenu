@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Global Application Menu 0.1-Beta\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-05-14 06:58-0500\n"
-"PO-Revision-Date: 2015-05-24 06:34-0600\n"
+"PO-Revision-Date: 2015-06-23 16:46-0600\n"
 "Last-Translator: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "Language-Team: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -82,6 +82,19 @@ msgstr "Desaturate the application icon"
 #. globalAppMenu@lestcape->settings-schema.json->desaturate-app-icon->tooltip
 msgid "Select if you want to desaturate the application icon"
 msgstr "Select if you want to desaturate the application icon"
+
+#. globalAppMenu@lestcape->settings-schema.json->open-active-
+#. submenu->description
+msgid "Automatically open the submenu"
+msgstr "Automatically open the submenu"
+
+#. globalAppMenu@lestcape->settings-schema.json->open-active-submenu->tooltip
+msgid ""
+"Select if you want to automatically open the submenu when the mouse is "
+"inside of the launcher."
+msgstr ""
+"Select if you want to automatically open the submenu when the mouse is "
+"inside of the launcher."
 
 #. globalAppMenu@lestcape->settings-schema.json->close-active-
 #. submenu->description

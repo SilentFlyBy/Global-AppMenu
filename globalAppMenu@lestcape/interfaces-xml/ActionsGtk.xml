@@ -27,5 +27,5 @@
         <arg type="a{sb}" name="enable_changes" />
         <arg type="a{sv}" name="state_changes" />
         <arg type="a{s(bgav)}" name="additions" />
-    </signal>"
-</interface>"
+    </signal>
+</interface>

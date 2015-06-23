@@ -84,6 +84,17 @@ msgstr ""
 msgid "Select if you want to desaturate the application icon"
 msgstr ""
 
+#. globalAppMenu@lestcape->settings-schema.json->open-active-
+#. submenu->description
+msgid "Automatically open the submenu"
+msgstr ""
+
+#. globalAppMenu@lestcape->settings-schema.json->open-active-submenu->tooltip
+msgid ""
+"Select if you want to automatically open the submenu when the mouse is inside "
+"of the launcher."
+msgstr ""
+
 #. globalAppMenu@lestcape->settings-schema.json->close-active-
 #. submenu->description
 msgid "Automatically close the submenu"

@@ -593,12 +593,14 @@ ConfigurableMenuManager.prototype = {
    _init: function(owner) {
       PopupMenu.PopupMenuManager.prototype._init.call (this, owner);
       this._lastMenuTimeOut = 0;
+      this._openSubMenu = false;
       this._closeSubMenu = false;
       this._floating = true;
       this._showBoxPointer = true;
       this._alignSubMenu = false;
       this._showItemIcon = true;
       this._desaturateItemIcon = false;
+
    },
 
    addMenu: function(menu, position) {
@@ -628,8 +630,10 @@ ConfigurableMenuManager.prototype = {
 
          let source = menu.sourceActor;
          if (source) {
-            menudata.enterId = source.connect('enter-event', Lang.bind(this, function() { this._onMenuSourceEnter(menu); }));
-            menudata.focusInId = source.connect('key-focus-in', Lang.bind(this, function() { this._onMenuSourceEnter(menu); }));
+            if(this._openSubMenu) {
+               menudata.enterId = source.connect('enter-event', Lang.bind(this, function() { this._onMenuSourceEnter(menu); }));
+               menudata.focusInId = source.connect('key-focus-in', Lang.bind(this, function() { this._onMenuSourceEnter(menu); }));
+            }
             if(this._closeSubMenu) {
                menudata.leaveId = source.connect('leave-event', Lang.bind(this, function() { this._onMenuSourceLeave(menu); }));
                menudata.focusOutId = source.connect('key-focus-out', Lang.bind(this, function() { this._onMenuSourceLeave(menu); }));
@@ -645,6 +649,29 @@ ConfigurableMenuManager.prototype = {
          let children = menu._childMenus;
          for(let pos in children)
             this.addMenu(children[pos]);
+      }
+   },
+
+   setOpenSubMenu: function(openSubMenu) {
+      this._disconnectTimeOut();
+      if(this._openSubMenu != openSubMenu) {
+         this._openSubMenu = openSubMenu;
+         for(let pos in this._menus) {
+            let menudata = this._menus[pos];
+            let source = menudata.menu.sourceActor;
+            if (menudata.enterId > 0) {
+               source.disconnect(menudata.enterId);
+               menudata.enterId = 0;
+            }
+            if (menudata.focusInId > 0) {
+               source.disconnect(menudata.focusInId);
+               menudata.focusInId = 0;
+            }
+            if (this._openSubMenu) {
+               menudata.enterId = source.connect('enter-event', Lang.bind(this, function() { this._onMenuSourceEnter(menudata.menu); }));
+               menudata.focusInId = source.connect('key-focus-in', Lang.bind(this, function() { this._onMenuSourceEnter(menudata.menu); }));
+            }
+         }
       }
    },
 

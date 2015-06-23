@@ -50,6 +50,7 @@ MyMenuFactory.prototype = {
    _init: function() {
       ConfigurableMenus.MenuFactory.prototype._init.call(this);
       this._showBoxPointer = true;
+      this._openSubMenu = false;
       this._closeSubMenu = false;
       this._floatingMenu = false;
       this._floatingSubMenu = true;
@@ -99,6 +100,15 @@ MyMenuFactory.prototype = {
       }
    },
 
+   setOpenSubMenu: function(openSubMenu) {
+      if(this._openSubMenu != openSubMenu) {
+         this._openSubMenu = openSubMenu;
+         for (let pos in this._menuManager) {
+            this._menuManager[pos].setOpenSubMenu(this._openSubMenu);
+         }
+      }
+   },
+
    setCloseSubMenu: function(closeSubMenu) {
       if(this._closeSubMenu != closeSubMenu) {
          this._closeSubMenu = closeSubMenu;
@@ -140,6 +150,7 @@ MyMenuFactory.prototype = {
       this._arrowSide = orientation;
       if(menuManager) {
          menuManager.showBoxPointer(this._showBoxPointer);
+         menuManager.setOpenSubMenu(this._openSubMenu);
          menuManager.setCloseSubMenu(this._closeSubMenu);
          menuManager.setAlignSubMenu(this._alignSubMenu);
          menuManager.setShowItemIcon(this._showItemIcon);
@@ -277,6 +288,7 @@ MyApplet.prototype = {
          this.desaturateAppIcon = false;
          this.maxAppNameSize = 10;
          this.automaticActiveMainMenu = true;
+         this.openActiveSubmenu = false;
          this.closeActiveSubmenu = false;
          this.showBoxPointer = true;
          this.alignMenuLauncher = false;
@@ -316,6 +328,7 @@ MyApplet.prototype = {
       this.settings.bindProperty(Settings.BindingDirection.IN, "show-app-name", "showAppName", this._onShowAppNameChange, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "max-app-name-size", "maxAppNameSize", this._onMaxAppNameSizeChange, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "automatic-active-mainmenu", "automaticActiveMainMenu", this._automaticActiveMainMenuChange, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "open-active-submenu", "openActiveSubmenu", this._onOpenActiveSubmenuChange, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "close-active-submenu", "closeActiveSubmenu", this._onCloseActiveSubmenuChange, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "show-boxpointer", "showBoxPointer", this._onShowBoxPointerChange, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "align-menu-launcher", "alignMenuLauncher", this._onAlignMenuLauncherChange, null);
@@ -329,6 +342,7 @@ MyApplet.prototype = {
       this._onShowAppNameChange();
       this._onMaxAppNameSizeChange();
 
+      this._onOpenActiveSubmenuChange();
       this._onCloseActiveSubmenuChange();
       this._onShowBoxPointerChange();
       this._onAlignMenuLauncherChange();
@@ -362,6 +376,10 @@ MyApplet.prototype = {
    _automaticActiveMainMenuChange: function() {
       if(this.automaticActiveMainMenu)
          this._closeMenu();
+   },
+
+   _onOpenActiveSubmenuChange: function() {
+      this.menuFactory.setOpenSubMenu(this.openActiveSubmenu);
    },
 
    _onCloseActiveSubmenuChange: function() {

@@ -75,6 +75,12 @@
     "separator-submenu-bottom" : {
         "type": "separator"
     },
+    "open-active-submenu" : {
+        "type" : "checkbox",
+        "default" : true,
+        "description": "Automatically open the submenu",
+        "tooltip": "Select if you want to automatically open the submenu when the mouse is inside of the launcher."
+    },
     "close-active-submenu" : {
         "type" : "checkbox",
         "default" : false,

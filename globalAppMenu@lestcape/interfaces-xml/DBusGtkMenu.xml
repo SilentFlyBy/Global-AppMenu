@@ -1,6 +1,6 @@
 <interface name="org.gtk.Menus">
     <!-- Functions -->
-    <method name="Start">"
+    <method name="Start">
          <arg type="au" name="groups" direction="in" />
          <arg type="a(uuaa{sv})" name="content" direction="out" />
     </method>
