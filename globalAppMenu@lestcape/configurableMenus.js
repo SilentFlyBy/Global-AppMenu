@@ -600,7 +600,6 @@ ConfigurableMenuManager.prototype = {
       this._alignSubMenu = false;
       this._showItemIcon = true;
       this._desaturateItemIcon = false;
-
    },
 
    addMenu: function(menu, position) {
@@ -781,7 +780,6 @@ ConfigurableMenuManager.prototype = {
       if (open) {
          if (this._activeMenu && this._activeMenu.isChildMenu(menu)) {
             this._menuStack.push(this._activeMenu);
-            menu.actor.grab_key_focus();
          }
          this._activeMenu = menu;
       } else if (this._menuStack.length > 0) {
@@ -798,15 +796,9 @@ ConfigurableMenuManager.prototype = {
             this._grabbedFromKeynav = hadFocus;
             this._grab();
          }
-
-         if (hadFocus)
-            focus.grab_key_focus();
-         else
-            menu.actor.grab_key_focus();
       } else if (menu == this._activeMenu) {
          if (this.grabbed)
             this._ungrab();
-  
          this._activeMenu = null;
 
          if (this._grabbedFromKeynav) {
@@ -830,7 +822,7 @@ ConfigurableMenuManager.prototype = {
       return true;
    },
 
-   // change the currently-open menu without dropping grab
+   // Change the currently-open menu without dropping grab
    _changeMenu: function(newMenu) {
       if (this._activeMenu) {
          // _onOpenMenuState will drop the grab if it sees
@@ -908,19 +900,7 @@ ConfigurableMenuManager.prototype = {
             this._findMenu(focus._delegate.menu) != -1)
             return;
       }
-
       this._closeMenu();
-      //Mainloop.idle_add(Lang.bind(this, this._closeMenu));
-   },
-
-   // FIXME The focus cloud be lost, if we have several menus opened.
-   // We need to used it, to properly find where is the focus?
-   _findFocusInStack: function(focus) {
-      for(pos in this._menuStack) {
-         if(this._menuStack[pos].actor.contains(focus))
-            return true;
-      }
-      return false;
    },
 
    // Override allow return false to active the parent menu actions.
@@ -935,20 +915,17 @@ ConfigurableMenuManager.prototype = {
       if (this._activeMenu != null && this._activeMenu.passEvents)
          return false;
 
-      let activeMenuContains = this._eventIsOnActiveMenu(event);
-      let eventType = event.type();
+      if (!this._shouldBlockEvent(event))
+         return false;
 
-      if (eventType == Clutter.EventType.BUTTON_RELEASE) {
-         if (!activeMenuContains)
-            this._closeMenu();
-         return false;
-      } else if (eventType == Clutter.EventType.BUTTON_PRESS && !activeMenuContains) {
-         this._closeMenu();
-         return false;
-      } else if (!this._shouldBlockEvent(event)) {
+      let eventType = event.type();
+      if (eventType == Clutter.EventType.BUTTON_PRESS ||
+          eventType == Clutter.EventType.BUTTON_RELEASE) {
+         for(let i = this._menuStack.length; i > -1; i--) {
+            this._activeMenu.close(false);
+         }
          return false;
       }
-
       return true;
    },
 
@@ -966,7 +943,6 @@ ConfigurableMenuManager.prototype = {
             return false;
          }
       }
-
       return true;
    }
 };
@@ -1289,12 +1265,14 @@ ConfigurableMenu.prototype = {
          }
          for(let pos in this._childMenus) {
             let menu = this._childMenus[pos];
-            if ((childArrowSide == St.Side.LEFT) && (rightMenu + menu.actor.width  > rightEdge)) {
-               childArrowSide = St.Side.RIGHT;
-            } else if((childArrowSide == St.Side.RIGHT) && (leftMenu - menu.actor.width < leftEdge)) {
-               childArrowSide = St.Side.LEFT;
+            if(menu.actor) {
+               if ((childArrowSide == St.Side.LEFT) && (rightMenu + menu.actor.width  > rightEdge)) {
+                  childArrowSide = St.Side.RIGHT;
+               } else if((childArrowSide == St.Side.RIGHT) && (leftMenu - menu.actor.width < leftEdge)) {
+                  childArrowSide = St.Side.LEFT;
+               }
+               menu.setArrowSide(childArrowSide);
             }
-            menu.setArrowSide(childArrowSide);
          }
       } else {
          global.logError("Fail to get the monitor for oriented the arrow child side.");
@@ -1840,7 +1818,7 @@ ConfigurableMenu.prototype = {
             (topMenu._openedSubMenu.isOpen)&&(this.isOpen)) {
             // We probably don't need to do this, as is also a tasks
             // of the MenuManager, but the MenuManager wont work ok.
-            topMenu._openedSubMenu.close(true);
+            topMenu._openedSubMenu.closeClean();
             topMenu._openedSubMenu = null;
          }
          if (this.isOpen)
@@ -1877,10 +1855,7 @@ ConfigurableMenu.prototype = {
        if(this.launcher) {
          let actor = this.launcher.actor;
          while(actor) {
-            if((actor._delegate) && ((actor.get_parent() == Main.uiGroup)||
-               (actor._delegate instanceof ConfigurableMenuApplet))) {
-            //if((actor._delegate) && ((actor._delegate instanceof PopupMenu.PopupMenu) ||
-            //   (actor._delegate instanceof PopupMenu.PopupSubMenu) || (actor.get_parent() == Main.uiGroup))) {
+            if((actor._delegate) && (actor._delegate instanceof PopupMenu.PopupMenu)) {
                this._topMenu = actor._delegate;
                break;
             }
