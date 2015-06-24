@@ -48,6 +48,7 @@ const MandatedTypes = {
     'action'            : GLib.VariantType.new("s"),
     //'target'            : GLib.VariantType.new("v"),
     'accel'             : GLib.VariantType.new("s"),
+    'shortcut'          : GLib.VariantType.new("aas")
 };
 
 const DefaultValues = {
@@ -204,6 +205,8 @@ DbusMenuItem.prototype = {
             this.setLabel(propStore.getString("label").replace(/_([^_])/, "$1"));
         if("accel" in properties)
             this.setAccel(this._getAccel(propStore.getString("accel")));
+        if("shortcut" in properties)
+            this.setAccel(this._getShortcut(propStore.getVariant("shortcut")));
         if("enabled" in properties)
             this.setSensitive(propStore.getBool("enabled"));
         if("visible" in properties)
@@ -244,6 +247,8 @@ DbusMenuItem.prototype = {
             params.label = propStore.getString("label").replace(/_([^_])/, "$1");
         if("accel" in properties)
             params.accel = this._getAccel(propStore.getString("accel"));
+       if("shortcut" in properties)
+            params.accel = this._getShortcut(propStore.getVariant("shortcut"));
         if("enabled" in properties)
             params.sensitive = propStore.getBool("enabled");
         if("visible" in properties)
@@ -267,10 +272,65 @@ DbusMenuItem.prototype = {
 
     _getAccel: function(accelName) {
         if (accelName) {
+            // Main.notify("found" + accelName);
             [key, mods] = Gtk.accelerator_parse(accelName);
             return Gtk.accelerator_get_label(key, mods);
         }
         return null;
+    },
+
+    _getShortcut: function(accel) {
+        if (accel) {
+            let keyArray = accel.deep_unpack();
+            if(keyArray && keyArray[0]) {
+                let accelName = "";
+                let keySequence = keyArray[0];
+                let len = keySequence.length;
+                if((len == 1)&&(keySequence[0].length == 1))
+                    return keySequence[0];
+                for(let pos in keySequence) {
+                    let token = keySequence[pos];
+                    if(pos <= len - 2) {
+                        accelName += "<" + token + ">";
+                    } else {
+                        accelName += this._kdeToGtkKey(token);
+                    } 
+                }
+                if(accelName == "<>")
+                    accelName = "+";
+                let [key, mods] = Gtk.accelerator_parse(accelName);
+                let value = Gtk.accelerator_get_label(key, mods);
+                if(!value) { 
+                    value = accelName; 
+                }
+                return value;
+            }
+        }
+        return null;
+    },
+
+    //FIXME: We need to convert more keys to Gtk?
+    _kdeToGtkKey: function(key) {
+        let keyLower = key.toLowerCase();
+        if(keyLower == "pgup")
+            return "Page_Up";
+        else if(keyLower == "pgdown")
+            return "Page_Down";
+        else if(keyLower == "esc")
+            return "Escape";
+        else if(keyLower == "ins")
+            return "Insert";
+        else if(keyLower == "del")
+            return "Delete";
+        else if(keyLower == "space")
+            return "space";
+        else if(keyLower == "backspace")
+            return "BackSpace";
+        else if(keyLower == "media stop")
+            return "XF86AudioStop";
+        else if(keyLower == "media play")
+            return "XF86AudioPlay";
+        return key;
     },
 
     _getFactoryType: function(childDisplay, childType) {

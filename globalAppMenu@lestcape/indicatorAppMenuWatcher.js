@@ -583,7 +583,8 @@ IndicatorAppMenuWatcher.prototype = {
     _tryToGetMenuClient: function(xid) {
         this._updateIcon(xid);
         if ((xid in this._registeredWindows) && (!this._registeredWindows[xid].appMenu)) {
-            if ((this._registeredWindows[xid].menubarObjectPath) && (this._registeredWindows[xid].sender)) {
+            if ((this._registeredWindows[xid].menubarObjectPath) &&
+                (this._registeredWindows[xid].sender)) {
                this._getMenuClient(xid, Lang.bind(this, this._onMenuClientReady));
             } else {
                this._registeredWindows[xid].fail = true;
@@ -597,7 +598,8 @@ IndicatorAppMenuWatcher.prototype = {
            let registerWin = null;
            if(xid in this._registeredWindows) {
               registerWin = this._registeredWindows[xid];
-              if ((!registerWin.fail) && (!registerWin.appMenu)) {
+              if ((!registerWin.fail) && 
+                  ((!registerWin.appMenu)||(!registerWin.window))) {
                  this._registerAllWindows();
                  registerWin = this._registeredWindows[xid];
               }
