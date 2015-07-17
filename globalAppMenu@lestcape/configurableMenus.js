@@ -1306,15 +1306,20 @@ ConfigurableMenu.prototype = {
 
    _onKeyPressEvent: function(actor, event) {
       if(this.isOpen) {
-         if((event.get_key_symbol() == Clutter.Escape)||(event.get_key_symbol() == this._getClutterScapeKey())) {
+         let close = false;
+         if(event.get_key_symbol() == Clutter.Escape)
+            close = true;
+         else if(event.get_key_symbol() == this._getClutterScapeKey()) {
             let topMenu = this.getTopMenu();
             if(topMenu)
                topMenu.actor.grab_key_focus();
-            if((!topMenu) || (this._isFloating(topMenu))) {
-               this.close(true);
-               if((this.launcher)&&(this.launcher.setActive))
-                  this.launcher.setActive(true);
-            }
+            if((!topMenu) || (this._isFloating(topMenu)))
+               close = true;
+         }
+         if(close) {
+            this.close(true);
+            if((this.launcher)&&(this.launcher.setActive))
+               this.launcher.setActive(true);
             return true;
          }
       }
@@ -1343,8 +1348,10 @@ ConfigurableMenu.prototype = {
             let result = this._getFirstMenuItem(items[pos]);
             if(result)
                return result;
-         } else if((items[pos].actor.visible)&&(items[pos].sensitive))
+         } else if((items[pos].actor.visible)&&(items[pos].sensitive)&&
+                   (!(items[pos] instanceof PopupMenu.PopupSeparatorMenuItem))) {
             return items[pos];
+         }
       }
       return null;
    },
@@ -2753,30 +2760,30 @@ ConfigurableMenuApplet.prototype = {
       } else if(this.isOpen) {
          let close = false;
          let direction = this._getGtkDirectionType(event.get_key_symbol());
-            if(direction) {
-               if(!this._activeSubMenuItem) {
-                  this._activeSubMenuItem = this._getFirstMenuItem(this);
-               }
-               if((direction == Gtk.DirectionType.LEFT)||(direction == Gtk.DirectionType.RIGHT)) {
-                  this.isSubMenuOpen = false;
-                  this.actor.navigate_focus(this._activeSubMenuItem.actor, direction, true);
-                  this._activeSubMenuItem = global.stage.key_focus._delegate;
-                  this.isSubMenuOpen = true;
-                  this.actor.grab_key_focus();
-                  return true;
-               } else if(direction == this._getGtkScapeDirectionType()) {
-                  close = true;
-               } else {
-                  this._activeSubMenuItem.menu.actor.grab_key_focus();
-               }
-            } 
-            if((close)||(event.get_key_symbol() == Clutter.Escape)) {
-               this.close(true);
-               if((this.launcher)&&(this.launcher.setActive))
-                  this.launcher.setActive(true);
-               this.closeSubmenu();
-               return true;
+         if(direction) {
+            if(!this._activeSubMenuItem) {
+               this._activeSubMenuItem = this._getFirstMenuItem(this);
             }
+            if((direction == Gtk.DirectionType.LEFT)||(direction == Gtk.DirectionType.RIGHT)) {
+               this.isSubMenuOpen = false;
+               this.actor.navigate_focus(this._activeSubMenuItem.actor, direction, true);
+               this._activeSubMenuItem = global.stage.key_focus._delegate;
+               this.isSubMenuOpen = true;
+               this.actor.grab_key_focus();
+               return true;
+            } else if(direction == this._getGtkScapeDirectionType()) {
+               close = true;
+            } else {
+               this._activeSubMenuItem.menu.actor.grab_key_focus();
+            }
+         } 
+         if((close)||(event.get_key_symbol() == Clutter.Escape)) {
+            this.close(true);
+            if((this.launcher)&&(this.launcher.setActive))
+               this.launcher.setActive(true);
+            this.closeSubmenu();
+            return true;
+         }
       }
       return false;
    },
