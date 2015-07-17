@@ -781,12 +781,13 @@ ConfigurableMenuManager.prototype = {
       if (open) {
          if (this._activeMenu && this._activeMenu.isChildMenu(menu)) {
             this._menuStack.push(this._activeMenu);
+            menu.actor.grab_key_focus();
          }
          this._activeMenu = menu;
       } else if (this._menuStack.length > 0) {
          this._activeMenu = this._menuStack.pop();
+         this._activeMenu.actor.grab_key_focus();
       }
-
       // Check what the focus was before calling pushModal/popModal
       let focus = global.stage.key_focus;
       let hadFocus = focus && this._activeMenuContains(focus);
@@ -797,6 +798,10 @@ ConfigurableMenuManager.prototype = {
             this._grabbedFromKeynav = hadFocus;
             this._grab();
          }
+         if (hadFocus)
+            focus.grab_key_focus();
+         else
+            menu.actor.grab_key_focus();
       } else if (menu == this._activeMenu) {
          if (this.grabbed)
             this._ungrab();
@@ -900,6 +905,8 @@ ConfigurableMenuManager.prototype = {
          if (focus._delegate && focus._delegate.menu &&
             this._findMenu(focus._delegate.menu) != -1)
             return;
+         if(focus._delegate && this._findMenu(focus._delegate) != -1)
+            return;
       }
       this._closeMenu();
    },
@@ -987,8 +994,9 @@ ConfigurableMenu.prototype = {
          // with long content, we make it scrollable - the scrollbar will only take
          // effect if a CSS max-height is set on the top menu.
          this._scroll = new St.ScrollView({ style_class: 'popup-sub-menu',
-                                         hscrollbar_policy: Gtk.PolicyType.NEVER,
-                                         vscrollbar_policy: Gtk.PolicyType.NEVER });
+                                            hscrollbar_policy: Gtk.PolicyType.NEVER,
+                                            vscrollbar_policy: Gtk.PolicyType.NEVER
+                                          });
          this._scroll.clip_to_allocation = true;
          this._scroll._delegate = this;
          this._scroll.hide();
@@ -1297,14 +1305,53 @@ ConfigurableMenu.prototype = {
 
    _onKeyPressEvent: function(actor, event) {
       if(this.isOpen) {
-         if((event.get_key_symbol() == Clutter.Escape)||(event.get_key_symbol() == Clutter.KEY_Left)) {
-            this.close(true);
-            if((this.launcher)&&(this.launcher.setActive))
-               this.launcher.setActive.setActive(true);
+         if((event.get_key_symbol() == Clutter.Escape)||(event.get_key_symbol() == this._getClutterScapeKey())) {
+            let topMenu = this.getTopMenu();
+            if(topMenu)
+               topMenu.actor.grab_key_focus();
+            if((!topMenu) || (this._isFloating(topMenu))) {
+               this.close(true);
+               if((this.launcher)&&(this.launcher.setActive))
+                  this.launcher.setActive(true);
+            }
             return true;
          }
       }
       return false;
+   },
+
+   _getClutterScapeKey: function() {
+      let scapeKey = null;
+      if(this._arrowSide == St.Side.LEFT)
+         scapeKey = Clutter.KEY_Left;
+      else if(this._arrowSide == St.Side.RIGHT)
+         scapeKey = Clutter.KEY_Right;
+      else if(this._getFirstMenuItem(this) == this._activeMenuItem) {
+         if(this._arrowSide == St.Side.TOP)
+            scapeKey = Clutter.KEY_Up;
+         else if(this._arrowSide == St.Side.BOTTOM)
+            scapeKey = Clutter.KEY_Down;
+      }
+      return scapeKey;
+   },
+
+   _getFirstMenuItem: function(menu) {
+      let items = menu._getAllMenuItems();
+      for(let pos in items) {
+         if(items[pos]._getAllMenuItems) {
+            let result = this._getFirstMenuItem(items[pos]);
+            if(result)
+               return result;
+         } else if((items[pos].actor.visible)&&(items[pos].sensitive))
+            return items[pos];
+      }
+      return null;
+   },
+
+   _getAllMenuItems: function() {
+      return this.box.get_children().map(function (actor) {
+         return actor._delegate;
+      });
    },
 
    setArrowOrigin: function(origin) {
@@ -1453,7 +1500,7 @@ ConfigurableMenu.prototype = {
          this.actor.hide();
       }
 
-      if (this._activeMenuItem)
+      if(this._activeMenuItem)
          this._activeMenuItem.setActive(false);
 
       this.isOpen = false;
@@ -1472,7 +1519,6 @@ ConfigurableMenu.prototype = {
       if(this.isOpen) {
          this._applyEffectOnClose();
       }
-
    },
 
    _applyEffectOnOpen: function(animate) {
@@ -2227,6 +2273,12 @@ ConfigurablePopupMenuSection.prototype = {
       }
    },
 
+   _getAllMenuItems: function() {
+      return this.box.get_children().map(function (actor) {
+         return actor._delegate;
+      });
+   },
+
    _isFloating: function(menu) {
       return ((menu.isInFloatingState) && (menu.isInFloatingState()));
    },
@@ -2443,6 +2495,8 @@ ConfigurableMenuApplet.prototype = {
       this._menuManager = menuManager;
       this.minItemWidth = 34;
       this._autoActive = true;
+      this._showAccel = false;
+      this.isSubMenuOpen = false;
 
       this.scale = 1;
       if(global.ui_scale)
@@ -2463,7 +2517,7 @@ ConfigurableMenuApplet.prototype = {
       }
       this._menuManager.addMenu(this);
 
-      this.actor.connect('key-press-event', Lang.bind(this, this._onKeyPress));
+      this._appletBox.connect('key-press-event', Lang.bind(this, this._onKeyPressEvent));
       if(this.launcher._applet_tooltip) {
          this._appletBox.connect('enter-event', Lang.bind(this, this._onEnterEvent));
          this._appletBox.connect('leave-event', Lang.bind(this, this._onLeaveEvent));
@@ -2478,14 +2532,61 @@ ConfigurableMenuApplet.prototype = {
       this.launcher._applet_tooltip.preventShow = false;
    },
 
+   toogleSubmenu: function(animate) {
+      if(this.isSubMenuOpen)
+         this.closeSubmenu(animate);
+      else
+         this.openSubmenu(animate);
+   },
+
+   openSubmenu: function(animate) {
+      if(!this.isSubMenuOpen) {
+         if(this._floating) {
+            this.open(animate);
+         } else {
+            this.actor.show();
+            let items = this._getMenuItems();
+            for(let pos in items) {
+               let menuItem = items[pos];
+               if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+                  menuItem.menu.open();
+                  break;
+               }
+            }
+            if(!this.isOpen)
+               this.open();
+            this.actor.grab_key_focus();
+         }
+         this.isSubMenuOpen = true;
+      }
+   },
+
+   closeSubmenu: function(animate) {
+      if(this.isSubMenuOpen) {
+         if(this._floating) {
+            this.close(animate);
+         } else {
+            let items = this._getMenuItems();
+            for(let pos in items) {
+               let menuItem = items[pos];
+               if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+                  menuItem.menu.close();
+               }
+            }
+         }
+         this._activeSubMenuItem = null;
+         this.isSubMenuOpen = false;
+      }
+   },
+
    open: function(animate) {
       if(this._floating) {
          if(this._childMenus.length > 0)
             ConfigurableMenu.prototype.open.call(this, animate);
-      } else {
-         this.isOpen = true;
+      } else if(!this.isOpen) {
          this.actor.show();
          this._setChildsArrowSide();
+         this.isOpen = true;
          this.emit('open-state-changed', true);
       }
    },
@@ -2493,8 +2594,10 @@ ConfigurableMenuApplet.prototype = {
    close: function(animate, forced) {
       if(this._floating) {
          ConfigurableMenu.prototype.close.call(this, animate);
-      } else if(forced) {
+      } else if((forced)&&(this.isOpen)) {
          this.actor.hide();
+         this._activeSubMenuItem = null;
+         this.isSubMenuOpen = false;
          this.isOpen = false;
          this.emit('open-state-changed', false);
       }
@@ -2571,21 +2674,26 @@ ConfigurableMenuApplet.prototype = {
             if (!open)
                menuItem.menu.close(false);
          });
+         menuItem._closeId = menuItem.menu.connect('open-state-changed', Lang.bind(this, function(self, open) {
+            if ((!open) && (this.isSubMenuOpen)) {
+               this._activeSubMenuItem = null;
+               this.isSubMenuOpen = false;
+            }
+         }));
          this._setMenuInPosition(menuItem);
          this._setShowItemIcon(menuItem);
          this._setDesaturateItemIcon(menuItem);
          this.addChildMenu(menuItem.menu);
          menuItem.actor.connect('button-press-event', Lang.bind(this, this._onButtonPressEvent));
-         this.setAccel(menuItem);
+         //this.setAccel(menuItem);
       } else {
          ConfigurableMenu.prototype.addMenuItem.call(this, menuItem, position);
       }
    },
-
+/*
    setAccel: function(menuItem) {
       if(menuItem.setAccel) {
          let accelkeys = this.getMainAccelkeys();
-         //Main.notify("es " + accelkeys)
          let text = menuItem.label.get_text();
          for (let pos in text) {
             if(accelkeys.indexOf(text[pos]) != -1) {
@@ -2599,30 +2707,6 @@ ConfigurableMenuApplet.prototype = {
       }
    },
 
-   hidLigth: function() {
-      let items = this._getMenuItems();
-      for(let pos in items) {
-         let menuItem = items[pos];
-         if (menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
-            let text = menuItem.label.get_text();
-            let accel = menuItem._accel;
-            let posAccel = text.indexOf(accel);
-            text = text.substring(0, posAccel-1) + "<u>" + text[posAccel] + "</u>" + text.substring(posAccel+1, text.length);
-            menuItem.label.clutter_text.set_markup(text);
-         }
-      }
-   },
-
-   _onKeyPress: function() {
-      //const Keymap = imports.gi.Gdk.Keymap.get_default();
-      this.symbol = event.get_key_symbol();
-      //Main.notify("called")
-      /*if((Keymap.get_caps_lock_state())&&((event.get_state()) & (Clutter.ModifierType.CONTROL_MASK))) {
-         if((this.symbol == Clutter.KEY_c) || (this.symbol == Clutter.KEY_C)) {
-         }
-      }*/
-   },
-
    getMainAccelkeys: function() {
       let items = this._getMenuItems();
       let accelkeys = [];
@@ -2633,6 +2717,93 @@ ConfigurableMenuApplet.prototype = {
          }
       }
       return accelkeys;
+   },
+
+   showAccel: function(show) {
+      if(show != this._showAccel) {
+         this._showAccel = show;
+         let items = this._getMenuItems();
+         let menuItem, text, accel, posAccel;
+         for(let pos in items) {
+            menuItem = items[pos];
+            if (menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+               text = menuItem.label.get_text();
+               accel = menuItem._accel;
+               if(show) {
+                  posAccel = text.indexOf(accel);
+                  text = text.substring(0, posAccel-1) + "<u>" + text[posAccel] + "</u>" + text.substring(posAccel+1, text.length);
+                  menuItem.label.clutter_text.set_markup(text);
+               } else {
+                  text = text.replace("<u>", "").replace("</u>", "");
+                  menuItem.label.clutter_text.set_markup(text);
+               }
+            }
+         }
+      }
+   },
+*/
+
+   _onKeyPressEvent: function(actor, event) {
+      if(this._floating) {
+         let result = ConfigurableMenu.prototype._onKeyPressEvent.call(this, actor, event);
+         if(result)
+            this.closeSubmenu();
+         return result;
+      } else if(this.isOpen) {
+         let close = false;
+         let direction = this._getGtkDirectionType(event.get_key_symbol());
+            if(direction) {
+               if(!this._activeSubMenuItem) {
+                  this._activeSubMenuItem = this._getFirstMenuItem(this);
+               }
+               if((direction == Gtk.DirectionType.LEFT)||(direction == Gtk.DirectionType.RIGHT)) {
+                  this.isSubMenuOpen = false;
+                  this.actor.navigate_focus(this._activeSubMenuItem.actor, direction, true);
+                  this._activeSubMenuItem = global.stage.key_focus._delegate;
+                  this.isSubMenuOpen = true;
+                  this.actor.grab_key_focus();
+                  return true;
+               } else if(direction == this._getGtkScapeDirectionType()) {
+                  close = true;
+               } else {
+                  this._activeSubMenuItem.menu.actor.grab_key_focus();
+               }
+            } 
+            if((close)||(event.get_key_symbol() == Clutter.Escape)) {
+               this.close(true);
+               if((this.launcher)&&(this.launcher.setActive))
+                  this.launcher.setActive(true);
+               this.closeSubmenu();
+               return true;
+            }
+      }
+      return false;
+   },
+
+   _getGtkScapeDirectionType: function() {
+      let scapeKey = null;
+      if(this._arrowSide == St.Side.LEFT)
+         scapeKey = Gtk.DirectionType.LEFT;
+      else if(this._arrowSide == St.Side.RIGHT)
+         scapeKey = Gtk.DirectionType.RIGHT;
+      else if(this._arrowSide == St.Side.TOP)
+         scapeKey = Gtk.DirectionType.UP;
+      else if(this._arrowSide == St.Side.BOTTOM)
+         scapeKey = Gtk.DirectionType.DOWN;
+      return scapeKey;
+   },
+
+   _getGtkDirectionType: function(clutterKey) {
+      let scapeKey = null;
+      if(clutterKey == Clutter.KEY_Left)
+         scapeKey = Gtk.DirectionType.LEFT;
+      else if(clutterKey == Clutter.KEY_Right)
+         scapeKey = Gtk.DirectionType.RIGHT;
+      else if(clutterKey == Clutter.KEY_Up)
+         scapeKey = Gtk.DirectionType.UP;
+      else if(clutterKey == Clutter.KEY_Down)
+         scapeKey = Gtk.DirectionType.DOWN;
+      return scapeKey;
    },
 
    _setChildsArrowSide: function() {

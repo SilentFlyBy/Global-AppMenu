@@ -23,6 +23,7 @@ const GLib = imports.gi.GLib;
 const Meta = imports.gi.Meta;
 const Cairo = imports.cairo;
 const Gettext = imports.gettext;
+const Mainloop = imports.mainloop;
 
 const Applet = imports.ui.applet;
 const Main = imports.ui.main;
@@ -306,6 +307,7 @@ MyApplet.prototype = {
          this.alignMenuLauncher = false;
          this.showItemIcon = true;
          this.desaturateItemIcon = false;
+         this._keybindingTimeOut = 0;
 
          this.actorIcon = new St.Bin();
 
@@ -313,7 +315,6 @@ MyApplet.prototype = {
          this.actor.add(this.actorIcon, { y_align: St.Align.MIDDLE, y_fill: false });
          this.actor.add(this.gradient.actor, { y_align: St.Align.MIDDLE, y_fill: false });
          this.actor.connect("enter-event", Lang.bind(this, this._updateMenu));
-         //global.stage.connect('captured-event', Lang.bind(this, this._stageEventHandler));
 
          this.menuFactory = new MyMenuFactory();
          this._createSettings();
@@ -332,27 +333,6 @@ MyApplet.prototype = {
          Main.notify("Init error %s".format(e.message));
          global.logError("Init error %s".format(e.message));
       }
-   },
-
-   _stageEventHandler: function(actor, event) {
-       if ((event.type() != Clutter.EventType.KEY_PRESS) && (event.type() != Clutter.EventType.KEY_RELEASE))
-          return false;
-       let symbol = event.get_key_symbol();
-       //let keyCode = event.get_key_code();
-       //let modifierState = Cinnamon.get_event_state(event);
-       if (symbol == Clutter.Alt_L) {
-          if(this._keyTimeOut > 0) {
-             this._keyTimeOut = 0;
-             Main.notify("release");
-          } else {
-             this._keyTimeOut = 1;
-             Main.notify("press");
-          }
-          return true;
-       } else {
-          Main.notify("hi");
-       }
-       return false;
    },
 
    _createSettings: function() {
@@ -389,17 +369,22 @@ MyApplet.prototype = {
    _updateKeybinding: function() {
       Main.keybindingManager.addHotKey("global-overlay-key", this.overlayKey, Lang.bind(this, function() {
          if (this.menu && !Main.overview.visible && !Main.expo.visible) {
-            this.menu.hidLigth();
+            this.menu.toogleSubmenu();
+            //this._onAccel();
          }
       }));
-      //Meta.keybindings_set_custom_handler('show-global-menu', Lang.bind(this, function() {
-      //    Main.notify("Hola");
-      //}));
-      //let shema = new Gio.Settings({ schema: "org.cinnamon.desktop.keybindings" });
-      //global.display.add_keybinding('looking-glass-keybinding', "org.cinnamon.desktop.keybindings", Meta.KeyBindingFlags.NONE, Lang.bind(this, function() {
-      //   Main.notify("Hola");
-      //}));
    },
+
+   /*_onAccel: function() {
+      this.menu.showAccel(true);
+      if(this._keybindingTimeOut != 0)
+         Mainloop.source_remove(this._keybindingTimeOut);
+      this._keybindingTimeOut = Mainloop.timeout_add(500, Lang.bind(this, function() {
+         Mainloop.source_remove(this._keybindingTimeOut);
+         this._keybindingTimeOut = 0;
+         this.menu.showAccel(false);
+      }));
+   },*/
 
    _onDisplayInPanelChange: function() {
       this.menuFactory.setFloatingState(!this.displayInPanel);
