@@ -579,6 +579,168 @@ ConfigurablePointer.prototype = {
    }
 };
 
+// http://stackoverflow.com/questions/2049582/how-to-determine-a-point-in-a-triangle
+function VectorBoxBlocker() {
+    this._init.apply(this, arguments);
+}
+
+VectorBoxBlocker.prototype = {
+    _init: function(event_blocker, time_out) {
+        this.time_out = time_out;
+        this.event_blocker = event_blocker;
+        if(!this.event_blocker)
+            this.event_blocker = Clutter.EventType.ENTER;
+        if(!this.time_out)
+            this.time_out = 35;
+        this._p0 = { x:0, y:0 };
+        this._p1 = { x:0, y:0 };
+        this._p2 = { x:0, y:0 };
+        this._capture_event_id = 0;
+        this._update_loop_id = 0;
+    },
+
+    _updateVector: function() {
+        let [p0x, p0y, mask] = global.get_pointer();
+        let [bx, by] = this.box.get_transformed_position();
+        let [bw, bh] = this.box.get_transformed_size();
+        let p1x, p1y, p2x, p2y;
+        if (p0x > bx + bw) { //rigth
+            if (p0y > by + bh) { //bottom
+                p1x = bx; p1y = by + bh; p2x = bx + bw; p2y = by;
+            } else if (p0y < by) {//top
+                p2x = bx; p2y = by; p1x = bx + bw; p1y = by + bh;
+            } else if ((p0y > by)&&(p0y < by + bh)) {//center
+                p2x = bx + bw; p2y = by; p1x = bx + bw; p1y = by + bh;
+            } else {//inside
+                return false;//error
+            }
+        } else if (p0x < bx) {//left
+            if (p0y > by + bh) { //bottom
+                //Main.notify("enter3: " + p0y + " " + by + " " + bh)
+                p1x = bx; p1y = by; p2x = bx + bw; p2y = by + bh;
+            } else if (p0y < by) {//top
+                //Main.notify("enter2: " + p0y + " " + by + " " + bh)
+                p2x = bx; p2y = by + bh; p1x = bx + bw; p1y = by;
+            } else if ((p0y > by)&&(p0y < by + bh)) {//center
+                //Main.notify("enter1: " + p0y + " " + by + " " + bh)
+                p1x = bx; p1y = by; p2x = bx; p2y = by + bh;
+            } else {//inside
+                return false;//error
+            }
+        } else if ((p0x > bx)&&(p0x < bx + bw)) { //center
+            if (p0y > by + bh) { //bottom
+                p1x = bx; p1y = by + bh; p2x = bx + bw; p2y = by + bh;
+            } else if (p0y < by) {//top
+                p2x = bx; p2y = by; p1x = bx + bw; p1y = by;
+            } else {//inside
+                return false;//error
+            }
+        }
+        this._p0.x = p0x; this._p0.y = p0y;
+        this._p1.x = p1x; this._p1.y = p1y;
+        this._p2.x = p2x; this._p2.y = p2y;
+        return true;
+    },
+
+    _disconnectLoop: function() {
+        if (this._update_loop_id > 0) {
+            log("remove: " + this._update_loop_id);
+            Mainloop.source_remove(this._update_loop_id);
+            log("end remove: " + this._update_loop_id);
+            this._update_loop_id = 0;
+        }
+    },
+
+    release: function() {
+        log("dis2: " + this._update_loop_id);
+        this._disconnectLoop();
+        if (this._capture_event_id > 0) {
+            global.stage.disconnect(this._capture_event_id);
+            this._capture_event_id = 0;
+        }
+        if(this.src_actor) {
+            //this.src_actor.emit('leave-event');
+            //this.src_actor._delegate.emit('leave-event');
+            this.src_actor = null;
+        }
+        if(this.last_actor) {
+            //Main.notify("Release!!!");
+            this.last_actor.hide();
+            this.last_actor.show();
+            //this.last_actor.emit('enter-event', new Clutter.EnterEvent());
+            this.last_actor._delegate.emit('enter-event');
+            this.last_actor = null;
+        }
+    },
+
+    executeInsideActor: function(src_actor, box) {
+        this.box = box;
+        this.last_actor = null;
+        this.src_actor = null;
+        this.release();
+        if(this._updateVector() && !this._isMouseInside()) {
+            this.src_actor = src_actor;
+            this._capture_event_id = global.stage.connect('captured-event', Lang.bind(this, this._eventFilter, src_actor));
+            //this._update_loop_id = Mainloop.timeout_add(this.time_out, Lang.bind(this, this._tryToRelease));
+        }
+    },
+
+    _eventFilter: function(actor, event, src_actor) {
+        let inside = false;
+        let source = event.get_source();
+        if (event.type() == Clutter.EventType.ENTER) {
+            inside = /*this._updateVector() &&*/ this._isMouseInside();
+            if(!inside) {
+                //Main.notify("Release2");
+                this.release();
+            } else if(!source.contains(src_actor) && !src_actor.contains(source)) {
+                this.last_actor = source;
+            } else {
+                this.last_actor = null;
+            }
+        } else if (event.type() == Clutter.EventType.MOTION) {
+            if (src_actor == source) {
+                log("dis: " + this._update_loop_id);
+                this._disconnectLoop();
+                if(this._update_loop_id == 0)
+                    this._update_loop_id = Mainloop.timeout_add(500, Lang.bind(this, this._tryToRelease));
+                log("add: " + this._update_loop_id);
+            }
+        }
+        return inside;
+    },
+
+    _tryToRelease: function() {
+        if(this.last_actor && this.last_actor._delegate) {
+            //Main.notify("Release1");
+            this.release();
+            //this.last_actor.emit('enter-event', global.get_current_time());
+            //this.last_actor._delegate.emit('enter-event');
+        } else if(!this._updateVector() || !this._isMouseInside()) {
+            //Main.notify("Release1" + this._updateVector() + " " + this._isMouseInside());
+            this.release();
+        }
+        this.vector_update_loop = 0;
+    },
+
+    _isMouseInside: function() {
+        let [px, py, mask] = global.get_pointer();
+        let s = this._p0.y*this._p2.x - this._p0.x*this._p2.y + (this._p2.y - this._p0.y)*px +
+                (this._p0.x - this._p2.x)*py;
+        let t = this._p0.x*this._p1.y - this._p0.y*this._p1.x + (this._p0.y - this._p1.y)*px +
+                (this._p1.x - this._p0.x)*py;
+        if ((s >= 0) && (t >= 0)) {
+            let area = -this._p1.y*this._p2.x + this._p0.y*(-this._p1.x + this._p2.x) + 
+                        this._p0.x*(this._p1.y - this._p2.y) + this._p1.x*this._p2.y;
+            //if(((s + t) > area))
+            //    Main.notify("Fail2 " + (s + t) + " area " + area);
+            return ((s + t) <= area);
+        }
+        //Main.notify("Fail1" + s + " " + t);
+        return false;
+    }
+};
+
 /**
  * ConfigurableMenuManager
  *
@@ -1042,6 +1204,8 @@ ConfigurableMenu.prototype = {
          this._boxPointer.bin.set_child(this._boxWrapper);
          this._scroll.add_actor(this.box);
 
+         this._vectorBlocker = new VectorBoxBlocker();
+
          // Init the launcher and the floating state.
          this.actor = this._scroll;
          this.setFloatingState(floating == true);
@@ -1072,21 +1236,32 @@ ConfigurableMenu.prototype = {
             if (!open)
                menuItem.menu.close(false);
          });
+         menuItem._closeId = menuItem.connect('active-changed', Lang.bind(this, function(self, active) {
+             if(active)
+                this._activeSubMenuChild(self);
+         }));
          this.addChildMenu(menuItem.menu);
          this._setMenuInPosition(menuItem);
       } else {
          PopupMenu.PopupMenu.prototype.addMenuItem.call(this, menuItem, position);
+         if (menuItem instanceof ConfigurablePopupMenuSection) {
+            menuItem.setVectorBox(this._vectorBlocker);
+         }
       }
    },
 
-    addChildMenu: function(menu) {
-        if (this.isChildMenu(menu))
-            return;
+   _activeSubMenuChild: function(self) {
+      //this._vectorBlocker.executeInsideActor(self.actor, self.menu.actor);
+   },
 
-        this._childMenus.push(menu);
-        menu.connect('destroy', Lang.bind(this, this.removeChildMenu));
-        this.emit('child-menu-added', menu);
-    },
+   addChildMenu: function(menu) {
+      if(this.isChildMenu(menu))
+         return;
+
+      this._childMenus.push(menu);
+      menu.connect('destroy', Lang.bind(this, this.removeChildMenu));
+      this.emit('child-menu-added', menu);
+   },
 
    _isFloating: function(menu) {
       return ((menu.isInFloatingState) && (menu.isInFloatingState()));
@@ -1332,13 +1507,21 @@ ConfigurableMenu.prototype = {
          scapeKey = Clutter.KEY_Left;
       else if(this._arrowSide == St.Side.RIGHT)
          scapeKey = Clutter.KEY_Right;
-      else if(this._getFirstMenuItem(this) == this._activeMenuItem) {
+      else if(this._getBorderMenuItem(this) == this._activeMenuItem) {
          if(this._arrowSide == St.Side.TOP)
             scapeKey = Clutter.KEY_Up;
          else if(this._arrowSide == St.Side.BOTTOM)
             scapeKey = Clutter.KEY_Down;
       }
       return scapeKey;
+   },
+
+   _getBorderMenuItem: function(menu) {
+      if(this._arrowSide == St.Side.TOP)
+         return this._getFirstMenuItem(menu);
+      else if(this._arrowSide == St.Side.BOTTOM)
+         return this._getLastMenuItem(menu);
+      return true;
    },
 
    _getFirstMenuItem: function(menu) {
@@ -1355,6 +1538,22 @@ ConfigurableMenu.prototype = {
       }
       return null;
    },
+
+   _getLastMenuItem: function(menu) {
+      let items = menu._getAllMenuItems();
+      for(let pos = items.length - 1; pos > -1; pos--) {
+         if(items[pos]._getAllMenuItems) {
+            let result = this._getLastMenuItem(items[pos]);
+            if(result)
+               return result;
+         } else if((items[pos].actor.visible)&&(items[pos].sensitive)&&
+                   (!(items[pos] instanceof PopupMenu.PopupSeparatorMenuItem))) {
+            return items[pos];
+         }
+      }
+      return null;
+   },
+
 
    _getAllMenuItems: function() {
       return this.box.get_children().map(function (actor) {
@@ -2176,6 +2375,26 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
       }
    },
 
+   _onKeyPressEvent: function(actor, event) {
+      let [openKey, closeKey] = this._getClutterOrientation();
+      let symbol = event.get_key_symbol();
+      if (symbol == openKey) {
+         this.menu.open(true);
+         this.menu.actor.navigate_focus(null, Gtk.DirectionType.DOWN, false);
+         return true;
+      } else if (symbol == closeKey && this.menu.isOpen) {
+         this.menu.close();
+         return true;
+      }
+      return PopupBaseMenuItem.prototype._onKeyPressEvent.call(this, actor, event);
+   },
+
+   _getClutterOrientation: function() {
+       if(this._arrowSide == St.Side.RIGHT)
+           return [Clutter.KEY_Left, Clutter.KEY_Right];
+       return [Clutter.KEY_Right, Clutter.KEY_Left];
+   },
+
    _subMenuOpenStateChanged: function(menu, open) {
       if(open) {
          this.actor.add_style_pseudo_class('open');
@@ -2231,6 +2450,7 @@ ConfigurablePopupMenuSection.prototype = {
       this.actor._delegate = this;
       this._showItemIcon = true;
       this._desaturateItemIcon = false;
+      this._vectorBlocker = null;
    },
 
    addMenuItem: function(menuItem, position) {
@@ -2254,8 +2474,27 @@ ConfigurablePopupMenuSection.prototype = {
             if (!open)
                menuItem.menu.close(false);
          });
+         menuItem._closeId = menuItem.connect('active-changed', Lang.bind(this, function(self, active) {
+             if(active)
+                this._activeSubMenuChild(self);
+         }));
       } else {
          PopupMenu.PopupMenuSection.prototype.addMenuItem.call(this, menuItem, position);
+         if (menuItem instanceof ConfigurablePopupMenuSection) {
+            menuItem.setVectorBox(this._vectorBlocker);
+         }
+      }
+   },
+
+   setVectorBox: function(vectorBlocker) {
+      if(this._vectorBlocker != vectorBlocker) {
+         this._vectorBlocker = vectorBlocker;
+         let items = this._getAllMenuItems();
+         for(let pos in items) {
+            if(items[pos] instanceof ConfigurablePopupMenuSection) {
+               items[pos].setVectorBox(vectorBlocker);
+            }
+         }
       }
    },
 
@@ -2279,6 +2518,10 @@ ConfigurablePopupMenuSection.prototype = {
             this._setDesaturateItemIcon(menuItem);
          }
       }
+   },
+
+   _activeSubMenuChild: function(self) {
+      //this._vectorBlocker.executeInsideActor(self.actor, self.menu.actor);
    },
 
    _getAllMenuItems: function() {
