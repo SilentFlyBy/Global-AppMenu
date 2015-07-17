@@ -930,7 +930,8 @@ ConfigurableMenuManager.prototype = {
       if (eventType == Clutter.EventType.BUTTON_PRESS ||
           eventType == Clutter.EventType.BUTTON_RELEASE) {
          for(let i = this._menuStack.length; i > -1; i--) {
-            this._activeMenu.close(false);
+            if(this._activeMenu)
+               this._activeMenu.close(false);
          }
          return false;
       }
