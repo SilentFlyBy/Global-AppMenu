@@ -31,9 +31,10 @@ const Mainloop = imports.mainloop;
 const DND = imports.ui.dnd;
 
 const OrnamentType = PopupMenu.Ornament ? PopupMenu.Ornament : {
-   NONE: 0,
+   NONE:  0,
    CHECK: 1,
-   DOT: 2
+   DOT:   2,
+   ICON:  3
 };
 
 const FactoryClassTypes = {
@@ -1881,36 +1882,109 @@ ConfigurableMenu.prototype = {
 };
 
 /**
- * RadioButton
+ * CheckButton
+ *
+ * Just a class to show a Check button.
+ */
+
+function CheckButton() {
+    this._init.apply(this, arguments);
+}
+
+CheckButton.prototype = {
+    _init: function(state, params) {
+        this._params = { style_class: 'check-box',
+                         button_mask: St.ButtonMask.ONE,
+                         toggle_mode: true,
+                         can_focus: true,
+                         x_fill: true,
+                         y_fill: true,
+                         y_align: St.Align.MIDDLE };
+
+        if (params != undefined) {
+            this._params = Params.parse(params, this._params);
+        }
+
+        this.actor = new St.Button(this._params);
+        this.actor._delegate = this;
+        this.actor.checked = state;
+        // FIXME: The current size is big and the container only is useful,
+        // because the current theme. Can be fixed the theme also?
+        this._container = new St.Bin();
+        this.actor.add_style_class_name('popup-menu-icon'); 
+        this.actor.connect('notify::mapped', Lang.bind(this, this._onMapped));
+        this.actor.set_child(this._container);
+    },
+
+    _onTheme: function() {
+        this.actor.set_scale(1, 1);
+    },
+
+    _onMapped: function() {
+        let size = this.actor.get_theme_node().get_length('icon-size');
+        let scale = size/this.actor.width;
+        this.actor.set_scale(scale, scale);
+    },
+
+
+    setToggleState: function(state) {
+        this.actor.checked = state;
+    },
+
+    toggle: function() {
+        this.setToggleState(!this.actor.checked);
+    },
+
+    destroy: function() {
+        this.actor.destroy();
+    }
+};
+
+/**
+ * RadioBox
  *
  * Just a class to show a radio button.
  */
-function RadioButton() {
-   this._init.apply(this, arguments);
+function RadioBox(state) {
+    this._init(state);
 }
 
-RadioButton.prototype = {
-   _init: function(state) {
-      this.actor = new St.Button({ style_class: 'radiobutton',
-                                   button_mask: St.ButtonMask.ONE,
-                                   toggle_mode: true,
-                                   can_focus: true,
-                                   x_fill: true,
-                                   y_fill: true,
-                                   y_align: St.Align.MIDDLE });
-      this._container = new St.Bin();
-      this.actor.set_child(this._container);
-      this.actor._delegate = this;
-      this.actor.checked = state;
-   },
+RadioBox.prototype = {
+    _init: function(state) {
+        this.actor = new St.Button({ style_class: 'radiobutton',
+                                     button_mask: St.ButtonMask.ONE,
+                                     toggle_mode: true,
+                                     can_focus: true,
+                                     x_fill: true,
+                                     y_fill: true,
+                                     y_align: St.Align.MIDDLE });
 
-   setToggleState: function(state) {
-      this.actor.checked = state;
-   },
+        this.actor._delegate = this;
+        this.actor.checked = state;
+        this._container = new St.Bin();
+        this.actor.add_style_class_name('popup-menu-icon'); 
+        this.actor.connect('notify::mapped', Lang.bind(this, this._onMapped));
+        this.actor.set_child(this._container);
+    },
 
-   toggle: function() {
-      this.setToggleState(!this.actor.checked);
-   }
+    _onMapped: function() {
+        let size = this.actor.get_theme_node().get_length('icon-size');
+        //Main.notify("size>" + size +" width>"+ this.actor.width)
+        let scale = size/this.actor.width;
+        this.actor.set_scale(scale, scale);;
+    },
+
+    setToggleState: function(state) {
+        this.actor.checked = state;
+    },
+
+    toggle: function() {
+        this.setToggleState(!this.actor.checked);
+    },
+
+    destroy: function() {
+        this.actor.destroy();
+    }
 };
 
 /**
@@ -1978,10 +2052,16 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
          this._triangle.hide();
 
       this.actor.add(this._triangle, { x_align: St.Align.END, y_align: St.Align.MIDDLE, x_fill:false });
+      this._accel = "";
 
       this.menu = new ConfigurableMenu(this, 0.0, St.Side.LEFT, false);
       this.menu.connect('open-state-changed', Lang.bind(this, this._subMenuOpenStateChanged));
       this.actor.connect('notify::mapped', Lang.bind(this, this._onMapped));
+   },
+
+   setAccel: function(accel) {
+      //Main.notify("accel: " + accel);
+      this._accel = accel;
    },
 
    haveIcon: function() {
@@ -2311,24 +2391,24 @@ ConfigurableApplicationMenuItem.prototype = {
    setOrnament: function(ornamentType, state) {
       switch (ornamentType) {
       case OrnamentType.CHECK:
-         if((this._ornament.child)&&(!(this._ornament.child._delegate instanceof Switch))) {
+         if((this._ornament.child)&&(!(this._ornament.child._delegate instanceof CheckButton))) {
              this._ornament.child.destroy();
              this._ornament.child = null;
          }
          if(!this._ornament.child) {
-             let switchOrn = new Switch(state);
-             this._ornament.child = switchOrn.actor;
+             let checkOrn = new CheckButton(state);
+             this._ornament.child = checkOrn.actor;
          } else {
              this._ornament.child._delegate.setToggleState(state);
          }
          break;
       case OrnamentType.DOT:
-         if((this._ornament.child)&&(!(this._ornament.child._delegate instanceof RadioButton))) {
+         if((this._ornament.child)&&(!(this._ornament.child._delegate instanceof RadioBox))) {
              this._ornament.child.destroy();
              this._ornament.child = null;
          }
          if(!this._ornament.child) {
-             let radioOrn = new RadioButton(state);
+             let radioOrn = new RadioBox(state);
              this._ornament.child = radioOrn.actor;
          } else {
              this._ornament.child._delegate.setToggleState(state);
@@ -2368,7 +2448,7 @@ ConfigurableMenuApplet.prototype = {
       if(global.ui_scale)
          this.scale = global.ui_scale;
 
-      this._appletBox = new St.BoxLayout({ vertical: false });
+      this._appletBox = new St.BoxLayout({ vertical: false, reactive: true });
       this._appletBox._delegate = this;
       this.launcher.actor.add(this._appletBox);
       this.launcher.actor.set_track_hover(this._floating);
@@ -2382,6 +2462,20 @@ ConfigurableMenuApplet.prototype = {
          this.actor.hide();
       }
       this._menuManager.addMenu(this);
+
+      this.actor.connect('key-press-event', Lang.bind(this, this._onKeyPress));
+      if(this.launcher._applet_tooltip) {
+         this._appletBox.connect('enter-event', Lang.bind(this, this._onEnterEvent));
+         this._appletBox.connect('leave-event', Lang.bind(this, this._onLeaveEvent));
+      }
+   },
+
+   _onEnterEvent: function() {
+      this.launcher._applet_tooltip.preventShow = true;
+   },
+
+   _onLeaveEvent: function() {
+      this.launcher._applet_tooltip.preventShow = false;
    },
 
    open: function(animate) {
@@ -2482,9 +2576,63 @@ ConfigurableMenuApplet.prototype = {
          this._setDesaturateItemIcon(menuItem);
          this.addChildMenu(menuItem.menu);
          menuItem.actor.connect('button-press-event', Lang.bind(this, this._onButtonPressEvent));
+         this.setAccel(menuItem);
       } else {
          ConfigurableMenu.prototype.addMenuItem.call(this, menuItem, position);
       }
+   },
+
+   setAccel: function(menuItem) {
+      if(menuItem.setAccel) {
+         let accelkeys = this.getMainAccelkeys();
+         //Main.notify("es " + accelkeys)
+         let text = menuItem.label.get_text();
+         for (let pos in text) {
+            if(accelkeys.indexOf(text[pos]) != -1) {
+               menuItem.setAccel(text[pos]);
+               break;
+            }
+         }
+         if(menuItem._accel == "") {
+            menuItem.setAccel(text[0]);
+         }
+      }
+   },
+
+   hidLigth: function() {
+      let items = this._getMenuItems();
+      for(let pos in items) {
+         let menuItem = items[pos];
+         if (menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+            let text = menuItem.label.get_text();
+            let accel = menuItem._accel;
+            let posAccel = text.indexOf(accel);
+            text = text.substring(0, posAccel-1) + "<u>" + text[posAccel] + "</u>" + text.substring(posAccel+1, text.length);
+            menuItem.label.clutter_text.set_markup(text);
+         }
+      }
+   },
+
+   _onKeyPress: function() {
+      //const Keymap = imports.gi.Gdk.Keymap.get_default();
+      this.symbol = event.get_key_symbol();
+      //Main.notify("called")
+      /*if((Keymap.get_caps_lock_state())&&((event.get_state()) & (Clutter.ModifierType.CONTROL_MASK))) {
+         if((this.symbol == Clutter.KEY_c) || (this.symbol == Clutter.KEY_C)) {
+         }
+      }*/
+   },
+
+   getMainAccelkeys: function() {
+      let items = this._getMenuItems();
+      let accelkeys = [];
+      for(let pos in items) {
+         let menuItem = items[pos];
+         if (menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+            accelkeys.push(menuItem._accel);
+         }
+      }
+      return accelkeys;
    },
 
    _setChildsArrowSide: function() {
@@ -2796,10 +2944,10 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    _updateAccel: function() {
-      if ((this.shellItem)&&(this.shellItem._accel)) {
+      if ((this.shellItem)&&(this.shellItem.setAccel)) {
          let accel = this.getAccel();
          if(accel) {
-            this.shellItem._accel.set_text(accel);
+            this.shellItem.setAccel(accel);
          }
       }
    },

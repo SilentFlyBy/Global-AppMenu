@@ -51,6 +51,11 @@
     "separator-mainmenu-bottom" : {
         "type": "separator"
     },
+    "global-overlay-key" : {
+        "type" : "keybinding",
+        "description" : "Keyboard shortcut to open and close the menu",
+        "default" : "Alt_L"
+    },
     "display-in-panel" : {
         "type" : "checkbox",
         "default" : true,

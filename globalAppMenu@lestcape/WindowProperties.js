@@ -411,7 +411,7 @@ WindowProperties.prototype = {
     shouldAffect: function(win) {
         if (!win._maximusDecoratedOriginal) {
             return false;
-        } else (this.blacklist.length > 0) {
+        } else if (this.blacklist.length > 0) {
             this.LOG('blacklist = ' + this.blacklist);
             let app = this._tracker.get_window_app(win);
             let appid = (app ? app.get_id() : -1);
@@ -650,7 +650,7 @@ WindowProperties.prototype = {
                 Mainloop.idle_add(Lang.bind(this, function () { 
                     this._onWindowAdded(ws, win);
                     return false; 
-                });
+                }));
             });
         }
     },

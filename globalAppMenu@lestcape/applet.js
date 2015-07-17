@@ -20,6 +20,7 @@ const Clutter = imports.gi.Clutter;
 const Pango = imports.gi.Pango;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
+const Meta = imports.gi.Meta;
 const Cairo = imports.cairo;
 const Gettext = imports.gettext;
 
@@ -265,6 +266,17 @@ GradientLabel.prototype = {
    }
 };
 
+function CustomKeybindings() {
+   this._init.apply(this, arguments);
+}
+
+CustomKeybindings.prototype = {
+   _init: function(metadata) {
+     //this."org.cinnamon.desktop.keybindings";
+   },
+   
+};
+
 function MyApplet() {
    this._init.apply(this, arguments);
 }
@@ -301,6 +313,7 @@ MyApplet.prototype = {
          this.actor.add(this.actorIcon, { y_align: St.Align.MIDDLE, y_fill: false });
          this.actor.add(this.gradient.actor, { y_align: St.Align.MIDDLE, y_fill: false });
          this.actor.connect("enter-event", Lang.bind(this, this._updateMenu));
+         //global.stage.connect('captured-event', Lang.bind(this, this._stageEventHandler));
 
          this.menuFactory = new MyMenuFactory();
          this._createSettings();
@@ -321,6 +334,27 @@ MyApplet.prototype = {
       }
    },
 
+   _stageEventHandler: function(actor, event) {
+       if ((event.type() != Clutter.EventType.KEY_PRESS) && (event.type() != Clutter.EventType.KEY_RELEASE))
+          return false;
+       let symbol = event.get_key_symbol();
+       //let keyCode = event.get_key_code();
+       //let modifierState = Cinnamon.get_event_state(event);
+       if (symbol == Clutter.Alt_L) {
+          if(this._keyTimeOut > 0) {
+             this._keyTimeOut = 0;
+             Main.notify("release");
+          } else {
+             this._keyTimeOut = 1;
+             Main.notify("press");
+          }
+          return true;
+       } else {
+          Main.notify("hi");
+       }
+       return false;
+   },
+
    _createSettings: function() {
       this.settings = new Settings.AppletSettings(this, this.uuid, this.instance_id);
       this.settings.bindProperty(Settings.BindingDirection.IN, "show-app-icon", "showAppIcon", this._onShowAppIconChange, null);
@@ -332,6 +366,7 @@ MyApplet.prototype = {
       this.settings.bindProperty(Settings.BindingDirection.IN, "close-active-submenu", "closeActiveSubmenu", this._onCloseActiveSubmenuChange, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "show-boxpointer", "showBoxPointer", this._onShowBoxPointerChange, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "align-menu-launcher", "alignMenuLauncher", this._onAlignMenuLauncherChange, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "global-overlay-key", "overlayKey", this._updateKeybinding, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "display-in-panel", "displayInPanel", this._onDisplayInPanelChange, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "show-item-icon", "showItemIcon", this._onShowItemIconChange, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "desaturate-item-icon", "desaturateItemIcon", this._onDesaturateItemIconChange, null);
@@ -341,6 +376,7 @@ MyApplet.prototype = {
       this._onDesaturateAppIconChange();
       this._onShowAppNameChange();
       this._onMaxAppNameSizeChange();
+      this._updateKeybinding();
 
       this._onOpenActiveSubmenuChange();
       this._onCloseActiveSubmenuChange();
@@ -348,6 +384,21 @@ MyApplet.prototype = {
       this._onAlignMenuLauncherChange();
       this._onShowItemIconChange();
       this._onDesaturateItemIconChange();
+   },
+
+   _updateKeybinding: function() {
+      Main.keybindingManager.addHotKey("global-overlay-key", this.overlayKey, Lang.bind(this, function() {
+         if (this.menu && !Main.overview.visible && !Main.expo.visible) {
+            this.menu.hidLigth();
+         }
+      }));
+      //Meta.keybindings_set_custom_handler('show-global-menu', Lang.bind(this, function() {
+      //    Main.notify("Hola");
+      //}));
+      //let shema = new Gio.Settings({ schema: "org.cinnamon.desktop.keybindings" });
+      //global.display.add_keybinding('looking-glass-keybinding', "org.cinnamon.desktop.keybindings", Meta.KeyBindingFlags.NONE, Lang.bind(this, function() {
+      //   Main.notify("Hola");
+      //}));
    },
 
    _onDisplayInPanelChange: function() {

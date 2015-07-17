@@ -247,8 +247,11 @@ DbusMenuItem.prototype = {
             params.label = propStore.getString("label").replace(/_([^_])/, "$1");
         if("accel" in properties)
             params.accel = this._getAccel(propStore.getString("accel"));
-       if("shortcut" in properties)
+       if("shortcut" in properties) {
             params.accel = this._getShortcut(propStore.getVariant("shortcut"));
+            if (propStore.getString('children-display') == "submenu")
+               Main.notify("Holaaaaaaaaaaaaa " + params.accel);
+        }
         if("enabled" in properties)
             params.sensitive = propStore.getBool("enabled");
         if("visible" in properties)
@@ -732,7 +735,7 @@ DBusClientGtk.prototype = {
     },
 
     _createActionsIds: function() {
-        let theme = Gtk.IconTheme.get_default();
+        //let theme = Gtk.IconTheme.get_default();
         for(let id in this._items) {
             let actionId = this._items[id].getAction();
             if(actionId) {
