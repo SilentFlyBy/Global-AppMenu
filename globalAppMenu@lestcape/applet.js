@@ -65,7 +65,7 @@ MyMenuFactory.prototype = {
    setMainMenuArrowSide: function(arrowSide) {
       if(this._arrowSide != arrowSide) {
          this._arrowSide = arrowSide;
-         for (let pos in this._menuLikend) {
+         for(let pos in this._menuLikend) {
             let shellMenu = this._menuLikend[pos].getShellItem();
             if(shellMenu)
                shellMenu.setArrowSide(this._arrowSide);
@@ -76,7 +76,7 @@ MyMenuFactory.prototype = {
    setFloatingState: function(floating) {
       if(this._floatingMenu != floating) {
          this._floatingMenu = floating;
-         for (let pos in this._menuLikend) {
+         for(let pos in this._menuLikend) {
             let shellMenu = this._menuLikend[pos].getShellItem();
             if(shellMenu)
                shellMenu.setFloatingState(this._floatingMenu);
@@ -87,7 +87,7 @@ MyMenuFactory.prototype = {
    showBoxPointer: function(show) {
       if(this._showBoxPointer != show) {
          this._showBoxPointer = show;
-         for (let pos in this._menuManager) {
+         for(let pos in this._menuManager) {
             this._menuManager[pos].showBoxPointer(this._showBoxPointer);
          }
       }
@@ -96,7 +96,7 @@ MyMenuFactory.prototype = {
    setAlignSubMenu: function(align) {
       if(this._alignSubMenu != align) {
          this._alignSubMenu= align;
-         for (let pos in this._menuManager) {
+         for(let pos in this._menuManager) {
             this._menuManager[pos].setAlignSubMenu(this._alignSubMenu);
          }
       }
@@ -105,7 +105,7 @@ MyMenuFactory.prototype = {
    setOpenSubMenu: function(openSubMenu) {
       if(this._openSubMenu != openSubMenu) {
          this._openSubMenu = openSubMenu;
-         for (let pos in this._menuManager) {
+         for(let pos in this._menuManager) {
             this._menuManager[pos].setOpenSubMenu(this._openSubMenu);
          }
       }
@@ -114,7 +114,7 @@ MyMenuFactory.prototype = {
    setCloseSubMenu: function(closeSubMenu) {
       if(this._closeSubMenu != closeSubMenu) {
          this._closeSubMenu = closeSubMenu;
-         for (let pos in this._menuManager) {
+         for(let pos in this._menuManager) {
             this._menuManager[pos].setCloseSubMenu(this._closeSubMenu);
          }
       }
@@ -123,7 +123,7 @@ MyMenuFactory.prototype = {
    setFloatingSubMenu: function(floating) {
       if(this._floatingSubMenu != floating) {
          this._floatingSubMenu = floating;
-         for (let pos in this._menuManager) {
+         for(let pos in this._menuManager) {
             this._menuManager[pos].setFloatingSubMenu(this._floatingSubMenu);
          }
       }
@@ -132,7 +132,7 @@ MyMenuFactory.prototype = {
    setShowItemIcon: function(show) {
       if(this._showItemIcon != show) {
          this._showItemIcon = show;
-         for (let pos in this._menuManager) {
+         for(let pos in this._menuManager) {
             this._menuManager[pos].setShowItemIcon(this._showItemIcon);
          }
       }
@@ -141,7 +141,7 @@ MyMenuFactory.prototype = {
    desaturateItemIcon: function(desaturate) {
       if(this._desaturateItemIcon != desaturate) {
          this._desaturateItemIcon = desaturate;
-         for (let pos in this._menuManager) {
+         for(let pos in this._menuManager) {
             this._menuManager[pos].desaturateItemIcon(this._desaturateItemIcon);
          }
       }
@@ -160,19 +160,19 @@ MyMenuFactory.prototype = {
       }
       let shellItem = null;
       let itemType = factoryItem.getFactoryType();
-      if (itemType == ConfigurableMenus.FactoryClassTypes.RootMenuClass)
+      if(itemType == ConfigurableMenus.FactoryClassTypes.RootMenuClass)
          shellItem = new ConfigurableMenus.ConfigurableMenuApplet(launcher, orientation, menuManager);
-      if (itemType == ConfigurableMenus.FactoryClassTypes.SubMenuMenuItemClass)
+      if(itemType == ConfigurableMenus.FactoryClassTypes.SubMenuMenuItemClass)
          shellItem = new ConfigurableMenus.ConfigurablePopupSubMenuMenuItem("FIXME");
-      else if (itemType == ConfigurableMenus.FactoryClassTypes.MenuSectionMenuItemClass)
+      else if(itemType == ConfigurableMenus.FactoryClassTypes.MenuSectionMenuItemClass)
          shellItem = new ConfigurableMenus.ConfigurablePopupMenuSection();
-      else if (itemType == ConfigurableMenus.FactoryClassTypes.SeparatorMenuItemClass)
+      else if(itemType == ConfigurableMenus.FactoryClassTypes.SeparatorMenuItemClass)
          shellItem = new PopupMenu.PopupSeparatorMenuItem('');
       else if(itemType == ConfigurableMenus.FactoryClassTypes.MenuItemClass)
          shellItem = new ConfigurableMenus.ConfigurableApplicationMenuItem("FIXME");
       //else
       //    throw new TypeError('Trying to instantiate a shell item with an invalid factory type');
-      if (itemType == ConfigurableMenus.FactoryClassTypes.RootMenuClass)
+      if(itemType == ConfigurableMenus.FactoryClassTypes.RootMenuClass)
          shellItem.setFloatingState(this._floatingMenu);
       return shellItem;
    }
@@ -368,8 +368,8 @@ MyApplet.prototype = {
 
    _updateKeybinding: function() {
       Main.keybindingManager.addHotKey("global-overlay-key", this.overlayKey, Lang.bind(this, function() {
-         if (this.menu && !Main.overview.visible && !Main.expo.visible) {
-            this.menu.toogleSubmenu();
+         if(this.menu && !Main.overview.visible && !Main.expo.visible) {
+            this.menu.toogleSubmenu(true);
             //this._onAccel();
          }
       }));
@@ -473,7 +473,8 @@ MyApplet.prototype = {
       if(this._isNewMenu(newMenu)) {
          this._closeMenu();
          this.menu = newMenu;
-         if((this.menu)&&(!this.menu.isInFloatingState())&&(this.automaticActiveMainMenu))
+         if((this.menu)&&(!this.menu.isOpen)&&
+            (!this.menu.isInFloatingState())&&(this.automaticActiveMainMenu))
             this.menu.open();
       }
       if(this._isNewApp(newLabel, newIcon)) {
@@ -507,7 +508,7 @@ MyApplet.prototype = {
       let iconSize;
       let ui_scale = global.ui_scale;
       if(!ui_scale) ui_scale = 1;
-      if (this._scaleMode)
+      if(this._scaleMode)
          iconSize = this._panelHeight * Applet.COLOR_ICON_HEIGHT_FACTOR / ui_scale;
       else
          iconSize = Applet.FALLBACK_ICON_HEIGHT;
@@ -536,8 +537,9 @@ MyApplet.prototype = {
    on_applet_clicked: function(event) {
       if((this.menu) && (event.get_button() == 1)) {
          this.menu.forcedToggle();
+         return true;
       }
-      return false;       
+      return false;
    },
 
    execInstallLanguage: function() {
@@ -550,9 +552,9 @@ MyApplet.prototype = {
          let info, child, moFile, moLocale, moPath, src, dest, modified, destModified;
          while((info = children.next_file(null)) != null) {
             modified = info.get_modification_time().tv_sec;
-            if (info.get_file_type() == Gio.FileType.REGULAR) {
+            if(info.get_file_type() == Gio.FileType.REGULAR) {
                moFile = info.get_name();
-               if (moFile.substring(moFile.lastIndexOf(".")) == ".mo") {
+               if(moFile.substring(moFile.lastIndexOf(".")) == ".mo") {
                   moLocale = moFile.substring(0, moFile.lastIndexOf("."));
                   moPath = localeFolder.get_path() + "/" + moLocale + "/LC_MESSAGES/";
                   src = Gio.file_new_for_path(String(moFolder.get_path() + "/" + moFile));

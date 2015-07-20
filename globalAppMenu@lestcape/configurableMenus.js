@@ -67,44 +67,46 @@ ConfigurablePointer.prototype = {
    _init: function(arrowSide, binProperties) {
       BoxPointer.BoxPointer.prototype._init.call (this, arrowSide, binProperties);
       this.actor._delegate = this;
-      this.riseArrow = true;
-      this.fixCorner = false;
-      this.resizeSize = 0;
-      this.shiftX = 0;
-      this.shiftY = 0;
+      this._riseArrow = true;
+      this._fixCorner = false;
+      this._fixScreen = false;
+      this._resizeSize = 0;
+      this._shiftX = 0;
+      this._shiftY = 0;
+      this._screenActor = null;
       try {
          let [res, selectedColor] = Clutter.Color.from_string("#505050");
-         this.selectedColor = selectedColor;
+         this._selectedColor = selectedColor;
       } catch (e) {
          let selectedColor = new Clutter.Color();
          selectedColor.from_string("#505050");
-         this.selectedColor = selectedColor;
+         this._selectedColor = selectedColor;
       }
    },
 
    showArrow: function(show) {
-      this.riseArrow = show;
+      this._riseArrow = show;
       this._border.queue_repaint();
    },
 
    fixToScreen: function(actor, fixScreen) {
-      this.fixCorner = false;
-      this.fixScreen = fixScreen;
-      this.screenActor = actor;
+      this._fixCorner = false;
+      this._fixScreen = fixScreen;
+      this._screenActor = actor;
       this.trySetPosition(actor, this._arrowAlignment);
       this._border.queue_repaint();
    },
 
    fixToCorner: function(fixCorner) {
-      this.fixScreen = false;
-      this.fixCorner = fixCorner;
+      this._fixScreen = false;
+      this._fixCorner = fixCorner;
       if(this._sourceActor)
          this.trySetPosition(this._sourceActor, this._arrowAlignment);
       this._border.queue_repaint();
    },
 
    setResizeArea: function(resizeSize) {
-      this.resizeSize = resizeSize;
+      this._resizeSize = resizeSize;
       this._border.queue_repaint();
    },
 
@@ -115,11 +117,11 @@ ConfigurablePointer.prototype = {
    setResizeAreaColor: function(resizeColor) {
       try {
          let [res, selectedColor] = Clutter.Color.from_string(resizeColor);
-         this.selectedColor = selectedColor;
+         this._selectedColor = selectedColor;
       } catch (e) {
          let selectedColor = new Clutter.Color();
          selectedColor.from_string(resizeColor);
-         this.selectedColor = selectedColor;
+         this._selectedColor = selectedColor;
       }
       this._border.queue_repaint();
    },
@@ -139,8 +141,8 @@ ConfigurablePointer.prototype = {
       // We need to show it now to force an allocation,
       // so that we can query the correct size.
       //this.actor.show();
-      this.shiftX = x;
-      this.shiftY = y;
+      this._shiftX = x;
+      this._shiftY = y;
       if(this.actor.visible) {
          this._reposition(this._sourceActor, this._arrowAlignment);
       }
@@ -159,7 +161,7 @@ ConfigurablePointer.prototype = {
             let [x, y] = this._sourceActor.get_transformed_position();
             let i = 0;
             let monitor;
-            for (; i < global.screen.get_n_monitors(); i++) {
+            for(; i < global.screen.get_n_monitors(); i++) {
                monitor = global.screen.get_monitor_geometry(i);
                if(x >= monitor.x && x < monitor.x + monitor.width &&
                   x >= monitor.y && y < monitor.y + monitor.height) {
@@ -189,20 +191,20 @@ ConfigurablePointer.prototype = {
       return 0;
    },
 
-   _fixCorner: function(x, y, sourceActor, sourceAllocation, monitor, maxPHV, gap, borderWidth) {
+   _fixToCorner: function(x, y, sourceActor, sourceAllocation, monitor, maxPHV, gap, borderWidth) {
       let [ax, ay] = sourceActor.get_transformed_position();
-      if(((this.fixScreen)||(this.fixCorner))/*&&(ay + this.actor.height + gap  < monitor.y + monitor.height - maxPHV)*/) {
+      if(((this._fixScreen)||(this._fixCorner))/*&&(ay + this.actor.height + gap  < monitor.y + monitor.height - maxPHV)*/) {
          if((this._arrowSide == St.Side.TOP)||(this._arrowSide == St.Side.BOTTOM)) {
             if(sourceAllocation.x1 < monitor.x + monitor.width/2) {
-               if(this.fixScreen) {
+               if(this._fixScreen) {
                   this._xOffset = -x;
                } else {
                   this._xOffset = -x + ax;
                }
             } else {
-               if((this.fixScreen)||(Math.abs(monitor.x + monitor.width - sourceAllocation.x2) < 10)) {
+               if((this._fixScreen)||(Math.abs(monitor.x + monitor.width - sourceAllocation.x2) < 10)) {
                   this._xOffset = -x + monitor.x + monitor.width - this.actor.width;
-               } else if(this.fixCorner) {
+               } else if(this._fixCorner) {
                   this._xOffset = -x + ax - this.actor.width + sourceActor.width;
                }
                this.setArrowOrigin(this.actor.width - sourceActor.width/2);
@@ -213,16 +215,16 @@ ConfigurablePointer.prototype = {
             } else if(this._arrowSide == St.Side.BOTTOM) {
                let borderBottom = this.themeNode.get_length('border-bottom');
                this._yOffset = borderBottom + gap;
-               if(this.fixScreen)
+               if(this._fixScreen)
                   this._yOffset += 3;
             }
          } else {
-            if(this.fixScreen) {
-               let allocScreen = Cinnamon.util_get_transformed_allocation(this.screenActor);
-               this._xOffset = - x + allocScreen.x1 + this.screenActor.width;
+            if(this._fixScreen) {
+               let allocScreen = Cinnamon.util_get_transformed_allocation(this._screenActor);
+               this._xOffset = - x + allocScreen.x1 + this._screenActor.width;
                this._yOffset = - y + allocScreen.y1;
-            } else if(this.fixCorner) {
-               if (sourceAllocation.y2 < monitor.y + monitor.height)
+            } else if(this._fixCorner) {
+               if(sourceAllocation.y2 < monitor.y + monitor.height)
                    this._yOffset = - y + sourceAllocation.y1;
             }
          }
@@ -239,8 +241,8 @@ ConfigurablePointer.prototype = {
       // allocation loops and warnings. Instead we do the positioning via
       // the anchor point, which is independent of allocation, and leave
       // x == y == 0.
-      this.actor.set_anchor_point(-(Math.floor(this._xPosition + this.shiftX + this._xOffset)),
-                                  -(Math.floor(this._yPosition + this.shiftY + this._yOffset)));
+      this.actor.set_anchor_point(-(Math.floor(this._xPosition + this._shiftX + this._xOffset)),
+                                  -(Math.floor(this._yPosition + this._shiftY + this._yOffset)));
       this._border.queue_repaint();
    },
 
@@ -335,7 +337,7 @@ ConfigurablePointer.prototype = {
          [success, x, y] = parent.transform_stage_point(resX, resY);
          parent = parent.get_parent();
       }
-      this._fixCorner(x, y, sourceActor, sourceAllocation, monitor, maxPHV, gap, borderWidth);
+      this._fixToCorner(x, y, sourceActor, sourceAllocation, monitor, maxPHV, gap, borderWidth);
       this._xPosition = x;
       this._yPosition = y;
       this._shiftActor();
@@ -345,7 +347,7 @@ ConfigurablePointer.prototype = {
       let themeNode = this.actor.get_theme_node();
       let borderWidth = themeNode.get_length('-arrow-border-width');
       let rise = themeNode.get_length('-arrow-rise');
-      if(!this.riseArrow) rise = Math.round(rise/2);
+      if(!this._riseArrow) rise = Math.round(rise/2);
       let childBox = new Clutter.ActorBox();
       let availWidth = box.x2 - box.x1;
       let availHeight = box.y2 - box.y1;
@@ -386,7 +388,7 @@ ConfigurablePointer.prototype = {
       let borderWidth = this.themeNode.get_length('-arrow-border-width');
       let base = this.themeNode.get_length('-arrow-base');
       let rise = 0;
-      if(this.riseArrow)
+      if(this._riseArrow)
          rise = this.themeNode.get_length('-arrow-rise');
 
       let borderRadius = this.themeNode.get_length('-arrow-border-radius');
@@ -411,7 +413,7 @@ ConfigurablePointer.prototype = {
       // with the arrow poking out of that
       if(this._arrowSide == St.Side.TOP) {
          cr.translate(0, rise);
-      } else if (this._arrowSide == St.Side.LEFT) {
+      } else if(this._arrowSide == St.Side.LEFT) {
          cr.translate(rise, 0);
       }
 
@@ -505,8 +507,8 @@ ConfigurablePointer.prototype = {
       cr.setLineWidth(borderWidth);
       cr.stroke();
 
-      if(this.resizeSize > 0) {
-         let maxSpace = Math.max(this.resizeSize, borderRadius);
+      if(this._resizeSize > 0) {
+         let maxSpace = Math.max(this._resizeSize, borderRadius);
          let monitor = Main.layoutManager.findMonitorForActor(this._sourceActor);
          let sourceAllocation = Cinnamon.util_get_transformed_allocation(this._sourceActor);
          let actorAllocation = Cinnamon.util_get_transformed_allocation(this.actor);
@@ -570,7 +572,7 @@ ConfigurablePointer.prototype = {
          } else {
            Main.notify("otro" + this._arrowSide)
          }
-         Clutter.cairo_set_source_color(cr, this.selectedColor);
+         Clutter.cairo_set_source_color(cr, this._selectedColor);
          cr.fillPreserve();
          Clutter.cairo_set_source_color(cr, borderColor);
          cr.setLineWidth(1);
@@ -581,164 +583,153 @@ ConfigurablePointer.prototype = {
 
 // http://stackoverflow.com/questions/2049582/how-to-determine-a-point-in-a-triangle
 function VectorBoxBlocker() {
-    this._init.apply(this, arguments);
+   this._init.apply(this, arguments);
 }
 
 VectorBoxBlocker.prototype = {
-    _init: function(event_blocker, time_out) {
-        this.time_out = time_out;
-        this.event_blocker = event_blocker;
-        if(!this.event_blocker)
-            this.event_blocker = Clutter.EventType.ENTER;
-        if(!this.time_out)
-            this.time_out = 35;
-        this._p0 = { x:0, y:0 };
-        this._p1 = { x:0, y:0 };
-        this._p2 = { x:0, y:0 };
-        this._capture_event_id = 0;
-        this._update_loop_id = 0;
-    },
+   _init: function(event_blocker, time_out) {
+      this.time_out = time_out;
+      this.event_blocker = event_blocker;
+      if(!this.event_blocker)
+         this.event_blocker = Clutter.EventType.ENTER;
+      if(!this.time_out)
+         this.time_out = 60;
+      this._p0 = { x:0, y:0 };
+      this._p1 = { x:0, y:0 };
+      this._p2 = { x:0, y:0 };
+      this._update_loop_id = 0;
+      this._srcActor = null;
+      this._destActor = null;
+      this._captureEventId = global.stage.connect('captured-event', Lang.bind(this, this._eventFilter));
+   },
 
-    _updateVector: function() {
-        let [p0x, p0y, mask] = global.get_pointer();
-        let [bx, by] = this.box.get_transformed_position();
-        let [bw, bh] = this.box.get_transformed_size();
-        let p1x, p1y, p2x, p2y;
-        if (p0x > bx + bw) { //rigth
-            if (p0y > by + bh) { //bottom
-                p1x = bx; p1y = by + bh; p2x = bx + bw; p2y = by;
-            } else if (p0y < by) {//top
-                p2x = bx; p2y = by; p1x = bx + bw; p1y = by + bh;
-            } else if ((p0y > by)&&(p0y < by + bh)) {//center
-                p2x = bx + bw; p2y = by; p1x = bx + bw; p1y = by + bh;
-            } else {//inside
-                return false;//error
-            }
-        } else if (p0x < bx) {//left
-            if (p0y > by + bh) { //bottom
-                //Main.notify("enter3: " + p0y + " " + by + " " + bh)
-                p1x = bx; p1y = by; p2x = bx + bw; p2y = by + bh;
-            } else if (p0y < by) {//top
-                //Main.notify("enter2: " + p0y + " " + by + " " + bh)
-                p2x = bx; p2y = by + bh; p1x = bx + bw; p1y = by;
-            } else if ((p0y > by)&&(p0y < by + bh)) {//center
-                //Main.notify("enter1: " + p0y + " " + by + " " + bh)
-                p1x = bx; p1y = by; p2x = bx; p2y = by + bh;
-            } else {//inside
-                return false;//error
-            }
-        } else if ((p0x > bx)&&(p0x < bx + bw)) { //center
-            if (p0y > by + bh) { //bottom
-                p1x = bx; p1y = by + bh; p2x = bx + bw; p2y = by + bh;
-            } else if (p0y < by) {//top
-                p2x = bx; p2y = by; p1x = bx + bw; p1y = by;
-            } else {//inside
-                return false;//error
-            }
-        }
-        this._p0.x = p0x; this._p0.y = p0y;
-        this._p1.x = p1x; this._p1.y = p1y;
-        this._p2.x = p2x; this._p2.y = p2y;
-        return true;
-    },
+   _updateVector: function() {
+      if(!this._destActor) return false;
+      let [p0x, p0y, mask] = global.get_pointer();
+      let [bx, by] = this._destActor.get_transformed_position();
+      let [bw, bh] = this._destActor.get_transformed_size();
+      let p1x, p1y, p2x, p2y;
+      if(p0x > bx + bw) { //rigth
+         if(p0y > by + bh) { //bottom
+            p1x = bx; p1y = by + bh; p2x = bx + bw; p2y = by;
+         } else if(p0y < by) {//top
+            p2x = bx; p2y = by; p1x = bx + bw; p1y = by + bh;
+         } else if((p0y > by)&&(p0y < by + bh)) {//center
+            p2x = bx + bw; p2y = by; p1x = bx + bw; p1y = by + bh;
+         } else {//inside
+            return false;//error
+         }
+      } else if(p0x < bx) {//left
+         if(p0y > by + bh) { //bottom
+            //Main.notify("enter3: " + p0y + " " + by + " " + bh)
+            p1x = bx; p1y = by; p2x = bx + bw; p2y = by + bh;
+         } else if(p0y < by) {//top
+            //Main.notify("enter2: " + p0y + " " + by + " " + bh)
+            p2x = bx; p2y = by + bh; p1x = bx + bw; p1y = by;
+         } else if((p0y > by)&&(p0y < by + bh)) {//center
+            //Main.notify("enter1: " + p0y + " " + by + " " + bh)
+            p1x = bx; p1y = by; p2x = bx; p2y = by + bh;
+         } else {//inside
+            return false;//error
+         }
+      } else if((p0x > bx)&&(p0x < bx + bw)) { //center
+         if(p0y > by + bh) { //bottom
+            p1x = bx; p1y = by + bh; p2x = bx + bw; p2y = by + bh;
+         } else if(p0y < by) {//top
+            p2x = bx; p2y = by; p1x = bx + bw; p1y = by;
+         } else {//inside
+            return false;//error
+         }
+      }
+      this._p0.x = p0x; this._p0.y = p0y;
+      this._p1.x = p1x; this._p1.y = p1y;
+      this._p2.x = p2x; this._p2.y = p2y;
+      return true;
+   },
 
-    _disconnectLoop: function() {
-        if (this._update_loop_id > 0) {
-            log("remove: " + this._update_loop_id);
-            Mainloop.source_remove(this._update_loop_id);
-            log("end remove: " + this._update_loop_id);
-            this._update_loop_id = 0;
-        }
-    },
+   _disconnectLoop: function() {
+      if(this._update_loop_id > 0) {
+         Mainloop.source_remove(this._update_loop_id);
+         this._update_loop_id = 0;
+      }
+   },
 
-    release: function() {
-        log("dis2: " + this._update_loop_id);
-        this._disconnectLoop();
-        if (this._capture_event_id > 0) {
-            global.stage.disconnect(this._capture_event_id);
-            this._capture_event_id = 0;
-        }
-        if(this.src_actor) {
-            //this.src_actor.emit('leave-event');
-            //this.src_actor._delegate.emit('leave-event');
-            this.src_actor = null;
-        }
-        if(this.last_actor) {
-            //Main.notify("Release!!!");
-            this.last_actor.hide();
-            this.last_actor.show();
-            //this.last_actor.emit('enter-event', new Clutter.EnterEvent());
-            this.last_actor._delegate.emit('enter-event');
-            this.last_actor = null;
-        }
-    },
+   release: function() {
+      if(this._srcActor) {
+         if((this._srcActor._delegate)&&(this._srcActor._delegate.setActive)&&(this._last_actor))
+            this._srcActor._delegate.setActive(false);
+         this._srcActor = null;
+      }
+      if(this._last_actor) {
+         if((this._last_actor._delegate)&&(this._last_actor._delegate.setActive))
+            this._last_actor._delegate.setActive(true);
+         this._last_actor = null;
+      }
+      this._disconnectLoop();
+      //Main.notify("Release1");
+   },
 
-    executeInsideActor: function(src_actor, box) {
-        this.box = box;
-        this.last_actor = null;
-        this.src_actor = null;
-        this.release();
-        if(this._updateVector() && !this._isMouseInside()) {
-            this.src_actor = src_actor;
-            this._capture_event_id = global.stage.connect('captured-event', Lang.bind(this, this._eventFilter, src_actor));
-            //this._update_loop_id = Mainloop.timeout_add(this.time_out, Lang.bind(this, this._tryToRelease));
-        }
-    },
+   executeInActors: function(srcActor, destActor) {
+      if((this._srcActor != srcActor)&&(this._destActor != destActor)) {
+      this.release();
+      this._destActor = destActor;
+      this._srcActor = srcActor;
+      this._last_actor = null;
+      //Main.notify("add");
+      }
+   },
 
-    _eventFilter: function(actor, event, src_actor) {
-        let inside = false;
-        let source = event.get_source();
-        if (event.type() == Clutter.EventType.ENTER) {
-            inside = /*this._updateVector() &&*/ this._isMouseInside();
-            if(!inside) {
-                //Main.notify("Release2");
-                this.release();
-            } else if(!source.contains(src_actor) && !src_actor.contains(source)) {
-                this.last_actor = source;
+   _eventFilter: function(global, event) {
+      let source = event.get_source();
+      if(event.type() == this.event_blocker) {
+         if(!this._srcActor)
+            return false;
+         if(this._isMouseInside()) {
+            if(!source.contains(this._srcActor) && !this._srcActor.contains(source)) {
+               this._last_actor = source;
             } else {
-                this.last_actor = null;
+               this._last_actor = null;
             }
-        } else if (event.type() == Clutter.EventType.MOTION) {
-            if (src_actor == source) {
-                log("dis: " + this._update_loop_id);
-                this._disconnectLoop();
-                if(this._update_loop_id == 0)
-                    this._update_loop_id = Mainloop.timeout_add(500, Lang.bind(this, this._tryToRelease));
-                log("add: " + this._update_loop_id);
-            }
-        }
-        return inside;
-    },
+            //Main.notify("inside")
+            return true;
+         }
+      } else if(event.type() == Clutter.EventType.MOTION) {
+         if(this._srcActor == source) {
+            this._updateVector();
+            this._disconnectLoop();
+            if(this._update_loop_id == 0)
+               this._update_loop_id = Mainloop.timeout_add(this.time_out, Lang.bind(this, this._tryToRelease));
+         }
+      }
+      return false;
+   },
 
-    _tryToRelease: function() {
-        if(this.last_actor && this.last_actor._delegate) {
-            //Main.notify("Release1");
-            this.release();
-            //this.last_actor.emit('enter-event', global.get_current_time());
-            //this.last_actor._delegate.emit('enter-event');
-        } else if(!this._updateVector() || !this._isMouseInside()) {
-            //Main.notify("Release1" + this._updateVector() + " " + this._isMouseInside());
-            this.release();
-        }
-        this.vector_update_loop = 0;
-    },
+   _tryToRelease: function() {
+      //if(!this._updateVector() || !this._isMouseInside())
+         this.release();
+   },
 
-    _isMouseInside: function() {
-        let [px, py, mask] = global.get_pointer();
-        let s = this._p0.y*this._p2.x - this._p0.x*this._p2.y + (this._p2.y - this._p0.y)*px +
-                (this._p0.x - this._p2.x)*py;
-        let t = this._p0.x*this._p1.y - this._p0.y*this._p1.x + (this._p0.y - this._p1.y)*px +
-                (this._p1.x - this._p0.x)*py;
-        if ((s >= 0) && (t >= 0)) {
-            let area = -this._p1.y*this._p2.x + this._p0.y*(-this._p1.x + this._p2.x) + 
-                        this._p0.x*(this._p1.y - this._p2.y) + this._p1.x*this._p2.y;
-            //if(((s + t) > area))
-            //    Main.notify("Fail2 " + (s + t) + " area " + area);
-            return ((s + t) <= area);
-        }
-        //Main.notify("Fail1" + s + " " + t);
-        return false;
-    }
+   _isMouseInside: function() {
+      let [px, py, mask] = global.get_pointer();
+      let s = this._p0.y*this._p2.x - this._p0.x*this._p2.y + (this._p2.y - this._p0.y)*px +
+              (this._p0.x - this._p2.x)*py;
+      let t = this._p0.x*this._p1.y - this._p0.y*this._p1.x + (this._p0.y - this._p1.y)*px +
+              (this._p1.x - this._p0.x)*py;
+      if((s >= 0) && (t >= 0)) {
+         let area = -this._p1.y*this._p2.x + this._p0.y*(-this._p1.x + this._p2.x) + 
+                     this._p0.x*(this._p1.y - this._p2.y) + this._p1.x*this._p2.y;
+         return ((s + t) <= area);
+      }
+      return false;
+   },
+
+   destroy: function() {
+      this.release();
+      if(this._captureEventId > 0) {
+         global.stage.disconnect(this._captureEventId);
+         this._captureEventId = 0;
+      }
+   }
 };
 
 /**
@@ -766,7 +757,7 @@ ConfigurableMenuManager.prototype = {
    },
 
    addMenu: function(menu, position) {
-      if (this._findMenu(menu) == -1) {
+      if(this._findMenu(menu) == -1) {
          let menudata = {
             menu:               menu,
             openStateChangeId:  menu.connect('open-state-changed', Lang.bind(this, this._onMenuOpenState)),
@@ -791,7 +782,7 @@ ConfigurableMenuManager.prototype = {
             menu.desaturateItemIcon(this._desaturateItemIcon);
 
          let source = menu.sourceActor;
-         if (source) {
+         if(source) {
             if(this._openSubMenu) {
                menudata.enterId = source.connect('enter-event', Lang.bind(this, function() { this._onMenuSourceEnter(menu); }));
                menudata.focusInId = source.connect('key-focus-in', Lang.bind(this, function() { this._onMenuSourceEnter(menu); }));
@@ -802,7 +793,7 @@ ConfigurableMenuManager.prototype = {
             }
          }
 
-         if (position == undefined)
+         if(position == undefined)
             this._menus.push(menudata);
          else
             this._menus.splice(position, 0, menudata);
@@ -821,15 +812,15 @@ ConfigurableMenuManager.prototype = {
          for(let pos in this._menus) {
             let menudata = this._menus[pos];
             let source = menudata.menu.sourceActor;
-            if (menudata.enterId > 0) {
+            if(menudata.enterId > 0) {
                source.disconnect(menudata.enterId);
                menudata.enterId = 0;
             }
-            if (menudata.focusInId > 0) {
+            if(menudata.focusInId > 0) {
                source.disconnect(menudata.focusInId);
                menudata.focusInId = 0;
             }
-            if (this._openSubMenu) {
+            if(this._openSubMenu) {
                menudata.enterId = source.connect('enter-event', Lang.bind(this, function() { this._onMenuSourceEnter(menudata.menu); }));
                menudata.focusInId = source.connect('key-focus-in', Lang.bind(this, function() { this._onMenuSourceEnter(menudata.menu); }));
             }
@@ -844,15 +835,15 @@ ConfigurableMenuManager.prototype = {
          for(let pos in this._menus) {
             let menudata = this._menus[pos];
             let source = menudata.menu.sourceActor;
-            if (menudata.leaveId > 0) {
+            if(menudata.leaveId > 0) {
                source.disconnect(menudata.leaveId);
                menudata.leaveId = 0;
             }
-            if (menudata.focusOutId > 0) {
+            if(menudata.focusOutId > 0) {
                source.disconnect(menudata.focusOutId);
                menudata.focusOutId = 0;
             }
-            if (this._closeSubMenu) {
+            if(this._closeSubMenu) {
                menudata.leaveId = source.connect('leave-event', Lang.bind(this, function() { this._onMenuSourceLeave(menudata.menu); }));
                menudata.focusOutId = source.connect('key-focus-out', Lang.bind(this, function() { this._onMenuSourceLeave(menudata.menu); }));
             }       
@@ -911,12 +902,12 @@ ConfigurableMenuManager.prototype = {
    },
 
    removeMenu: function(menu) {
-      if (menu == this._activeMenu)
+      if(menu == this._activeMenu)
          this._closeMenu();
 
       let position = this._findMenu(menu);
       // Not a menu we manage
-      if (position == -1) 
+      if(position == -1) 
          return;
 
       let menudata = this._menus[position];
@@ -925,28 +916,28 @@ ConfigurableMenuManager.prototype = {
       menu.disconnect(menudata.childMenuRemovedId);
       menu.disconnect(menudata.destroyId);
 
-      if (menudata.enterId)
+      if(menudata.enterId)
          menu.sourceActor.disconnect(menudata.enterId);
-      if (menudata.focusInId)
+      if(menudata.focusInId)
          menu.sourceActor.disconnect(menudata.focusInId);
-      if (menudata.leaveId)
+      if(menudata.leaveId)
          menu.sourceActor.disconnect(menudata.leaveId);
-      if (menudata.focusOutId)
+      if(menudata.focusOutId)
          menu.sourceActor.disconnect(menudata.focusOutId);
 
       this._menus.splice(position, 1);
    },
 
    _onMenuOpenState: function(menu, open) {
-      if (!this._isFloating(menu))
+      if(!this._isFloating(menu))
          return;
-      if (open) {
-         if (this._activeMenu && this._activeMenu.isChildMenu(menu)) {
+      if(open) {
+         if(this._activeMenu && this._activeMenu.isChildMenu(menu)) {
             this._menuStack.push(this._activeMenu);
             menu.actor.grab_key_focus();
          }
          this._activeMenu = menu;
-      } else if (this._menuStack.length > 0) {
+      } else if(this._menuStack.length > 0) {
          this._activeMenu = this._menuStack.pop();
          this._activeMenu.actor.grab_key_focus();
       }
@@ -954,45 +945,46 @@ ConfigurableMenuManager.prototype = {
       let focus = global.stage.key_focus;
       let hadFocus = focus && this._activeMenuContains(focus);
 
-      if (open) {
-         if (!this.grabbed) {
+      if(open) {
+         if(!this.grabbed) {
             this._preGrabInputMode = global.stage_input_mode;
             this._grabbedFromKeynav = hadFocus;
             this._grab();
          }
-         if (hadFocus)
+         // FIXME: this is buggy and open the menu and closed it several times.
+         /*if(hadFocus)
             focus.grab_key_focus();
          else
-            menu.actor.grab_key_focus();
-      } else if (menu == this._activeMenu) {
-         if (this.grabbed)
+            menu.actor.grab_key_focus();*/
+      } else if(menu == this._activeMenu) {
+         if(this.grabbed)
             this._ungrab();
          this._activeMenu = null;
 
-         if (this._grabbedFromKeynav) {
-            if (this._preGrabInputMode == Cinnamon.StageInputMode.FOCUSED)
+         if(this._grabbedFromKeynav) {
+            if(this._preGrabInputMode == Cinnamon.StageInputMode.FOCUSED)
                global.stage_input_mode = Cinnamon.StageInputMode.FOCUSED;
-            if (hadFocus && menu.sourceActor)
+            if(hadFocus && menu.sourceActor)
                menu.sourceActor.grab_key_focus();
-            else if (focus)
+            else if(focus)
                focus.grab_key_focus();
          }
       }
    },
 
    _shouldMadeSourceAction: function(menu) {
-      if (!this.grabbed)
+      if(!this.grabbed)
          return false;
-      if (this._activeMenu && this._activeMenu.isChildMenu(menu))
+      if(this._activeMenu && this._activeMenu.isChildMenu(menu))
          return false;
-      if (this._menuStack.indexOf(menu) != -1)
+      if(this._menuStack.indexOf(menu) != -1)
          return false;
       return true;
    },
 
    // Change the currently-open menu without dropping grab
    _changeMenu: function(newMenu) {
-      if (this._activeMenu) {
+      if(this._activeMenu) {
          // _onOpenMenuState will drop the grab if it sees
          // this._activeMenu being closed; so clear _activeMenu
          // before closing it to keep that from happening.
@@ -1003,7 +995,7 @@ ConfigurableMenuManager.prototype = {
             this._activeMenu = null;
             oldMenu.close(false);
          }
-         newMenu.open(false);
+         newMenu.open(true);
       } else
          newMenu.open(true);
    },
@@ -1023,13 +1015,13 @@ ConfigurableMenuManager.prototype = {
 
    _onMenuSourceLeave: function(menu) {
       let topMenu = menu.getTopMenu();
-      if ((this._isFloating(menu)) && (this.grabbed) && (topMenu) && (topMenu.actor.get_parent() == Main.uiGroup)) {
+      if((this._isFloating(menu)) && (this.grabbed) && (topMenu) && (topMenu.actor.get_parent() == Main.uiGroup)) {
          this._disconnectTimeOut();
          //this._lastMenuTimeOut = Mainloop.timeout_add(500, Lang.bind(this, function() {
          this._lastMenuTimeOut = Mainloop.idle_add(Lang.bind(this, function() {
             this._disconnectTimeOut();
             let focus = global.stage.key_focus;
-            if ((focus) && (topMenu.actor.contains(focus)))
+            if((focus) && (topMenu.actor.contains(focus)))
                this._onMenuSourceCompleteLeave(menu);
          }));
       }
@@ -1046,7 +1038,7 @@ ConfigurableMenuManager.prototype = {
       if(!this._shouldMadeSourceAction(menu) || menu != this._activeMenu)
          return false;
 
-      if (this._activeMenu) {
+      if(this._activeMenu) {
          let oldMenu = this._activeMenu;
          this._activeMenu = null;
          oldMenu.close(false);
@@ -1055,16 +1047,16 @@ ConfigurableMenuManager.prototype = {
    },
 
    _onKeyFocusChanged: function() {
-      if (!this.grabbed || !this._activeMenu || DND.isDragging())
+      if(!this.grabbed || !this._activeMenu || DND.isDragging())
          return;
 
       let focus = global.stage.key_focus;
-      if (focus) {
-         if (this._activeMenuContains(focus))
+      if(focus) {
+         if(this._activeMenuContains(focus))
             return;
-         if (this._menuStack.length > 0)
+         if(this._menuStack.length > 0)
             return;
-         if (focus._delegate && focus._delegate.menu &&
+         if(focus._delegate && focus._delegate.menu &&
             this._findMenu(focus._delegate.menu) != -1)
             return;
          if(focus._delegate && this._findMenu(focus._delegate) != -1)
@@ -1075,21 +1067,21 @@ ConfigurableMenuManager.prototype = {
 
    // Override allow return false to active the parent menu actions.
    _onEventCapture: function(actor, event) {
-      if (!this.grabbed)
+      if(!this.grabbed)
          return false;
 
-      if (this._owner.menuEventFilter &&
+      if(this._owner.menuEventFilter &&
          this._owner.menuEventFilter(event))
          return true;
 
-      if (this._activeMenu != null && this._activeMenu.passEvents)
+      if(this._activeMenu != null && this._activeMenu.passEvents)
          return false;
 
-      if (!this._shouldBlockEvent(event))
+      if(!this._shouldBlockEvent(event))
          return false;
 
       let eventType = event.type();
-      if (eventType == Clutter.EventType.BUTTON_PRESS ||
+      if(eventType == Clutter.EventType.BUTTON_PRESS ||
           eventType == Clutter.EventType.BUTTON_RELEASE) {
          for(let i = this._menuStack.length; i > -1; i--) {
             if(this._activeMenu)
@@ -1103,13 +1095,13 @@ ConfigurableMenuManager.prototype = {
    _shouldBlockEvent: function(event) {
       let src = event.get_source();
 
-      if (this._activeMenu != null && this._activeMenu.actor.contains(src))
+      if(this._activeMenu != null && this._activeMenu.actor.contains(src))
          return false;
 
       // Override menu.actor.contains(src)
-      for (let i = 0; i < this._menus.length; i++) {
+      for(let i = 0; i < this._menus.length; i++) {
          let menu = this._menus[i].menu;
-         if ((menu.sourceActor && !menu.blockSourceEvents && menu.sourceActor.contains(src)) ||
+         if((menu.sourceActor && !menu.blockSourceEvents && menu.sourceActor.contains(src)) ||
              (menu.actor && menu.actor.contains(src))) {
             return false;
          }
@@ -1139,8 +1131,8 @@ ConfigurableMenu.prototype = {
       try {
          this._arrowAlignment = arrowAlignment;
          this._arrowSide = orientation;
-         this.effectType = "none";
-         this.effectTime = 0.4;
+         this._effectType = "none";
+         this._effectTime = BoxPointer.POPUP_ANIMATION_TIME;
          this._automaticOpenControl = true;
          this._paintId = 0;
          this._paintCount = 0;
@@ -1173,13 +1165,13 @@ ConfigurableMenu.prototype = {
          vscroll.connect('scroll-start',
                         Lang.bind(this, function() {
                                       let topMenu = this._topMenu;
-                                      if (topMenu)
+                                      if(topMenu)
                                           topMenu.passEvents = true;
                                   }));
          vscroll.connect('scroll-stop',
                         Lang.bind(this, function() {
                                       let topMenu = this._topMenu;
-                                      if (topMenu)
+                                      if(topMenu)
                                           topMenu.passEvents = false;
                                   }));
 
@@ -1218,13 +1210,14 @@ ConfigurableMenu.prototype = {
    addMenuItem: function(menuItem, position) {
       this._setShowItemIcon(menuItem);
       this._setDesaturateItemIcon(menuItem);
-      if (menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+      this._setVectorBox(menuItem);
+      if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
          let beforeItem = null;
-         if (position == undefined) {
+         if(position == undefined) {
             this.box.add(menuItem.actor);
          } else {
             let items = this._getMenuItems();
-            if (position < items.length) {
+            if(position < items.length) {
                beforeItem = items[position].actor;
                this.box.insert_before(menuItem.actor, beforeItem);
             } else
@@ -1233,25 +1226,14 @@ ConfigurableMenu.prototype = {
          this._connectSubMenuSignals(menuItem, menuItem.menu);
          this._connectItemSignals(menuItem);
          menuItem._closingId = this.connect('open-state-changed', function(self, open) {
-            if (!open)
+            if(!open)
                menuItem.menu.close(false);
          });
-         menuItem._closeId = menuItem.connect('active-changed', Lang.bind(this, function(self, active) {
-             if(active)
-                this._activeSubMenuChild(self);
-         }));
          this.addChildMenu(menuItem.menu);
          this._setMenuInPosition(menuItem);
       } else {
          PopupMenu.PopupMenu.prototype.addMenuItem.call(this, menuItem, position);
-         if (menuItem instanceof ConfigurablePopupMenuSection) {
-            menuItem.setVectorBox(this._vectorBlocker);
-         }
       }
-   },
-
-   _activeSubMenuChild: function(self) {
-      //this._vectorBlocker.executeInsideActor(self.actor, self.menu.actor);
    },
 
    addChildMenu: function(menu) {
@@ -1261,6 +1243,17 @@ ConfigurableMenu.prototype = {
       this._childMenus.push(menu);
       menu.connect('destroy', Lang.bind(this, this.removeChildMenu));
       this.emit('child-menu-added', menu);
+   },
+
+   getScale: function(menu) {
+      if(global.ui_scale)
+         return global.ui_scale;
+      return 1;
+   },
+
+   _setVectorBox: function(menuItem) {
+      if(menuItem.setVectorBox)
+         menuItem.setVectorBox(this._vectorBlocker);
    },
 
    _isFloating: function(menu) {
@@ -1318,7 +1311,7 @@ ConfigurableMenu.prototype = {
    },
 
    setFloatingState: function(floating) {
-      this.closeClean();
+      this.close();
       if(this._floating != floating) {
          this._floating = floating;
          this._boxPointer.actor.hide();
@@ -1343,7 +1336,7 @@ ConfigurableMenu.prototype = {
    },
 
    setLauncher: function(launcher) {
-      this.closeClean();      
+      this.close();      
       this.launcher = launcher;
       if(this.launcher) {
          this.sourceActor = this.launcher.actor;
@@ -1366,14 +1359,14 @@ ConfigurableMenu.prototype = {
             if((box._delegate)&&(box._delegate instanceof PopupMenu.PopupMenuBase)) {
                 let items = box._delegate._getMenuItems();
                 let position = items.indexOf(this.launcher) + 1;
-                if ((position != 0) && (position < items.length)) {
+                if((position != 0) && (position < items.length)) {
                     let beforeItem = items[position].actor;
                     box.insert_before(this.actor, beforeItem);
                 } else {
                     box.add(this.actor);
                 }
             } else {
-                if (box.add) {
+                if(box.add) {
                    box.add(this.actor);
                 } else if(box.addActor) {
                    box.addActor(this.actor);
@@ -1401,12 +1394,12 @@ ConfigurableMenu.prototype = {
    },
 
    _on_paint: function(actor) {
-      if (this._paintCount < 2 || this.animating) {
+      if(this._paintCount < 2 || this.animating) {
          this._paintCount++;
          return;
       }
 
-      if (this._paintId > 0) {
+      if(this._paintId > 0) {
          this.actor.disconnect(this._paintId);
          this._paintId = 0;
       }
@@ -1416,11 +1409,11 @@ ConfigurableMenu.prototype = {
    },
 
    setEffect: function(effect) {
-      this.effectType = effect;
+      this._effectType = effect;
    },
 
    setEffectTime: function(effectTime) {
-      this.effectTime = effectTime;
+      this._effectTime = effectTime;
    },
 
    setArrowSide: function(side) {
@@ -1451,7 +1444,7 @@ ConfigurableMenu.prototype = {
          for(let pos in this._childMenus) {
             let menu = this._childMenus[pos];
             if(menu.actor) {
-               if ((childArrowSide == St.Side.LEFT) && (rightMenu + menu.actor.width  > rightEdge)) {
+               if((childArrowSide == St.Side.LEFT) && (rightMenu + menu.actor.width  > rightEdge)) {
                   childArrowSide = St.Side.RIGHT;
                } else if((childArrowSide == St.Side.RIGHT) && (leftMenu - menu.actor.width < leftEdge)) {
                   childArrowSide = St.Side.LEFT;
@@ -1573,12 +1566,13 @@ ConfigurableMenu.prototype = {
    // menu is higher then the screen; it's useful if part of the menu is
    // scrollable so the minimum height is smaller than the natural height
    setMaxHeight: function() {
+      let scale = this.getScale();
       if(Main.panelManager) {
          let [x, y] = this.launcher.actor.get_transformed_position();
 
          let i = 0;
          let monitor;
-         for (; i < global.screen.get_n_monitors(); i++) {
+         for(; i < global.screen.get_n_monitors(); i++) {
             monitor = global.screen.get_monitor_geometry(i);
             if(x >= monitor.x && x < monitor.x + monitor.width &&
                x >= monitor.y && y < monitor.y + monitor.height) {
@@ -1592,15 +1586,12 @@ ConfigurableMenu.prototype = {
          for(let j in panels) {
             maxHeight -= panels[j].actor.height;
          }
-         let scale = 1;
-         if(global.ui_scale)
-            scale = global.ui_scale;
          this.actor.style = ('max-height: ' + maxHeight / scale + 'px;');
       } else {
          let monitor = Main.layoutManager.primaryMonitor;
          let maxHeight = Math.round(monitor.height - Main.panel.actor.height - this.actor.get_theme_node().get_length('-boxpointer-gap'));
-         if (Main.panel2!=null) maxHeight -= Main.panel2.actor.height;
-            this.actor.style = ('max-height: ' + maxHeight + 'px;');
+         if(Main.panel2!=null) maxHeight -= Main.panel2.actor.height;
+            this.actor.style = ('max-height: ' + maxHeight / scale + 'px;');
       }
    },
 
@@ -1638,7 +1629,7 @@ ConfigurableMenu.prototype = {
       this._boxPointer.shiftPosition(x, y);
    },
 
-   openClean: function(animate) {
+   _openClean: function(animate) {
       if((this.isOpen)||(!this._reactive))
          return;
 
@@ -1685,7 +1676,7 @@ ConfigurableMenu.prototype = {
       this.emit('open-state-changed', true);
    },
 
-   closeClean: function(animate) {
+   _closeClean: function(animate) {
       if((!this.isOpen)||(!this._reactive))
          return;
 
@@ -1697,8 +1688,8 @@ ConfigurableMenu.prototype = {
       if(this._floating) {
          this._boxPointer.hide(animate);
          if(Main.panelManager) {
-            for (let i in Main.panelManager.panels) {
-               if (Main.panelManager.panels[i])
+            for(let i in Main.panelManager.panels) {
+               if(Main.panelManager.panels[i])
                   Main.panelManager.panels[i]._hidePanel();
             }
          }
@@ -1715,21 +1706,39 @@ ConfigurableMenu.prototype = {
       this.emit('open-state-changed', false);
    },
 
+   toggle: function(animate) {
+      if(this.isOpen)
+         this.close(animate);
+      else
+         this.open(animate);
+   },
+
    open: function(animate) {
       if(!this.isOpen) {
-         this.openClean();
-         this._applyEffectOnOpen();
+         this._openClean();
+         this.repositionActor(this.sourceActor);
+         if(animate) {
+            this._applyEffectOnOpen();
+         }
       }
    },
 
    close: function(animate) {
       if(this.isOpen) {
-         this._applyEffectOnClose();
+         if(this._openedSubMenu) {
+            this._openedSubMenu.close(animate);
+            this._openedSubMenu = null;
+         }
+         if(animate) {
+            this._applyEffectOnClose();
+         } else {
+            this._closeClean();
+         }
       }
    },
 
-   _applyEffectOnOpen: function(animate) {
-      switch(this.effectType) {
+   _applyEffectOnOpen: function() {
+      switch(this._effectType) {
          case "none"  :
             this._effectNoneOpen();
             break;
@@ -1751,10 +1760,10 @@ ConfigurableMenu.prototype = {
       }
    },
 
-   _applyEffectOnClose: function(animate) {
-      switch(this.effectType) {
+   _applyEffectOnClose: function() {
+      switch(this._effectType) {
          case "none"  :
-            this._effectNoneClose(animate);
+            this._effectNoneClose();
             break;
          case "dispel":
             this._effectDispelClose();
@@ -1777,305 +1786,174 @@ ConfigurableMenu.prototype = {
    _effectNoneOpen: function() {
    },
 
-   _effectNoneClose: function(animate) {
-      this.closeClean(animate);
+   _effectNoneClose: function() {
+      this._closeClean();
    },
 
    _effectDispelOpen: function() {
-      Tweener.addTween(this.actor,
-      {  opacity: 0,
-         time: 0,
-         transition: 'easeInSine',
-         onComplete: Lang.bind(this, function() {
-            Tweener.addTween(this.actor,
-            {  opacity: 255,
-               time: this.effectTime,
-               transition: 'easeInSine'
-            })
-         })
+      this.actor.opacity = 0;
+      Tweener.addTween(this.actor, {
+         opacity: 255,
+         time: this._effectTime,
+         transition: 'easeInSine'
       });
    },
 
    _effectDispelClose: function() {
-      Tweener.addTween(this.actor,
-      {  opacity: 0,
-         time: this.effectTime,
+      Tweener.addTween(this.actor, {
+         opacity: 0,
+         time: this._effectTime,
          transition: 'easeInSine',
          onComplete: Lang.bind(this, function() {
-            this.closeClean(false);
+            this._closeClean();
          })
       });
    },
-/*
-   _effectGetOutOpen: function() {
-      let [startX, ay] = this.launcher.actor.get_transformed_position();
-      let monitor = Main.layoutManager.primaryMonitor;
-      if(startX > monitor.x + monitor.width/2)
-          startX = monitor.x + monitor.width + 3*this.actor.width/2;
-      else
-          startX = 0;
-      Tweener.addTween(this.actor,
-      {
-         x: startX,
-         time: 0,
-        // rotation_angle_x: -90,
-         rotation_angle_y: 180,
-         //rotation_angle_z: 90,
-         transition: 'easeOutQuad',
-         onComplete: Lang.bind(this, function() {
-            Tweener.addTween(this.actor,
-            {
-                x: 0,
-                //rotation_angle_x: 0,
-                rotation_angle_y: 0,
-                //rotation_angle_z: 0,
-                time: this.effectTime
-            })
-         })
-      });
-   },
-
-   _effectGetOutClose: function() {
-      let [startX, ay] = this.launcher.actor.get_transformed_position();
-      let monitor = Main.layoutManager.primaryMonitor;
-      if(startX > monitor.x + monitor.width/2)
-          startX = monitor.x + monitor.width + 3*this.actor.width/2;
-      else
-          startX = 0;
-      Tweener.addTween(this.actor,
-      {
-         x: startX,
-         rotation_angle_y: 180,
-         time: this.effectTime,
-         transition: 'easeOutQuad',
-         onComplete: Lang.bind(this, function() {
-            
-            PopupMenu.PopupMenuBase.prototype.close.call(this, false);
-            Tweener.addTween(this.actor,
-            {
-                x: 0,
-                rotation_angle_y: 0,
-                time: 0
-            })
-         })
-      });
-   },*/
 
    _effectWindowsOpen: function() {
-      let [startX, ay] = this.launcher.actor.get_transformed_position();
-      let monitor = Main.layoutManager.primaryMonitor;
-      if(startX > monitor.x + monitor.width/2)
-          startX = monitor.x + monitor.width + 3*this.actor.width/2;
-      else
-          startX = 0;
-      Tweener.addTween(this.actor,
-      {
-         x: startX,
-         time: 0,
-         rotation_angle_y: 180,
-         transition: 'easeOutQuad',
-         onComplete: Lang.bind(this, function() {
-            Tweener.addTween(this.actor,
-            {
-                x: 0,
-                rotation_angle_y: 0,
-                time: this.effectTime
-            })
-         })
+      this.actor.rotation_angle_x = -100;
+      Tweener.addTween(this.actor, {
+         rotation_angle_x: 0,
+         time: this._effectTime,
+         transition: 'easeNone'
       });
    },
 
    _effectWindowsClose: function() {
-      let [startX, ay] = this.launcher.actor.get_transformed_position();
-      let monitor = Main.layoutManager.primaryMonitor;
-      if(startX > monitor.x + monitor.width/2)
-          startX = monitor.x + monitor.width + 3*this.actor.width/2;
-      else
-          startX = 0;
-      Tweener.addTween(this.actor,
-      {
-         x: startX,
-         rotation_angle_y: 180,
-         time: this.effectTime,
-         transition: 'easeOutQuad',
+      Tweener.addTween(this.actor, {
+         rotation_angle_x: -100,
+         time: this._effectTime,
+         transition: 'easeNone',
          onComplete: Lang.bind(this, function() {
-            this.closeClean(false);
-            Tweener.addTween(this.actor,
-            {
-                x: 0,
-                rotation_angle_y: 0,
-                time: 0
-            })
+            this.actor.rotation_angle_x = 0;
+            this._closeClean();
          })
       });
    },
 
   _effectHideHorizontalOpen: function() {
-      let [startX, ay] = this.launcher.actor.get_transformed_position();
-      let monitor = Main.layoutManager.primaryMonitor;
+      let [startX, ay] = this.sourceActor.get_transformed_position();
+      let monitor = Main.layoutManager.findMonitorForActor(this.sourceActor);
       if(startX > monitor.x + monitor.width/2)
-         startX += this.launcher.actor.width;
-      Tweener.addTween(this.actor,
-      {
-         x: startX,
-         scale_x: 0,
-         opacity: 255,
-         time: 0,
+         startX += this.sourceActor.width;
+      this.actor.x = startX;
+      this.actor.scale_x = 0;
+      Tweener.addTween(this.actor, {
+         x: 0,
+         scale_x: 1,
          transition: 'easeOutQuad',
-         onComplete: Lang.bind(this, function() {
-            Tweener.addTween(this.actor,
-            {
-                x: 0,
-                scale_x: 1,
-                opacity: 255,
-                time: this.effectTime
-            })
-         })
+         time: this._effectTime
       });
    },
 
    _effectHideHorizontalClose: function() {
-      let [startX, ay] = this.launcher.actor.get_transformed_position();
-      let monitor = Main.layoutManager.primaryMonitor;
+      let [startX, ay] = this.sourceActor.get_transformed_position();
+      let monitor = Main.layoutManager.findMonitorForActor(this.sourceActor);
       if(startX > monitor.x + monitor.width/2)
-         startX += this.launcher.actor.width;
-      Tweener.addTween(this.actor,
-      {
+         startX += this.sourceActor.width;
+      Tweener.addTween(this.actor, {
          x: startX,
          scale_x: 0,
-         opacity: 255,
-         time: this.effectTime,
+         time: this._effectTime,
          transition: 'easeOutQuad',
          onComplete: Lang.bind(this, function() {
-            this.closeClean(false);
-            Tweener.addTween(this.actor,
-            {
-                x: 0,
-                scale_x: 1,
-                opacity: 255,
-                time: 0
-            })
+            this._closeClean();
+            this.actor.x = 0;
+            this.actor.scale_x = 1;
          })
       });
    },
 
    _effectHideVerticalOpen: function() {
-      let startY = this.launcher.actor.height;
+      let startY = this.sourceActor.height;
       if(this._arrowSide == St.Side.BOTTOM) {
-         let monitor = Main.layoutManager.primaryMonitor;
+         let monitor = Main.layoutManager.findMonitorForActor(this.sourceActor);
          startY =  monitor.height - startY;
       }
-      Tweener.addTween(this.actor,
-      {
-         y: startY,
-         scale_y: 0,
-         opacity: 255,
-         time: 0,
+      this.actor.y = startY;
+      this.actor.scale_y = 0;
+      Tweener.addTween(this.actor, {
+         y: 0,
+         scale_y: 1,
          transition: 'easeOutQuad',
-         onComplete: Lang.bind(this, function() {
-            Tweener.addTween(this.actor,
-            {
-                y: 0,
-                scale_y: 1,
-                opacity: 255,
-                time: this.effectTime
-            })
-         })
+         time: this._effectTime
       });
    },
 
    _effectHideVerticalClose: function() {
-      let startY = this.launcher.actor.height;
+      let startY = this.sourceActor.height;
       if(this._arrowSide == St.Side.BOTTOM) {
-         let monitor = Main.layoutManager.primaryMonitor;
+         let monitor = Main.layoutManager.findMonitorForActor(this.sourceActor);
          startY =  monitor.height - startY;
       }
-      Tweener.addTween(this.actor,
-      {
+      Tweener.addTween(this.actor, {
          y: startY,
          scale_y: 0,
-         opacity: 255,
-         time: this.effectTime,
+         time: this._effectTime,
          transition: 'easeOutQuad',
          onComplete: Lang.bind(this, function() {
-            this.closeClean(false);
-            Tweener.addTween(this.actor,
-            {
-                y: 0,
-                scale_y: 1,
-                opacity: 255,
-                time: 0
-            })
+            this._closeClean();
+            this.actor.y = 0;
+            this.actor.scale_y = 1;
          })
       });
    },
 
    _effectScaleOpen: function() {
-      let monitor = Main.layoutManager.primaryMonitor;
-      let [startX, ay] = this.launcher.actor.get_transformed_position();
-      let startY = this.launcher.actor.height;
+      Main.notify("scale")
+      let monitor = Main.layoutManager.findMonitorForActor(this.sourceActor);
+      let [startX, ay] = this.sourceActor.get_transformed_position();
+      let startY = this.sourceActor.height;
       if(startX > monitor.x + monitor.width/2)
-         startX += this.launcher.actor.width;
+         startX += this.sourceActor.width;
       if(this._arrowSide == St.Side.BOTTOM)
          startY =  monitor.height - startY;
-      Tweener.addTween(this.actor,
-      {
-         x: startX, y: startY,
-         scale_x: 0, scale_y: 0,
-         opacity: 255,
-         time: 0,
+      this.actor.x = startX;
+      this.actor.y = startY;
+      this.actor.scale_x = 0;
+      this.actor.scale_y = 0;
+      Tweener.addTween(this.actor, {
+         x: 0, y: 0,
+         scale_x: 1, scale_y: 1,
          transition: 'easeOutQuad',
-         onComplete: Lang.bind(this, function() {
-            Tweener.addTween(this.actor,
-            {
-                x: 0, y: 0,
-                scale_x: 1, scale_y: 1,
-                opacity: 255,
-                time: this.effectTime
-            })
-         })
+         time: this._effectTime
       });
    },
 
    _effectScaleClose: function() {
-      let monitor = Main.layoutManager.primaryMonitor;
-      let [startX, ay] = this.launcher.actor.get_transformed_position();
-      let startY = this.launcher.actor.height;
+      let monitor = Main.layoutManager.findMonitorForActor(this.sourceActor);
+      let [startX, ay] = this.sourceActor.get_transformed_position();
+      let startY = this.sourceActor.height;
       if(startX > monitor.x + monitor.width/2)
-         startX += this.launcher.actor.width;
+         startX += this.sourceActor.width;
       if(this._arrowSide == St.Side.BOTTOM)
          startY =  monitor.height - startY;
-      Tweener.addTween(this.actor,
-      {
+      Tweener.addTween(this.actor, {
          x: startX, y: startY,
          scale_x: 0, scale_y: 0,
-         opacity: 255,
-         time: this.effectTime,
+         time: this._effectTime,
          transition: 'easeOutQuad',
          onComplete: Lang.bind(this, function() {
-            this.closeClean(false);
-            Tweener.addTween(this.actor,
-            {
-                x: 0, y: 0,
-                scale_x: 1, scale_y: 1,
-                opacity: 255,
-                time: 0
-            })
+            this._closeClean();
+            this.actor.x = 0;
+            this.actor.y = 0;
+            this.actor.scale_x = 1;
+            this.actor.scale_y = 1;
          })
       });
    },
 
    _closeBrotherMenu: function() {
       let topMenu = this.getTopMenu();
-      if (topMenu) {
-         if ((topMenu._openedSubMenu)&&(this != topMenu._openedSubMenu)&&
+      if(topMenu) {
+         if((topMenu._openedSubMenu)&&(this != topMenu._openedSubMenu)&&
             (topMenu._openedSubMenu.isOpen)&&(this.isOpen)) {
             // We probably don't need to do this, as is also a tasks
             // of the MenuManager, but the MenuManager wont work ok.
-            topMenu._openedSubMenu.closeClean();
+            topMenu._openedSubMenu.close();
             topMenu._openedSubMenu = null;
          }
-         if (this.isOpen)
+         if(this.isOpen)
             topMenu._openedSubMenu = this;
       }
    },
@@ -2123,6 +2001,10 @@ ConfigurableMenu.prototype = {
 
    destroy: function() {
       if(this.actor) {
+         if(this._vectorBlocker) {
+            this._vectorBlocker.release();
+            this._vectorBlocker = null;
+         }
          this._releaseActorState();
          this.actor = this._scroll;
          //this._boxWrapper.add_actor(this._scroll);
@@ -2154,7 +2036,7 @@ CheckButton.prototype = {
                          y_fill: true,
                          y_align: St.Align.MIDDLE };
 
-        if (params != undefined) {
+        if(params != undefined) {
             this._params = Params.parse(params, this._params);
         }
 
@@ -2306,6 +2188,7 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
 
       this.actor.add(this._triangle, { x_align: St.Align.END, y_align: St.Align.MIDDLE, x_fill:false });
       this._accel = "";
+      this._vectorBlocker = null;
 
       this.menu = new ConfigurableMenu(this, 0.0, St.Side.LEFT, false);
       this.menu.connect('open-state-changed', Lang.bind(this, this._subMenuOpenStateChanged));
@@ -2375,18 +2258,24 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
       }
    },
 
+   setVectorBox: function(vectorBlocker) {
+      if(this._vectorBlocker != vectorBlocker) {
+         this._vectorBlocker = vectorBlocker;
+      }
+   },
+
    _onKeyPressEvent: function(actor, event) {
       let [openKey, closeKey] = this._getClutterOrientation();
       let symbol = event.get_key_symbol();
-      if (symbol == openKey) {
+      if(symbol == openKey) {
          this.menu.open(true);
          this.menu.actor.navigate_focus(null, Gtk.DirectionType.DOWN, false);
          return true;
-      } else if (symbol == closeKey && this.menu.isOpen) {
+      } else if(symbol == closeKey && this.menu.isOpen) {
          this.menu.close();
          return true;
       }
-      return PopupBaseMenuItem.prototype._onKeyPressEvent.call(this, actor, event);
+      return PopupMenu.PopupBaseMenuItem.prototype._onKeyPressEvent.call(this, actor, event);
    },
 
    _getClutterOrientation: function() {
@@ -2400,7 +2289,7 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
          this.actor.add_style_pseudo_class('open');
          if((!this._hide_expander)&&(!this.menu._floating)) {
              let rotationAngle = 90;
-             if (this.actor.get_direction() == St.TextDirection.RTL)
+             if(this.actor.get_direction() == St.TextDirection.RTL)
                 rotationAngle = 270;
              this._triangle.rotation_angle_z = rotationAngle;
          }
@@ -2411,6 +2300,13 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
       }
    },
 
+   _onHoverChanged: function (actor) {
+      //Main.notify("hola" + actor.hover);
+      this.setActive(actor.hover);
+      /*if((this._vectorBlocker)&&(actor.hover))
+         this._vectorBlocker.executeInActors(this.actor, this.menu.actor);*/
+   },
+
    _onMapped: function() {
       this.menu._updateTopMenu();
    },
@@ -2419,7 +2315,7 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
       if((!this.menu.isOpen)&&(this.menu._floating)) {
          this.menu.repositionActor(this.actor);
       }
-      this.menu.toggle();
+      this.menu.toggle(true);
       return true;
    },
 
@@ -2456,13 +2352,14 @@ ConfigurablePopupMenuSection.prototype = {
    addMenuItem: function(menuItem, position) {
       this._setShowItemIcon(menuItem);
       this._setDesaturateItemIcon(menuItem);
-      if ((menuItem instanceof PopupMenu.PopupSubMenuMenuItem)&&(this._isFloating(menuItem.menu))) {
+      this._setVectorBox(menuItem);
+      if((menuItem instanceof PopupMenu.PopupSubMenuMenuItem)&&(this._isFloating(menuItem.menu))) {
          let beforeItem = null;
-         if (position == undefined) {
+         if(position == undefined) {
             this.box.add(menuItem.actor);
          } else {
             let items = this._getMenuItems();
-            if (position < items.length) {
+            if(position < items.length) {
                beforeItem = items[position].actor;
                this.box.insert_before(menuItem.actor, beforeItem);
             } else
@@ -2470,19 +2367,8 @@ ConfigurablePopupMenuSection.prototype = {
          }
          this._connectSubMenuSignals(menuItem, menuItem.menu);
          this._connectItemSignals(menuItem);
-         menuItem._closingId = this.connect('open-state-changed', function(self, open) {
-            if (!open)
-               menuItem.menu.close(false);
-         });
-         menuItem._closeId = menuItem.connect('active-changed', Lang.bind(this, function(self, active) {
-             if(active)
-                this._activeSubMenuChild(self);
-         }));
       } else {
          PopupMenu.PopupMenuSection.prototype.addMenuItem.call(this, menuItem, position);
-         if (menuItem instanceof ConfigurablePopupMenuSection) {
-            menuItem.setVectorBox(this._vectorBlocker);
-         }
       }
    },
 
@@ -2491,9 +2377,7 @@ ConfigurablePopupMenuSection.prototype = {
          this._vectorBlocker = vectorBlocker;
          let items = this._getAllMenuItems();
          for(let pos in items) {
-            if(items[pos] instanceof ConfigurablePopupMenuSection) {
-               items[pos].setVectorBox(vectorBlocker);
-            }
+            this._setVectorBox(items[pos]);
          }
       }
    },
@@ -2520,8 +2404,9 @@ ConfigurablePopupMenuSection.prototype = {
       }
    },
 
-   _activeSubMenuChild: function(self) {
-      //this._vectorBlocker.executeInsideActor(self.actor, self.menu.actor);
+   _setVectorBox: function(menuItem) {
+      if(menuItem.setVectorBox)
+         menuItem.setVectorBox(this._vectorBlocker);
    },
 
    _getAllMenuItems: function() {
@@ -2605,16 +2490,16 @@ ConfigurablePopupMenuItem.prototype = {
 
       this.setSensitive(this._activatable && params.sensitive);
 
-      if (params.style_class)
+      if(params.style_class)
          this.actor.add_style_class_name(params.style_class);
 
-      if (this._activatable) {
+      if(this._activatable) {
          this.actor.connect('button-release-event', Lang.bind(this, this._onButtonReleaseEvent));
          this.actor.connect('key-press-event', Lang.bind(this, this._onKeyPressEvent));
       }
-      if (params.reactive && params.hover)
+      if(params.reactive && params.hover)
          this.actor.connect('notify::hover', Lang.bind(this, this._onHoverChanged));
-      if (params.reactive) {
+      if(params.reactive) {
          this.actor.connect('key-focus-in', Lang.bind(this, this._onKeyFocusIn));
          this.actor.connect('key-focus-out', Lang.bind(this, this._onKeyFocusOut));
       }
@@ -2744,14 +2629,9 @@ ConfigurableMenuApplet.prototype = {
    _init: function(launcher, orientation, menuManager) {
       ConfigurableMenu.prototype._init.call(this, launcher, 0.0, orientation, false);
       this._menuManager = menuManager;
-      this.minItemWidth = 34;
       this._autoActive = true;
       this._showAccel = false;
-      this.isSubMenuOpen = false;
-
-      this.scale = 1;
-      if(global.ui_scale)
-         this.scale = global.ui_scale;
+      this._isSubMenuOpen = false;
 
       this._appletBox = new St.BoxLayout({ vertical: false, reactive: true });
       this._appletBox._delegate = this;
@@ -2784,14 +2664,14 @@ ConfigurableMenuApplet.prototype = {
    },
 
    toogleSubmenu: function(animate) {
-      if(this.isSubMenuOpen)
+      if(this._isSubMenuOpen)
          this.closeSubmenu(animate);
       else
          this.openSubmenu(animate);
    },
 
    openSubmenu: function(animate) {
-      if(!this.isSubMenuOpen) {
+      if(!this._isSubMenuOpen) {
          if(this._floating) {
             this.open(animate);
          } else {
@@ -2800,20 +2680,20 @@ ConfigurableMenuApplet.prototype = {
             for(let pos in items) {
                let menuItem = items[pos];
                if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
-                  menuItem.menu.open();
+                  menuItem.menu.open(animate);
                   break;
                }
             }
             if(!this.isOpen)
-               this.open();
+               this.open(animate);
             this.actor.grab_key_focus();
          }
-         this.isSubMenuOpen = true;
+         this._isSubMenuOpen = true;
       }
    },
 
    closeSubmenu: function(animate) {
-      if(this.isSubMenuOpen) {
+      if(this._isSubMenuOpen) {
          if(this._floating) {
             this.close(animate);
          } else {
@@ -2821,19 +2701,19 @@ ConfigurableMenuApplet.prototype = {
             for(let pos in items) {
                let menuItem = items[pos];
                if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
-                  menuItem.menu.close();
+                  menuItem.menu.close(animate);
                }
             }
          }
          this._activeSubMenuItem = null;
-         this.isSubMenuOpen = false;
+         this._isSubMenuOpen = false;
       }
    },
 
    open: function(animate) {
       if(this._floating) {
          if(this._childMenus.length > 0)
-            ConfigurableMenu.prototype.open.call(this, animate);
+            ConfigurableMenu.prototype.open.call(this, false);
       } else if(!this.isOpen) {
          this.actor.show();
          this._setChildsArrowSide();
@@ -2844,11 +2724,11 @@ ConfigurableMenuApplet.prototype = {
 
    close: function(animate, forced) {
       if(this._floating) {
-         ConfigurableMenu.prototype.close.call(this, animate);
+         ConfigurableMenu.prototype.close.call(this, false);
       } else if((forced)&&(this.isOpen)) {
          this.actor.hide();
          this._activeSubMenuItem = null;
-         this.isSubMenuOpen = false;
+         this._isSubMenuOpen = false;
          this.isOpen = false;
          this.emit('open-state-changed', false);
       }
@@ -2858,7 +2738,7 @@ ConfigurableMenuApplet.prototype = {
       if(this.isOpen)
           this.close(false, true);
       else
-          this.open();
+          this.open(false);
    },
 
    setArrowSide: function(side) {
@@ -2898,7 +2778,7 @@ ConfigurableMenuApplet.prototype = {
       let items = this._getMenuItems();
       for(let pos in items) {
          let menuItem = items[pos];
-         if (menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+         if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
             this._setMenuInPosition(menuItem);
             this._setShowItemIcon(menuItem);
             menuItem.menu.fixToCorner(menuItem.menu.fixCorner);
@@ -2907,13 +2787,13 @@ ConfigurableMenuApplet.prototype = {
    },
 
    addMenuItem: function(menuItem, position) {
-      if (menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+      if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
          let beforeItem = null;
-         if (position == undefined) {
+         if(position == undefined) {
             this.box.add(menuItem.actor);
          } else {
             let items = this._getMenuItems();
-            if (position < items.length) {
+            if(position < items.length) {
                beforeItem = items[position].actor;
                this.box.insert_before(menuItem.actor, beforeItem);
             } else
@@ -2922,13 +2802,13 @@ ConfigurableMenuApplet.prototype = {
          this._connectSubMenuSignals(menuItem, menuItem.menu);
          this._connectItemSignals(menuItem);
          menuItem._closingId = this.connect('open-state-changed', function(self, open) {
-            if (!open)
+            if(!open)
                menuItem.menu.close(false);
          });
          menuItem._closeId = menuItem.menu.connect('open-state-changed', Lang.bind(this, function(self, open) {
-            if ((!open) && (this.isSubMenuOpen)) {
+            if((!open) && (this._isSubMenuOpen)) {
                this._activeSubMenuItem = null;
-               this.isSubMenuOpen = false;
+               this._isSubMenuOpen = false;
             }
          }));
          this._setMenuInPosition(menuItem);
@@ -2946,7 +2826,7 @@ ConfigurableMenuApplet.prototype = {
       if(menuItem.setAccel) {
          let accelkeys = this.getMainAccelkeys();
          let text = menuItem.label.get_text();
-         for (let pos in text) {
+         for(let pos in text) {
             if(accelkeys.indexOf(text[pos]) != -1) {
                menuItem.setAccel(text[pos]);
                break;
@@ -2963,7 +2843,7 @@ ConfigurableMenuApplet.prototype = {
       let accelkeys = [];
       for(let pos in items) {
          let menuItem = items[pos];
-         if (menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+         if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
             accelkeys.push(menuItem._accel);
          }
       }
@@ -2977,7 +2857,7 @@ ConfigurableMenuApplet.prototype = {
          let menuItem, text, accel, posAccel;
          for(let pos in items) {
             menuItem = items[pos];
-            if (menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+            if(menuItem instanceof PopupMenu.PopupSubMenuMenuItem) {
                text = menuItem.label.get_text();
                accel = menuItem._accel;
                if(show) {
@@ -3008,10 +2888,10 @@ ConfigurableMenuApplet.prototype = {
                this._activeSubMenuItem = this._getFirstMenuItem(this);
             }
             if((direction == Gtk.DirectionType.LEFT)||(direction == Gtk.DirectionType.RIGHT)) {
-               this.isSubMenuOpen = false;
+               this._isSubMenuOpen = false;
                this.actor.navigate_focus(this._activeSubMenuItem.actor, direction, true);
                this._activeSubMenuItem = global.stage.key_focus._delegate;
-               this.isSubMenuOpen = true;
+               this._isSubMenuOpen = true;
                this.actor.grab_key_focus();
                return true;
             } else if(direction == this._getGtkScapeDirectionType()) {
@@ -3110,7 +2990,7 @@ ConfigurableMenuApplet.prototype = {
    },
 
    _onButtonPressEvent: function (actor, event) {
-      if ((!this.floating)&&(event.get_button() == 1)&&(this.launcher._draggable.inhibit)) {
+      if((!this.floating)&&(event.get_button() == 1)&&(this.launcher._draggable.inhibit)) {
          return true;
       }
       return false;
@@ -3192,7 +3072,7 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    setVisible: function(visible) {
-      if (this._visible != visible) {
+      if(this._visible != visible) {
          this._visible = visible;
          this._updateVisible();
       }
@@ -3203,7 +3083,7 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    setSensitive: function(sensitive) {
-      if (this._sensitive != sensitive) {
+      if(this._sensitive != sensitive) {
          this._sensitive = sensitive;
          this._updateSensitive();
       }
@@ -3214,7 +3094,7 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    setLabel: function(label) {
-      if (this._label != label) {
+      if(this._label != label) {
          this._label = label;
          this._updateLabel();
       }
@@ -3225,7 +3105,7 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    setAction: function(action) {
-      if (this._action != action) {
+      if(this._action != action) {
          this._action = action;
       }
    },
@@ -3235,7 +3115,7 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    setParamType: function(paramType) {
-      if (this._paramType != paramType) {
+      if(this._paramType != paramType) {
          this._paramType = paramType;
       }
    },
@@ -3245,7 +3125,7 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    setFactoryType: function(type) {
-      if ((type) && (this._type != type)) {
+      if((type) && (this._type != type)) {
          this._type = type;
          this._updateType();
       }
@@ -3256,7 +3136,7 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    setIconName: function(iconName) {
-      if (this._iconName != iconName) {
+      if(this._iconName != iconName) {
          this._iconName = iconName;
          this._updateImage();
       }
@@ -3267,7 +3147,7 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    setGdkIcon: function(iconData) {
-      if (this._iconData != iconData) {
+      if(this._iconData != iconData) {
          this._iconData = iconData;
          this._updateImage();
       }
@@ -3278,7 +3158,7 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    setToggleType: function(toggleType) {
-      if (this._toggleType != toggleType) {
+      if(this._toggleType != toggleType) {
          this._toggleType = toggleType;
          this._updateOrnament();
       }
@@ -3289,7 +3169,7 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    setToggleState: function(toggleState) {
-      if (this._toggleState != toggleState) {
+      if(this._toggleState != toggleState) {
          this._toggleState = toggleState;
          this._updateOrnament();
       }
@@ -3300,21 +3180,21 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    setAccel: function(accel) {
-      if (this._accel != accel) {
+      if(this._accel != accel) {
          this._accel = accel;
          this._updateAccel();
       }
    },
 
    setShellItem: function(shellItem, handlers) {
-      if (this.shellItem != shellItem) {
+      if(this.shellItem != shellItem) {
          if(this.shellItem) {
             //this.shellItem.destroy();
             global.logWarning("Attempt to override a shellItem, so we automatically destroy our original shellItem.");
          }
          this.shellItem = shellItem;
 
-         if (this.shellItem) {
+         if(this.shellItem) {
             // Initialize our state
             this._updateLabel();
             this._updateOrnament();
@@ -3329,7 +3209,7 @@ PopupMenuAbstractFactory.prototype = {
                'activate':  Lang.bind(this, this._onActivate),
                'destroy' :  Lang.bind(this, this._onShellItemDestroyed)
             });
-            if (this.shellItem.menu) {
+            if(this.shellItem.menu) {
                this._shellMenuSignalsHandlers = this._connectAndSaveId(this.shellItem.menu, {
                   'open-state-changed': Lang.bind(this, this._onOpenStateChanged),
                   'destroy'           : Lang.bind(this, this._onShellMenuDestroyed)
@@ -3344,20 +3224,20 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    _updateLabel: function() {
-      if ((this.shellItem)&&(this.shellItem.label)) {
+      if((this.shellItem)&&(this.shellItem.label)) {
          let label = this.getLabel();
          // Especially on GS3.8, the separator item might not even have a hidden label
-         if (this.shellItem.label) 
+         if(this.shellItem.label) 
             this.shellItem.label.set_text(label);
       }
    },
 
    _updateOrnament: function() {
       // Separators and alike might not have gotten the polyfill
-      if ((this.shellItem)&&(this.shellItem.setOrnament)) { 
-         if (this.getToggleType() == "checkmark") {
+      if((this.shellItem)&&(this.shellItem.setOrnament)) { 
+         if(this.getToggleType() == "checkmark") {
             this.shellItem.setOrnament(OrnamentType.CHECK, this.getToggleState());
-         } else if (this.getToggleType() == "radio") {
+         } else if(this.getToggleType() == "radio") {
             this.shellItem.setOrnament(OrnamentType.DOT, this.getToggleState());
          } else {
             this.shellItem.setOrnament(OrnamentType.NONE);
@@ -3366,7 +3246,7 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    _updateAccel: function() {
-      if ((this.shellItem)&&(this.shellItem.setAccel)) {
+      if((this.shellItem)&&(this.shellItem.setAccel)) {
          let accel = this.getAccel();
          if(accel) {
             this.shellItem.setAccel(accel);
@@ -3376,9 +3256,9 @@ PopupMenuAbstractFactory.prototype = {
 
    _updateImage: function() {
       // Might be missing on submenus / separators
-      if ((this.shellItem)&&(this.shellItem._icon)) {
+      if((this.shellItem)&&(this.shellItem._icon)) {
          let iconName = this.getIconName();
-         if (iconName) {
+         if(iconName) {
             if(this.shellItem.setIconName)
                this.shellItem.setIconName(iconName);
             else if(this.shellItem._icon) {
@@ -3387,7 +3267,7 @@ PopupMenuAbstractFactory.prototype = {
             }
          } else {
             let gicon = this.getGdkIcon();
-            if (gicon) {
+            if(gicon) {
                if(this.shellItem.setGIcon)
                   this.shellItem.setGIcon(gicon);
                else if(this.shellItem._icon) {
@@ -3400,13 +3280,13 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    _updateVisible: function() {
-      if (this.shellItem) {
+      if(this.shellItem) {
          this.shellItem.actor.visible = this.isVisible();
       }
    },
 
    _updateSensitive: function() {
-      if ((this.shellItem)&&(this.shellItem.setSensitive)) {
+      if((this.shellItem)&&(this.shellItem.setSensitive)) {
          this.shellItem.setSensitive(this.isSensitive());
       }
    },
@@ -3456,14 +3336,14 @@ PopupMenuAbstractFactory.prototype = {
    removeChild: function(childId) {
       // Find it
       let pos = -1;
-      for (let i = 0; i < this._childrenIds.length; ++i) {
-         if (this._childrenIds[i] == childId) {
+      for(let i = 0; i < this._childrenIds.length; ++i) {
+         if(this._childrenIds[i] == childId) {
             pos = i;
             break;
          }
       }
 
-      if (pos < 0) {
+      if(pos < 0) {
          global.logError("Trying to remove child which doesn't exist");
       } else {
          this._childrenIds.splice(pos, 1);
@@ -3475,7 +3355,7 @@ PopupMenuAbstractFactory.prototype = {
             this.emit('child-removed', factoryItem);
          }
       }
-      if (this._childrenIds.length == 0) {
+      if(this._childrenIds.length == 0) {
          this.emit('childs-empty');
       }
    },
@@ -3483,19 +3363,19 @@ PopupMenuAbstractFactory.prototype = {
    moveChild: function(childId, newpos) {
       // Find the old position
       let oldpos = -1;
-      for (let i = 0; i < this._childrenIds.length; ++i) {
-         if (this._childrenIds[i] == childId) {
+      for(let i = 0; i < this._childrenIds.length; ++i) {
+         if(this._childrenIds[i] == childId) {
             oldpos = i;
             break;
          }
       }
 
-      if (oldpos < 0) {
+      if(oldpos < 0) {
          global.logError("tried to move child which wasn't in the list");
          return;
       }
 
-      if (oldpos != newpos) {
+      if(oldpos != newpos) {
          this._childrenIds.splice(oldpos, 1);
          this._childrenIds.splice(newpos, 0, childId);
          this.emit('child-moved', this.getItemById(childId), oldpos, newpos);
@@ -3522,9 +3402,9 @@ PopupMenuAbstractFactory.prototype = {
          if(shellItem.menu)
             shellItem.menu.close();
          if(focus && shellItem.actor && shellItem.actor.contains(focus)) {
-            if (shellItem.sourceActor)
+            if(shellItem.sourceActor)
                shellItem.sourceActor.grab_key_focus();
-            else if ((shellItem.menu)&&(shellItem.menu.sourceActor))
+            else if((shellItem.menu)&&(shellItem.menu.sourceActor))
                shellItem.menu.sourceActor.grab_key_focus();
             else
                global.stage.set_key_focus(null);
@@ -3536,15 +3416,15 @@ PopupMenuAbstractFactory.prototype = {
    // handlers = { "signal": handler }
    _connectAndSaveId: function(target, handlers , idArray) {
       idArray = typeof idArray != 'undefined' ? idArray : [];
-      for (let signal in handlers) {
+      for(let signal in handlers) {
          idArray.push(target.connect(signal, handlers[signal]));
       }
       return idArray;
    },
 
    _disconnectSignals: function(obj, signalsHandlers) {
-      if ((obj)&&(signalsHandlers)) {
-         for (let pos in signalsHandlers)
+      if((obj)&&(signalsHandlers)) {
+         for(let pos in signalsHandlers)
             obj.disconnect(signalsHandlers[pos]);
       }
    },
@@ -3555,7 +3435,7 @@ PopupMenuAbstractFactory.prototype = {
 
    _onOpenStateChanged: function(menu, open) {
       //this._onShellMenuPreOpened(menu);
-      if (open) {
+      if(open) {
          this.handleEvent("opened");
       } else {
          this.handleEvent("closed");
@@ -3565,27 +3445,27 @@ PopupMenuAbstractFactory.prototype = {
    //HACK: When a submenu will close, also close all childs submenus. 
 /* _onShellMenuPreOpened: function(menu) {
       let topMenu = this._getTopMenu(menu);
-      if (topMenu) {
-         if ((topMenu._openedSubMenu)&&(menu != topMenu._openedSubMenu)&&
+      if(topMenu) {
+         if((topMenu._openedSubMenu)&&(menu != topMenu._openedSubMenu)&&
              (topMenu._openedSubMenu.isOpen)&&(menu.isOpen)) {
             topMenu._openedSubMenu.close(true);
          }
-         if (menu.isOpen)
+         if(menu.isOpen)
             topMenu._openedSubMenu = menu;
       }
-      if (!menu.isOpen)
+      if(!menu.isOpen)
          this._closeAllSubmenuChilds(menu);
    },
 
    _closeAllSubmenuChilds: function(menu) {
       let childs = this._getMenuItems(menu);
       let child;
-      for (let i in childs) {
+      for(let i in childs) {
          child = childs[i];
-         if (child instanceof PopupMenu.PopupMenuBase) {
+         if(child instanceof PopupMenu.PopupMenuBase) {
             this._closeAllSubmenuChilds(child);
          }
-         else if ((child.menu)&&(child.menu.isOpen)) {
+         else if((child.menu)&&(child.menu.isOpen)) {
             this._closeAllSubmenuChilds(child.menu);
             child.menu.close();
          }
@@ -3595,7 +3475,7 @@ PopupMenuAbstractFactory.prototype = {
    _getTopMenu: function(shellItem) {
       let actor = shellItem.actor.get_parent();
       while (actor) {
-         if ((actor._delegate) && ((actor._delegate instanceof PopupMenu.PopupMenu) ||
+         if((actor._delegate) && ((actor._delegate instanceof PopupMenu.PopupMenu) ||
              (actor._delegate instanceof PopupMenu.PopupSubMenu)))
             return actor._delegate;
          actor = actor.get_parent();
@@ -3610,17 +3490,17 @@ PopupMenuAbstractFactory.prototype = {
    },*/
 
    _onShellItemDestroyed: function(shellItem) {
-      if ((this.shellItem)&&(this.shellItem == shellItem)) {
+      if((this.shellItem)&&(this.shellItem == shellItem)) {
          this.shellItem = null;
-         if (this._internalSignalsHandlers) {
+         if(this._internalSignalsHandlers) {
             this._disconnectSignals(this, this._internalSignalsHandlers);
             this._internalSignalsHandlers = [];
          }
-         if (this._shellItemSignalsHandlers) {
+         if(this._shellItemSignalsHandlers) {
             this._disconnectSignals(shellItem, this._shellItemSignalsHandlers);
             this._shellItemSignalsHandlers = null;
          }
-      } else if (this.shellItem) {
+      } else if(this.shellItem) {
          global.logError("We are not conected with " + shellItem);
       } else {
          global.logWarning("We are not conected with any shellItem");
@@ -3628,14 +3508,14 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    _onShellMenuDestroyed: function(shellMenu) {
-      if (this._shellMenuSignalsHandlers) {
+      if(this._shellMenuSignalsHandlers) {
          this._disconnectSignals(shellMenu, this._shellMenuSignalsHandlers);
          this._shellMenuSignalsHandlers = null;
       }
    },
 
    destroy: function() {
-      if (this._externalSignalsHandlers) {
+      if(this._externalSignalsHandlers) {
          // Emit the destroy first, to allow know to external lisener,
          // then, disconnect the lisener handler.
          this.emit("destroy");
@@ -3669,13 +3549,13 @@ MenuFactory.prototype = {
       // Decide whether it's a submenu or not
       let shellItem = null;
       let item_type = factoryItem.getFactoryType();
-      if (item_type == FactoryClassTypes.RootMenuClass)
+      if(item_type == FactoryClassTypes.RootMenuClass)
          shellItem = new Applet.PopupMenu(launcher, orientation);
-      if (item_type == FactoryClassTypes.SubMenuMenuItemClass)
+      if(item_type == FactoryClassTypes.SubMenuMenuItemClass)
          shellItem = new PopupMenu.PopupSubMenuMenuItem("FIXME");
-      else if (item_type == FactoryClassTypes.MenuSectionMenuItemClass)
+      else if(item_type == FactoryClassTypes.MenuSectionMenuItemClass)
          shellItem = new PopupMenu.PopupMenuSection();
-      else if (item_type == FactoryClassTypes.SeparatorMenuItemClass)
+      else if(item_type == FactoryClassTypes.SeparatorMenuItemClass)
          shellItem = new PopupMenu.PopupSeparatorMenuItem('');
       else if(item_type == FactoryClassTypes.MenuItemClass)
          shellItem = new PopupMenu.PopupMenuItem("FIXME");
@@ -3686,7 +3566,7 @@ MenuFactory.prototype = {
 
    getShellMenu: function(factoryMenu) {
       let index = this._menuLikend.indexOf(factoryMenu);
-      if (index != -1) {
+      if(index != -1) {
          return factoryMenu.getShellItem();
       }
       return null;
@@ -3694,7 +3574,7 @@ MenuFactory.prototype = {
 
    getMenuManager: function(factoryMenu) {
       let index = this._menuLikend.indexOf(factoryMenu);
-      if (index != -1) {
+      if(index != -1) {
          return this._menuManager[index];
       }
       return null;
@@ -3702,10 +3582,10 @@ MenuFactory.prototype = {
 
    buildShellMenu: function(factoryMenu, launcher, orientation, menuManager) {
       let shellItem = this.getShellMenu(factoryMenu);
-      if (factoryMenu.shellItem)
+      if(factoryMenu.shellItem)
          return factoryMenu.shellItem;
 
-      if (!(factoryMenu instanceof PopupMenuAbstractFactory)) {
+      if(!(factoryMenu instanceof PopupMenuAbstractFactory)) {
          throw new Error("MenuFactory: can't construct an instance of \
               PopupMenu using a non instance of the class PopupMenuAbstractFactory");
       }
@@ -3740,13 +3620,13 @@ MenuFactory.prototype = {
 
    _onDestroyMainMenu: function(factoryItem) {
       let index = this._menuLikend.indexOf(factoryItem);
-      if (index != -1) {
+      if(index != -1) {
          this._menuLikend.splice(index, 1);
       }
    },
 
    _setOrnamentPolyfill: function(ornamentType, state) {
-      if (ornamentType == OrnamentType.CHECK) {
+      if(ornamentType == OrnamentType.CHECK) {
          if(state) {
             this._ornament.set_text('\u2714');
             if(this.actor.add_accessible_state)
@@ -3756,7 +3636,7 @@ MenuFactory.prototype = {
             if(this.actor.remove_accessible_state)
                this.actor.remove_accessible_state(Atk.StateType.CHECKED);
          }
-      } else if (ornamentType == OrnamentType.DOT) {
+      } else if(ornamentType == OrnamentType.DOT) {
          if(state) {
             this._ornament.set_text('\u2022');
             if(this.actor.add_accessible_state)
@@ -3779,7 +3659,7 @@ MenuFactory.prototype = {
    // other item. Thank god they replaced that whole allocation stuff in 3.10, so I don't
    // really need to understand how it works, as long as it looks right in 3.8
    _allocateOrnament: function(actor, box, flags, shellItem) {
-      if (!shellItem._ornament) return;
+      if(!shellItem._ornament) return;
 
       let height = box.y2 - box.y1;
       let direction = actor.get_text_direction();
@@ -3787,7 +3667,7 @@ MenuFactory.prototype = {
       let dotBox = new Clutter.ActorBox();
       let dotWidth = Math.round(box.x1 / 2);
 
-      if (direction == Clutter.TextDirection.LTR) {
+      if(direction == Clutter.TextDirection.LTR) {
          dotBox.x1 = Math.round(box.x1 / 4);
          dotBox.x2 = dotBox.x1 + dotWidth;
       } else {
@@ -3824,15 +3704,15 @@ MenuFactory.prototype = {
    _createChildrens: function(factoryItem) {
       if(factoryItem) {
          let shellItem = factoryItem.getShellItem();
-         if (shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+         if(shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
             let children = factoryItem.getChildren();
-            for (let i = 0; i < children.length; ++i) {
+            for(let i = 0; i < children.length; ++i) {
                let chItem = this._createItem(children[i]);
                shellItem.menu.addMenuItem(chItem);
             }
-         } else if (shellItem instanceof PopupMenu.PopupMenuSection) {
+         } else if(shellItem instanceof PopupMenu.PopupMenuSection) {
             let children = factoryItem.getChildren();
-            for (let i = 0; i < children.length; ++i) {
+            for(let i = 0; i < children.length; ++i) {
                let chItem = this._createItem(children[i]);
                shellItem.addMenuItem(chItem);
             }
@@ -3843,9 +3723,9 @@ MenuFactory.prototype = {
    _onChildAdded: function(factoryItem, child, position) {
       let shellItem = factoryItem.getShellItem();
       if(shellItem) {
-         if (shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+         if(shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
             shellItem.menu.addMenuItem(this._createItem(child), position, "factor");
-         } else if ((shellItem instanceof PopupMenu.PopupMenuSection) ||
+         } else if((shellItem instanceof PopupMenu.PopupMenuSection) ||
                     (shellItem instanceof PopupMenu.PopupMenu)) {
             shellItem.addMenuItem(this._createItem(child), position);
          } else {
@@ -3860,9 +3740,9 @@ MenuFactory.prototype = {
    _onChildMoved: function(factoryItem, child, oldpos, newpos) {
       let shellItem = factoryItem.getShellItem();
       if(shellItem) {
-         if (shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
+         if(shellItem instanceof PopupMenu.PopupSubMenuMenuItem) {
             this._moveItemInMenu(shellItem.menu, child, newpos);
-         } else if ((shellItem instanceof PopupMenu.PopupMenuSection) ||
+         } else if((shellItem instanceof PopupMenu.PopupMenuSection) ||
                     (shellItem instanceof PopupMenu.PopupMenu)) {
             this._moveItemInMenu(shellItem, child, newpos);
          } else {
@@ -3881,28 +3761,28 @@ MenuFactory.prototype = {
       let shellItem = factoryItem.getShellItem();
       let factoryItemParent = factoryItem.getParent();
       let parentMenu = null;
-      if (factoryItemParent) {
+      if(factoryItemParent) {
          let shellItemParent = factoryItemParent.getShellItem();
-         if (shellItemParent instanceof PopupMenu.PopupMenuSection)
+         if(shellItemParent instanceof PopupMenu.PopupMenuSection)
             parentMenu = shellItemParent;
          else
             parentMenu = shellItemParent.menu;
       }
       // First, we need to find our old position
       let pos = -1;
-      if ((parentMenu)&&(shellItem)) {
+      if((parentMenu)&&(shellItem)) {
          let family = parentMenu._getMenuItems();
-         for (let i = 0; i < family.length; ++i) {
-            if (family[i] == shellItem)
+         for(let i = 0; i < family.length; ++i) {
+            if(family[i] == shellItem)
                pos = i;
          }
       }
       // if not insert the item in first position.
-      if (pos < 0)
+      if(pos < 0)
          pos = 0;
       // Now destroy our old self
       factoryItem.destroyShellItem();
-      if (parentMenu) {
+      if(parentMenu) {
          // Add our new self
          let newShellItem = this._createItem(factoryItem);
          parentMenu.addMenuItem(newShellItem, pos);
@@ -3913,15 +3793,15 @@ MenuFactory.prototype = {
       // HACK: we're really getting into the internals of the PopupMenu implementation
       // First, find our wrapper. Children tend to lie. We do not trust the old positioning.
       let shellItem = factoryItem.getShellItem();
-      if (shellItem) {
+      if(shellItem) {
          let family = menu._getMenuItems();
-         for (let i = 0; i < family.length; ++i) {
-            if (family[i] == shellItem) {
+         for(let i = 0; i < family.length; ++i) {
+            if(family[i] == shellItem) {
                // Now, remove it
                menu.box.remove_child(shellItem.actor);
 
                // Add it again somewhere else
-               if (newpos < family.length && family[newpos] != shellItem)
+               if(newpos < family.length && family[newpos] != shellItem)
                   menu.box.insert_child_below(shellItem.actor, family[newpos].actor);
                else
                   menu.box.add(shellItem.actor);
@@ -3934,19 +3814,19 @@ MenuFactory.prototype = {
    },
 
    _hackShellItem: function(shellItem) {
-      if (shellItem instanceof PopupMenu.PopupMenuItem) {
-         if (!shellItem.setAccel) {
+      if(shellItem instanceof PopupMenu.PopupMenuItem) {
+         if(!shellItem.setAccel) {
             shellItem._accel = new St.Label();
-            if (shellItem.addActor) { //GS 3.8
+            if(shellItem.addActor) { //GS 3.8
                shellItem.addActor(shellItem._accel);
             } else { //GS >= 3.10
                shellItem.actor.add_actor(shellItem._accel);
             }
          }
 
-         if (!shellItem._icon) {
+         if(!shellItem._icon) {
             shellItem._icon = new St.Icon({ style_class: 'popup-menu-icon', x_align: St.Align.END });
-            if (shellItem.addActor) { //GS 3.8
+            if(shellItem.addActor) { //GS 3.8
                shellItem.addActor(shellItem._icon, { align: St.Align.END });
             } else { //GS >= 3.10
                shellItem.actor.add(shellItem._icon, { x_align: St.Align.END });
@@ -3956,7 +3836,7 @@ MenuFactory.prototype = {
 
          // GS3.8: emulate the ornament stuff.
          // this is similar to how the setShowDot function works
-         if (!shellItem.setOrnament) {
+         if(!shellItem.setOrnament) {
 
             shellItem._ornament = new St.Label();
             shellItem.actor.add_actor(shellItem._ornament);
