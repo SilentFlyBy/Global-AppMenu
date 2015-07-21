@@ -587,25 +587,26 @@ function VectorBoxBlocker() {
 }
 
 VectorBoxBlocker.prototype = {
-   _init: function(event_blocker, time_out) {
-      this.time_out = time_out;
-      this.event_blocker = event_blocker;
-      if(!this.event_blocker)
-         this.event_blocker = Clutter.EventType.ENTER;
-      if(!this.time_out)
-         this.time_out = 60;
+   _init: function(eventBlocker, timeOut) {
+      this._timeOut = timeOut;
+      this._eventBlocker = eventBlocker;
+      if(!this._eventBlocker)
+         this._eventBlocker = Clutter.EventType.ENTER;
+      if(!this._timeOut)
+         this._timeOut = 35;
       this._p0 = { x:0, y:0 };
       this._p1 = { x:0, y:0 };
       this._p2 = { x:0, y:0 };
-      this._update_loop_id = 0;
+      this._updateLoopId = 0;
+      this._allocationId = 0;
+      this._captureEventId = 0;
       this._srcActor = null;
       this._destActor = null;
-      this._captureEventId = global.stage.connect('captured-event', Lang.bind(this, this._eventFilter));
+      this._lastActor = null;
    },
 
-   _updateVector: function() {
+   _updateVector: function(p0x, p0y) {
       if(!this._destActor) return false;
-      let [p0x, p0y, mask] = global.get_pointer();
       let [bx, by] = this._destActor.get_transformed_position();
       let [bw, bh] = this._destActor.get_transformed_size();
       let p1x, p1y, p2x, p2y;
@@ -621,13 +622,10 @@ VectorBoxBlocker.prototype = {
          }
       } else if(p0x < bx) {//left
          if(p0y > by + bh) { //bottom
-            //Main.notify("enter3: " + p0y + " " + by + " " + bh)
             p1x = bx; p1y = by; p2x = bx + bw; p2y = by + bh;
          } else if(p0y < by) {//top
-            //Main.notify("enter2: " + p0y + " " + by + " " + bh)
             p2x = bx; p2y = by + bh; p1x = bx + bw; p1y = by;
          } else if((p0y > by)&&(p0y < by + bh)) {//center
-            //Main.notify("enter1: " + p0y + " " + by + " " + bh)
             p1x = bx; p1y = by; p2x = bx; p2y = by + bh;
          } else {//inside
             return false;//error
@@ -648,69 +646,89 @@ VectorBoxBlocker.prototype = {
    },
 
    _disconnectLoop: function() {
-      if(this._update_loop_id > 0) {
-         Mainloop.source_remove(this._update_loop_id);
-         this._update_loop_id = 0;
+      if(this._updateLoopId > 0) {
+         Mainloop.source_remove(this._updateLoopId);
+         this._updateLoopId = 0;
       }
    },
 
    release: function() {
-      if(this._srcActor) {
-         if((this._srcActor._delegate)&&(this._srcActor._delegate.setActive)&&(this._last_actor))
-            this._srcActor._delegate.setActive(false);
-         this._srcActor = null;
+      if(this._captureEventId > 0) {
+         global.stage.disconnect(this._captureEventId);
+         this._captureEventId = 0;
       }
-      if(this._last_actor) {
-         if((this._last_actor._delegate)&&(this._last_actor._delegate.setActive))
-            this._last_actor._delegate.setActive(true);
-         this._last_actor = null;
+      if(this._allocationId > 0) {
+         this._destActor.disconnect(this._allocationId);
+         this._allocationId = 0;
       }
-      this._disconnectLoop();
-      //Main.notify("Release1");
+      let oldSrcActor = this._srcActor;
+      this._srcActor = null;
+      this._destActor = null;
+      if((this._lastActor)&&(this._lastActor != oldSrcActor)&&
+         (this._lastActor._delegate)&&(this._lastActor._delegate.setActive)&&
+         (this._isMouseInsideActor(this._lastActor))) {
+         this._lastActor._delegate.setActive(true);
+      }
+      this._lastActor = null;
    },
 
    executeInActors: function(srcActor, destActor) {
-      if((this._srcActor != srcActor)&&(this._destActor != destActor)) {
-      this.release();
-      this._destActor = destActor;
-      this._srcActor = srcActor;
-      this._last_actor = null;
-      //Main.notify("add");
+      if((this._srcActor != srcActor)||(this._destActor != destActor)) {
+         this.release();
+         this._disconnectLoop();
+         this._destActor = destActor;
+         this._srcActor = srcActor;
+         this._lastActor = null;
+         let [mx, my, mask] = global.get_pointer();
+         this._updateVector(mx, my);
+         this._allocationId = this._destActor.connect('allocation_changed', Lang.bind(this, this._onAllocationChanged));
+         this._captureEventId = global.stage.connect('captured-event', Lang.bind(this, this._eventFilter));
       }
    },
 
    _eventFilter: function(global, event) {
+      if((!this._srcActor)||(!this._destActor)||
+         (!this._srcActor.visible)||(!this._destActor.visible))
+         return false;
       let source = event.get_source();
-      if(event.type() == this.event_blocker) {
-         if(!this._srcActor)
-            return false;
-         if(this._isMouseInside()) {
-            if(!source.contains(this._srcActor) && !this._srcActor.contains(source)) {
-               this._last_actor = source;
-            } else {
-               this._last_actor = null;
-            }
-            //Main.notify("inside")
+      let type = event.type();
+      let [mx, my] = event.get_coords();
+      if(type == this._eventBlocker) {
+         if(this._isInsideVectorBox(mx, my)) {
+            this._lastActor = source;
             return true;
          }
-      } else if(event.type() == Clutter.EventType.MOTION) {
-         if(this._srcActor == source) {
-            this._updateVector();
-            this._disconnectLoop();
-            if(this._update_loop_id == 0)
-               this._update_loop_id = Mainloop.timeout_add(this.time_out, Lang.bind(this, this._tryToRelease));
-         }
+      } else if(type == Clutter.EventType.MOTION) {
+         if(this._srcActor == source)
+            this._p0.x = mx; this._p0.y = my; //Update triagle
+         this._disconnectLoop();
+         this._updateLoopId = Mainloop.timeout_add(this._timeOut, Lang.bind(this, this._tryToRelease));
       }
       return false;
    },
 
-   _tryToRelease: function() {
-      //if(!this._updateVector() || !this._isMouseInside())
-         this.release();
+   _onAllocationChanged: function(actor, event) {
+      let [mx, my, mask] = global.get_pointer();
+      this._updateVector(mx, my);
    },
 
-   _isMouseInside: function() {
-      let [px, py, mask] = global.get_pointer();
+   _tryToRelease: function() {
+      if(!this._isMouseInsideActor(this._srcActor))
+         this.release();
+      this._updateLoopId = 0;
+   },
+
+   _isMouseInsideActor: function(actor) {
+      let [mx, my, mask] = global.get_pointer();
+      let [ax, ay] = actor.get_transformed_position();
+      let [aw, ah] = actor.get_transformed_size();
+      if((mx > ax)&&(mx < ax + aw)&&(my > ay)&&(my < ay + ah))
+         return true;
+
+      return false;
+   },
+
+   _isInsideVectorBox: function(px, py) {
       let s = this._p0.y*this._p2.x - this._p0.x*this._p2.y + (this._p2.y - this._p0.y)*px +
               (this._p0.x - this._p2.x)*py;
       let t = this._p0.x*this._p1.y - this._p0.y*this._p1.x + (this._p0.y - this._p1.y)*px +
@@ -725,10 +743,7 @@ VectorBoxBlocker.prototype = {
 
    destroy: function() {
       this.release();
-      if(this._captureEventId > 0) {
-         global.stage.disconnect(this._captureEventId);
-         this._captureEventId = 0;
-      }
+      this._disconnectLoop();
    }
 };
 
@@ -1039,9 +1054,14 @@ ConfigurableMenuManager.prototype = {
          return false;
 
       if(this._activeMenu) {
+         let focus = global.stage.key_focus;
+         let hadFocus = focus && this._activeMenuContains(focus);
+
          let oldMenu = this._activeMenu;
          this._activeMenu = null;
          oldMenu.close(false);
+         if(!hadFocus)
+            focus.grab_key_focus();
       }
       return false;
    },
@@ -2301,10 +2321,10 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
    },
 
    _onHoverChanged: function (actor) {
-      //Main.notify("hola" + actor.hover);
       this.setActive(actor.hover);
-      /*if((this._vectorBlocker)&&(actor.hover))
-         this._vectorBlocker.executeInActors(this.actor, this.menu.actor);*/
+      if((this._vectorBlocker)&&(actor.hover)) {
+         this._vectorBlocker.executeInActors(this.actor, this.menu.actor);
+      }
    },
 
    _onMapped: function() {
