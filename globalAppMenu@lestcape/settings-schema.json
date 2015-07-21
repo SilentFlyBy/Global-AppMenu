@@ -70,6 +70,12 @@
         "indent": true,
         "dependency": "display-in-panel"
     },
+    "activate-on-hover": {
+        "type": "checkbox",
+        "default": false,
+        "description": "Open the menu when I move my mouse over it",
+        "tooltip": "Enable opening the menu when the mouse enters the applet"
+    },
     "separator-submenu-top" : {
         "type": "separator"
     },
@@ -103,6 +109,30 @@
         "default" : false,
         "description": "Align all menus with his launcher",
         "tooltip": "Select if you want to align all menus with his launcher."
+    },
+    "effect": {
+        "type": "combobox",
+        "description": "Effect on opening and closing:",
+        "default": "none",
+        "tooltip": "Select the effect on the menu opening and closing.",
+        "options": {
+            "None": "none",
+            "Dispel": "dispel",
+            "Hide Horizontal": "hideHorizontal",
+            "Hide Vertical": "hideVertical",
+            "Scale": "scale",
+            "Windows": "windows"
+        }
+    },
+    "effect-time": {
+        "type": "spinbutton",
+        "default": 0.4,
+        "min": 0,
+        "max": 1,
+        "step": 0.05,
+        "units": "seconds",
+        "description": "Duration of effect:",
+        "tooltip": "The time on seconds to perform the effect(More time is slower)."
     },
     "separator-menuitem-top" : {
         "type": "separator"

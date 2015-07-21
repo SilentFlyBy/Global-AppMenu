@@ -59,7 +59,10 @@ MyMenuFactory.prototype = {
       this._alignSubMenu = false;
       this._showItemIcon = true;
       this._desaturateItemIcon = false;
+      this._openOnHover = false;
       this._arrowSide = St.Side.BOTTOM;
+      this._effectType = "none";
+      this._effectTime = 0.4;
    },
 
    setMainMenuArrowSide: function(arrowSide) {
@@ -69,6 +72,35 @@ MyMenuFactory.prototype = {
             let shellMenu = this._menuLikend[pos].getShellItem();
             if(shellMenu)
                shellMenu.setArrowSide(this._arrowSide);
+         }
+      }
+   },
+
+   setOpenOnHover: function(openOnHover) {
+      if(this._openOnHover != openOnHover) {
+         this._openOnHover = openOnHover;
+         for(let pos in this._menuLikend) {
+            let shellMenu = this._menuLikend[pos].getShellItem();
+            if(shellMenu)
+               shellMenu.setOpenOnHover(this._openOnHover);
+         }
+      }
+   },
+
+   setEffect: function(effect) {
+      if(this._effectType != effect) {
+         this._effectType = effect;
+         for(let pos in this._menuManager) {
+            this._menuManager[pos].setEffect(this._effectType);
+         }
+      }
+   },
+
+   setEffectTime: function(effectTime) {
+      if(this._effectTime != effectTime) {
+         this._effectTime = effectTime;
+         for(let pos in this._menuManager) {
+            this._menuManager[pos].setEffectTime(this._effectTime);
          }
       }
    },
@@ -157,6 +189,8 @@ MyMenuFactory.prototype = {
          menuManager.setAlignSubMenu(this._alignSubMenu);
          menuManager.setShowItemIcon(this._showItemIcon);
          menuManager.desaturateItemIcon(this._desaturateItemIcon);
+         menuManager.setEffect(this._effectType);
+         menuManager.setEffectTime(this._effectTime);
       }
       let shellItem = null;
       let itemType = factoryItem.getFactoryType();
@@ -172,8 +206,10 @@ MyMenuFactory.prototype = {
          shellItem = new ConfigurableMenus.ConfigurableApplicationMenuItem("FIXME");
       //else
       //    throw new TypeError('Trying to instantiate a shell item with an invalid factory type');
-      if(itemType == ConfigurableMenus.FactoryClassTypes.RootMenuClass)
+      if(itemType == ConfigurableMenus.FactoryClassTypes.RootMenuClass) {
          shellItem.setFloatingState(this._floatingMenu);
+         shellItem.setOpenOnHover(this._openOnHover);
+      }
       return shellItem;
    }
 };
@@ -307,14 +343,17 @@ MyApplet.prototype = {
          this.alignMenuLauncher = false;
          this.showItemIcon = true;
          this.desaturateItemIcon = false;
+         this.openOnHover = false;
          this._keybindingTimeOut = 0;
+         this.effectType = "none";
+         this.effectTime = 0.4;
 
          this.actorIcon = new St.Bin();
 
          this.gradient = new GradientLabel("", 10);
          this.actor.add(this.actorIcon, { y_align: St.Align.MIDDLE, y_fill: false });
          this.actor.add(this.gradient.actor, { y_align: St.Align.MIDDLE, y_fill: false });
-         this.actor.connect("enter-event", Lang.bind(this, this._updateMenu));
+         this.actor.connect("enter-event", Lang.bind(this, this._onAppletEnterEvent));
 
          this.menuFactory = new MyMenuFactory();
          this._createSettings();
@@ -324,7 +363,7 @@ MyApplet.prototype = {
 
          if(this.indicatorDbus.canWatch()) {
              this.indicatorDbus.watch();
-             this.indicatorDbus.connect('appmenu-changed', Lang.bind(this, this._onAppmenuChange));
+             this.indicatorDbus.connect('appmenu-changed', Lang.bind(this, this._onAppmenuChanged));
          } else {
              Main.notify(_("You need restart your computer, to active the unity-gtk-module"));
          }
@@ -337,33 +376,40 @@ MyApplet.prototype = {
 
    _createSettings: function() {
       this.settings = new Settings.AppletSettings(this, this.uuid, this.instance_id);
-      this.settings.bindProperty(Settings.BindingDirection.IN, "show-app-icon", "showAppIcon", this._onShowAppIconChange, null);
-      this.settings.bindProperty(Settings.BindingDirection.IN, "desaturate-app-icon", "desaturateAppIcon", this._onDesaturateAppIconChange, null);
-      this.settings.bindProperty(Settings.BindingDirection.IN, "show-app-name", "showAppName", this._onShowAppNameChange, null);
-      this.settings.bindProperty(Settings.BindingDirection.IN, "max-app-name-size", "maxAppNameSize", this._onMaxAppNameSizeChange, null);
-      this.settings.bindProperty(Settings.BindingDirection.IN, "automatic-active-mainmenu", "automaticActiveMainMenu", this._automaticActiveMainMenuChange, null);
-      this.settings.bindProperty(Settings.BindingDirection.IN, "open-active-submenu", "openActiveSubmenu", this._onOpenActiveSubmenuChange, null);
-      this.settings.bindProperty(Settings.BindingDirection.IN, "close-active-submenu", "closeActiveSubmenu", this._onCloseActiveSubmenuChange, null);
-      this.settings.bindProperty(Settings.BindingDirection.IN, "show-boxpointer", "showBoxPointer", this._onShowBoxPointerChange, null);
-      this.settings.bindProperty(Settings.BindingDirection.IN, "align-menu-launcher", "alignMenuLauncher", this._onAlignMenuLauncherChange, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "show-app-icon", "showAppIcon", this._onShowAppIconChanged, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "desaturate-app-icon", "desaturateAppIcon", this._onDesaturateAppIconChanged, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "show-app-name", "showAppName", this._onShowAppNameChanged, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "max-app-name-size", "maxAppNameSize", this._onMaxAppNameSizeChanged, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "automatic-active-mainmenu", "automaticActiveMainMenu", this._automaticActiveMainMenuChanged, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "open-active-submenu", "openActiveSubmenu", this._onOpenActiveSubmenuChanged, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "close-active-submenu", "closeActiveSubmenu", this._onCloseActiveSubmenuChanged, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "show-boxpointer", "showBoxPointer", this._onShowBoxPointerChanged, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "align-menu-launcher", "alignMenuLauncher", this._onAlignMenuLauncherChanged, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "global-overlay-key", "overlayKey", this._updateKeybinding, null);
-      this.settings.bindProperty(Settings.BindingDirection.IN, "display-in-panel", "displayInPanel", this._onDisplayInPanelChange, null);
-      this.settings.bindProperty(Settings.BindingDirection.IN, "show-item-icon", "showItemIcon", this._onShowItemIconChange, null);
-      this.settings.bindProperty(Settings.BindingDirection.IN, "desaturate-item-icon", "desaturateItemIcon", this._onDesaturateItemIconChange, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "display-in-panel", "displayInPanel", this._onDisplayInPanelChanged, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "show-item-icon", "showItemIcon", this._onShowItemIconChanged, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "desaturate-item-icon", "desaturateItemIcon", this._onDesaturateItemIconChanged, null);
 
-      this._onDisplayInPanelChange();
-      this._onShowAppIconChange();
-      this._onDesaturateAppIconChange();
-      this._onShowAppNameChange();
-      this._onMaxAppNameSizeChange();
+      this.settings.bindProperty(Settings.BindingDirection.IN, "activate-on-hover", "openOnHover", this._onOpenOnHoverChanged, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "effect", "effectType", this._onEffectTypeChanged, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "effect-time", "effectTime", this._onEffectTimeChanged, null);
+
+      this._onDisplayInPanelChanged();
+      this._onShowAppIconChanged();
+      this._onDesaturateAppIconChanged();
+      this._onShowAppNameChanged();
+      this._onMaxAppNameSizeChanged();
       this._updateKeybinding();
 
-      this._onOpenActiveSubmenuChange();
-      this._onCloseActiveSubmenuChange();
-      this._onShowBoxPointerChange();
-      this._onAlignMenuLauncherChange();
-      this._onShowItemIconChange();
-      this._onDesaturateItemIconChange();
+      this._onOpenActiveSubmenuChanged();
+      this._onCloseActiveSubmenuChanged();
+      this._onShowBoxPointerChanged();
+      this._onAlignMenuLauncherChanged();
+      this._onShowItemIconChanged();
+      this._onDesaturateItemIconChanged();
+      this._onOpenOnHoverChanged();
+      this._onEffectTypeChanged();
+      this._onEffectTimeChanged();
    },
 
    _updateKeybinding: function() {
@@ -386,59 +432,71 @@ MyApplet.prototype = {
       }));
    },*/
 
-   _onDisplayInPanelChange: function() {
+   _onEffectTypeChanged: function() {
+      this.menuFactory.setEffect(this.effectType);
+   },
+
+   _onEffectTimeChanged: function() {
+      this.menuFactory.setEffectTime(this.effectTime);
+   },
+
+   _onOpenOnHoverChanged: function() {
+      this.menuFactory.setOpenOnHover(this.openOnHover);
+   },
+
+   _onDisplayInPanelChanged: function() {
       this.menuFactory.setFloatingState(!this.displayInPanel);
    },
 
-   _onShowAppIconChange: function() {
+   _onShowAppIconChanged: function() {
       this.actorIcon.visible = this.showAppIcon;
    },
 
-   _onDesaturateAppIconChange: function() {
+   _onDesaturateAppIconChanged: function() {
       if(this.desaturateAppIcon)
          this.actorIcon.add_effect_with_name("desaturate", new Clutter.DesaturateEffect());
       else
          this.actorIcon.remove_effect_by_name("desaturate");
    },
 
-   _onShowAppNameChange: function() {
+   _onShowAppNameChanged: function() {
       this.gradient.actor.visible = this.showAppName;
    },
 
-   _onMaxAppNameSizeChange: function() {
+   _onMaxAppNameSizeChanged: function() {
       this.gradient.setSize(this.maxAppNameSize);
    },
 
-   _automaticActiveMainMenuChange: function() {
+   _automaticActiveMainMenuChanged: function() {
       if(this.automaticActiveMainMenu)
          this._closeMenu();
    },
 
-   _onOpenActiveSubmenuChange: function() {
+   _onOpenActiveSubmenuChanged: function() {
       this.menuFactory.setOpenSubMenu(this.openActiveSubmenu);
    },
 
-   _onCloseActiveSubmenuChange: function() {
+   _onCloseActiveSubmenuChanged: function() {
       this.menuFactory.setCloseSubMenu(this.closeActiveSubmenu);
    },
 
-   _onShowBoxPointerChange: function() {
+   _onShowBoxPointerChanged: function() {
       this.menuFactory.showBoxPointer(this.showBoxPointer);
    },
 
-   _onAlignMenuLauncherChange: function() {
+   _onAlignMenuLauncherChanged: function() {
       this.menuFactory.setAlignSubMenu(this.alignMenuLauncher);
    },
 
-   _onShowItemIconChange: function() {
+   _onShowItemIconChanged: function() {
       this.menuFactory.setShowItemIcon(this.showItemIcon);
    },
 
-   _onDesaturateItemIconChange: function() {
+   _onDesaturateItemIconChanged: function() {
       this.menuFactory.desaturateItemIcon(this.desaturateItemIcon);
    },
 
-   _onAppmenuChange: function(indicator, window) {
+   _onAppmenuChanged: function(indicator, window) {
       let newLabel = null;
       let newIcon = null;
       let newMenu = null;
@@ -515,9 +573,11 @@ MyApplet.prototype = {
       return iconSize;
    },
 
-   _updateMenu: function() {
+   _onAppletEnterEvent: function() {
       if(this.currentWindow)
          this.indicatorDbus.updateMenuForWindow(this.currentWindow);
+      if((this.menu)&&(this.menu.isInFloatingState())&&(this.openOnHover))
+         this.menu.open(true);
    },
 
    on_orientation_changed: function(orientation) {

@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Global Application Menu 0.1-Beta\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-05-14 06:58-0500\n"
-"PO-Revision-Date: 2015-07-02 19:23+0100\n"
+"PO-Revision-Date: 2015-07-21 15:37-0600\n"
 "Last-Translator: gogo <trebelnik2@gmail.com>\n"
 "Language-Team: Croatian <hr@hr.org>\n"
 "MIME-Version: 1.0\n"
@@ -66,6 +66,46 @@ msgstr "Poravnaj sve izbornike s njihovim pokretačima"
 msgid "Select if you want to align all menus with his launcher."
 msgstr "Odaberite ako želite poravnati sve izbornike s njihovim pokretačima."
 
+#. globalAppMenu@lestcape->settings-schema.json->effect->description
+msgid "Effect on opening and closing:"
+msgstr ""
+
+#. globalAppMenu@lestcape->settings-schema.json->effect->tooltip
+msgid "Select the effect on the menu opening and closing."
+msgstr ""
+
+#. configurableMenu@lestcape->settings-schema.json->effect->options
+msgid "None"
+msgstr ""
+
+#. configurableMenu@lestcape->settings-schema.json->effect->options
+msgid "Dispel"
+msgstr ""
+
+#. configurableMenu@lestcape->settings-schema.json->effect->options
+msgid "Hide Horizontal"
+msgstr ""
+
+#. configurableMenu@lestcape->settings-schema.json->effect->options
+msgid "Hide Vertical"
+msgstr ""
+
+#. configurableMenu@lestcape->settings-schema.json->effect->options
+msgid "Scale"
+msgstr ""
+
+#. configurableMenu@lestcape->settings-schema.json->effect->options
+msgid "Windows"
+msgstr ""
+
+#. globalAppMenu@lestcape->settings-schema.json->effect-time->description
+msgid "Duration of effect:"
+msgstr ""
+
+#. globalAppMenu@lestcape->settings-schema.json->effect-time->tooltip
+msgid "The time on seconds to perform the effect(More time is slower)."
+msgstr ""
+
 #. globalAppMenu@lestcape->settings-schema.json->automatic-active-
 #. mainmenu->description
 msgid "Automatically activate the main menu"
@@ -75,6 +115,14 @@ msgstr "Automatski aktiviraj glavni izbornik"
 #. mainmenu->tooltip
 msgid "Select if you want to automatically activate the main menu."
 msgstr "Odaberite ako želite automatski aktivirati glavni izbornik."
+
+#. globalAppMenu@lestcape->settings-schema.json->activate-on-hover->description
+msgid "Open the menu when I move my mouse over it"
+msgstr ""
+
+#. globalAppMenu@lestcape->settings-schema.json->activate-on-hover->tooltip
+msgid "Enable opening the menu when the mouse enters the applet"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->desaturate-app-
 #. icon->description

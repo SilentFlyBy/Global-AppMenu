@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Global Application Menu 0.1-Beta\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-05-14 06:58-0500\n"
-"PO-Revision-Date: 2015-06-23 16:46-0600\n"
+"PO-Revision-Date: 2015-07-21 15:36-0600\n"
 "Last-Translator: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "Language-Team: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -64,6 +64,47 @@ msgstr "Alinear todos los menús con su lanzador"
 msgid "Select if you want to align all menus with his launcher."
 msgstr "Seleccione si desea alinear todos los menús con su lanzador."
 
+#. globalAppMenu@lestcape->settings-schema.json->effect->description
+msgid "Effect on opening and closing:"
+msgstr "Efecto sobre la apertura y cierre:"
+
+#. globalAppMenu@lestcape->settings-schema.json->effect->tooltip
+msgid "Select the effect on the menu opening and closing."
+msgstr "Seleccionar el efecto sobre la apertura y el cierre del menú."
+
+#. configurableMenu@lestcape->settings-schema.json->effect->options
+msgid "None"
+msgstr "Ninguno"
+
+#. configurableMenu@lestcape->settings-schema.json->effect->options
+msgid "Dispel"
+msgstr "Desvanecer"
+
+#. configurableMenu@lestcape->settings-schema.json->effect->options
+msgid "Hide Horizontal"
+msgstr "Ocultar Horizontal"
+
+#. configurableMenu@lestcape->settings-schema.json->effect->options
+msgid "Hide Vertical"
+msgstr "Ocultar Vertical"
+
+#. configurableMenu@lestcape->settings-schema.json->effect->options
+msgid "Scale"
+msgstr "Scalar"
+
+#. configurableMenu@lestcape->settings-schema.json->effect->options
+msgid "Windows"
+msgstr "Ventanas"
+
+#. globalAppMenu@lestcape->settings-schema.json->effect-time->description
+msgid "Duration of effect:"
+msgstr "Duración del efecto:"
+
+#. globalAppMenu@lestcape->settings-schema.json->effect-time->tooltip
+msgid "The time on seconds to perform the effect(More time is slower)."
+msgstr ""
+"El tiempo en segundos para realizar el efecto (Más tiempo es más lento)."
+
 #. globalAppMenu@lestcape->settings-schema.json->automatic-active-
 #. mainmenu->description
 msgid "Automatically activate the main menu"
@@ -73,6 +114,14 @@ msgstr "Activar automáticamente el menú principal"
 #. mainmenu->tooltip
 msgid "Select if you want to automatically activate the main menu."
 msgstr "Seleccione si desea activar automáticamente el menú principal."
+
+#. globalAppMenu@lestcape->settings-schema.json->activate-on-hover->description
+msgid "Open the menu when I move my mouse over it"
+msgstr "Abrir el menú cuando el ratón pase por encima."
+
+#. globalAppMenu@lestcape->settings-schema.json->activate-on-hover->tooltip
+msgid "Enable opening the menu when the mouse enters the applet"
+msgstr "Habilitar abrir el menú cuando el ratón entra en el applet"
 
 #. globalAppMenu@lestcape->settings-schema.json->desaturate-app-
 #. icon->description
