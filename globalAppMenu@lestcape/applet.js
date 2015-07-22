@@ -358,6 +358,13 @@ MyApplet.prototype = {
          this.menuFactory = new MyMenuFactory();
          this._createSettings();
 
+         // Swap applet_context_menu to Configurable Menu Api.
+         this._menuManager.removeMenu(this._applet_context_menu);
+         this._applet_context_menu.destroy();
+         this._applet_context_menu = new ConfigurableMenus.ConfigurableMenu(this, 0.0, orientation, true);
+         this._contextMenuManager = new ConfigurableMenus.ConfigurableMenuManager(this);
+         this._contextMenuManager.addMenu(this._applet_context_menu);
+
          this.indicatorDbus = new IndicatorAppMenuWatcher.IndicatorAppMenuWatcher(
                 IndicatorAppMenuWatcher.AppmenuMode.MODE_STANDARD, this._getIconSize());
 
@@ -531,9 +538,14 @@ MyApplet.prototype = {
       if(this._isNewMenu(newMenu)) {
          this._closeMenu();
          this.menu = newMenu;
-         if((this.menu)&&(!this.menu.isOpen)&&
-            (!this.menu.isInFloatingState())&&(this.automaticActiveMainMenu))
-            this.menu.open();
+         if(this.menu) {
+            //this.menu._menuManager.removeMenu(this._applet_context_menu);
+            //this._contextMenuManager = new ConfigurableMenus.ConfigurableMenuManager(this);
+            //this.menu._menuManager.addMenu(this._applet_context_menu);    
+            if((!this.menu.isOpen)&&
+               (!this.menu.isInFloatingState())&&(this.automaticActiveMainMenu))
+               this.menu.open();
+         }
       }
       if(this._isNewApp(newLabel, newIcon)) {
          this.gradient.setText(newLabel);
@@ -542,8 +554,10 @@ MyApplet.prototype = {
    },
 
    _closeMenu: function() {
-      if((this.menu)&&(this.menu.isOpen))
+      if((this.menu)&&(this.menu.isOpen)) {
+         //this.menu._menuManager.removeMenu(this._applet_context_menu);
          this.menu.close(false, true);
+      }
    },
 
    _cleanAppmenu: function() {
