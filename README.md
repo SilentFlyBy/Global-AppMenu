@@ -1,6 +1,6 @@
-Cinnamon Applet: Global Application Menu Version: v0.5-Beta
+Cinnamon Applet: Global Application Menu Version: v0.6-Beta
 
-Last update: 13 June 2015
+Last update: 22 July 2015
 
 ***
 Special thanks to:
@@ -32,6 +32,13 @@ Known issues (Try at your own risk):
 
 Change log
 --------------
+0.6-Beta
+ - Added keyboard navegation.
+ - Added effects.
+ - Added vector box: https://github.com/linuxmint/Cinnamon/issues/1775.
+ - Improve the menu speed (preload kde menu when is possible).
+ - Fixed some issues.
+
 0.5-Beta
  - Fixed Firefox, Thunderbird and Mint Update Manager.
  - Some little performance improvement.

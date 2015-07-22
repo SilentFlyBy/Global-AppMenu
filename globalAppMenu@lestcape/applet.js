@@ -362,8 +362,8 @@ MyApplet.prototype = {
          this._menuManager.removeMenu(this._applet_context_menu);
          this._applet_context_menu.destroy();
          this._applet_context_menu = new ConfigurableMenus.ConfigurableMenu(this, 0.0, orientation, true);
-         this._contextMenuManager = new ConfigurableMenus.ConfigurableMenuManager(this);
-         this._contextMenuManager.addMenu(this._applet_context_menu);
+         this._menuManager = new ConfigurableMenus.ConfigurableMenuManager(this);
+         this._menuManager.addMenu(this._applet_context_menu);
 
          this.indicatorDbus = new IndicatorAppMenuWatcher.IndicatorAppMenuWatcher(
                 IndicatorAppMenuWatcher.AppmenuMode.MODE_STANDARD, this._getIconSize());
@@ -538,10 +538,7 @@ MyApplet.prototype = {
       if(this._isNewMenu(newMenu)) {
          this._closeMenu();
          this.menu = newMenu;
-         if(this.menu) {
-            //this.menu._menuManager.removeMenu(this._applet_context_menu);
-            //this._contextMenuManager = new ConfigurableMenus.ConfigurableMenuManager(this);
-            //this.menu._menuManager.addMenu(this._applet_context_menu);    
+         if(this.menu) { 
             if((!this.menu.isOpen)&&
                (!this.menu.isInFloatingState())&&(this.automaticActiveMainMenu))
                this.menu.open();
@@ -555,7 +552,6 @@ MyApplet.prototype = {
 
    _closeMenu: function() {
       if((this.menu)&&(this.menu.isOpen)) {
-         //this.menu._menuManager.removeMenu(this._applet_context_menu);
          this.menu.close(false, true);
       }
    },

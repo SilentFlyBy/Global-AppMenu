@@ -2934,7 +2934,6 @@ ConfigurableMenuApplet.prototype = {
                this._activeSubMenuItem = this._getFirstMenuItem(this);
             }
             if((direction == Gtk.DirectionType.LEFT)||(direction == Gtk.DirectionType.RIGHT)) {
-               let old = this._activeSubMenuItem;
                this.actor.navigate_focus(this._activeSubMenuItem.actor, direction, true);
                this._activeSubMenuItem = global.stage.key_focus._delegate;
                if(this._activeSubMenuItem && this._activeSubMenuItem.menu)
