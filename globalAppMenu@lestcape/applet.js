@@ -593,6 +593,7 @@ MyApplet.prototype = {
    on_orientation_changed: function(orientation) {
       this.orientation = orientation;
       this.menuFactory.setMainMenuArrowSide(orientation);
+      this._applet_context_menu.setArrowSide(orientation);
    },
 
    on_panel_height_changed: function() {

@@ -94,7 +94,7 @@
     },
     "close-active-submenu" : {
         "type" : "checkbox",
-        "default" : false,
+        "default" : true,
         "description": "Automatically close the submenu",
         "tooltip": "Select if you want to automatically close the submenu when the mouse is out of the launcher."
     },
