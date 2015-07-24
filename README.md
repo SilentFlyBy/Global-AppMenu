@@ -4,12 +4,19 @@ Last update: 22 July 2015
 
 ***
 Special thanks to:
+--------------
 
 - rgcjonas             (https://github.com/rgcjonas)               The initial code.
 - Canonical devs       (http://www.canonical.com/)                 The protocols and patches.
 - Cinnamon devs        (https://github.com/linuxmint/Cinnamon)     The support (specially: https://github.com/mtwebster).
 - rilian-la-te         (https://github.com/rilian-la-te)           Understand and fix a lot of things.
 - collinss             (https://github.com/collinss)               Has helped fix the behavior of firefox and thunderbird.
+
+Author of language translation:
+--------------
+- Croatian(Hr):     gogo (trebelnik2@gmail.com)
+- English(En):      Lester Carballo Pérez(lestcape@gmail.com)
+- Spanish(Es):      Lester Carballo Pérez(lestcape@gmail.com)
 
 --------------
 ![](https://raw.githubusercontent.com/lestcape/Global-AppMenu/master/globalAppMenu%40lestcape/Capture.png)
@@ -33,6 +40,7 @@ Known issues (Try at your own risk):
 Change log
 --------------
 0.6-Beta
+ - Added Croatian language, thanks to https://github.com/muzena
  - Added keyboard navegation.
  - Added effects.
  - Added vector box: https://github.com/linuxmint/Cinnamon/issues/1775.
