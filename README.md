@@ -41,6 +41,7 @@ Change log
 --------------
 0.6-Beta
  - Added Croatian language, thanks to https://github.com/muzena
+ - Added JAyanta support.
  - Added keyboard navegation.
  - Added effects.
  - Added vector box: https://github.com/linuxmint/Cinnamon/issues/1775.

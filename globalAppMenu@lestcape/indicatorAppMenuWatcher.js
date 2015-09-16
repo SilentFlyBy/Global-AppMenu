@@ -64,6 +64,22 @@ SystemProperties.prototype = {
       this._overrideBoolXSetting('Gtk/ShellShowsMenubar', show);
    },
 
+   activeJAyantanaModule: function(active) {
+      if(active) {
+         let file = Gio.file_new_for_path("/usr/share/java/jayatanaag.jar");
+         if(file.query_exists(null)) {
+             GLib.setenv('JAYATANA', "1", true);
+             GLib.setenv('JAYATANA_FORCE', "1", true);
+             GLib.setenv('JAVA_TOOL_OPTIONS', "-javaagent:/usr/share/java/jayatanaag.jar", true);
+          }
+      } else {
+          GLib.setenv('JAYATANA', "0", true);
+          //GLib.unsetenv('JAYATANA');
+          //GLib.unsetenv('JAYATANA_FORCE');
+          //GLib.unsetenv('JAVA_TOOL_OPTIONS');
+      }
+   },
+
    activeUnityGtkModule: function(active) {
       let isReady = false;
       let envGtk = this._getEnvGtkModules();
@@ -355,6 +371,7 @@ IndicatorAppMenuWatcher.prototype = {
    _initEnviroment: function() {
       let isReady = this._system.activeUnityGtkModule(true);
       if(isReady) {
+         this._system.activeJAyantanaModule(true);
          this._system.shellShowAppmenu(true);
          this._system.shellShowMenubar(true);
          this._system.activeUnityMenuProxy(true);
@@ -585,7 +602,10 @@ IndicatorAppMenuWatcher.prototype = {
       if((xid in this._registeredWindows) && (!this._registeredWindows[xid].appMenu)) {
          if((this._registeredWindows[xid].menubarObjectPath) &&
             (this._registeredWindows[xid].sender)) {
-            this._getMenuClient(xid, Lang.bind(this, this._onMenuClientReady));
+            // FIXME JAyantana is slow, we need to wait for it a little.
+            GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, Lang.bind(this, function() {
+               this._getMenuClient(xid, Lang.bind(this, this._onMenuClientReady));
+            }));
          } else {
             this._registeredWindows[xid].fail = true;
          }
@@ -603,6 +623,10 @@ IndicatorAppMenuWatcher.prototype = {
                this._registerAllWindows();
                registerWin = this._registeredWindows[xid];
             }
+            /*if((xid == 41943047)&&(!registerWin.appMenu))
+                Main.notify("Registers " + this._registeredWindows[xid].sender + " " + this._registeredWindows[xid].menubarObjectPath);
+            else if(xid == 41943047)
+                Main.notify("Register " + this._registeredWindows[xid].sender + " " + this._registeredWindows[xid].menubarObjectPath);*/
          } else {
             this._registerAllWindows();
             if(xid in this._registeredWindows)
@@ -702,6 +726,7 @@ IndicatorAppMenuWatcher.prototype = {
          this._system.shellShowAppmenu(false);
          this._system.shellShowMenubar(false);
          this._system.activeUnityMenuProxy(false);
+         this._system.activeJAyantanaModule(false);
          // FIXME When we can call system.activeUnityGtkModule(false)?
          // Is possible that we need to add an option to the settings
          // to be more easy to the user uninstall the applet
