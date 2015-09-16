@@ -623,10 +623,6 @@ IndicatorAppMenuWatcher.prototype = {
                this._registerAllWindows();
                registerWin = this._registeredWindows[xid];
             }
-            /*if((xid == 41943047)&&(!registerWin.appMenu))
-                Main.notify("Registers " + this._registeredWindows[xid].sender + " " + this._registeredWindows[xid].menubarObjectPath);
-            else if(xid == 41943047)
-                Main.notify("Register " + this._registeredWindows[xid].sender + " " + this._registeredWindows[xid].menubarObjectPath);*/
          } else {
             this._registerAllWindows();
             if(xid in this._registeredWindows)
