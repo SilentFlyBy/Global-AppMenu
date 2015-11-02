@@ -1243,6 +1243,15 @@ ConfigurableMenuManager.prototype = {
       this._lastMenuClose = null;
    },
 
+   _findMenu: function(item) {
+      for (let i = 0; i < this._menus.length; i++) {
+         let menudata = this._menus[i];
+         if (item == menudata.menu)
+            return i;
+      }
+      return -1;
+   },
+
    addMenu: function(menu, position) {
       if(this._findMenu(menu) == -1) {
          let menudata = {

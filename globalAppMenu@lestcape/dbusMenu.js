@@ -525,9 +525,9 @@ DBusClient.prototype = {
          let tag = new Date().getTime();
          let toTraverse = [ this.getRootId() ];
          while (toTraverse.length > 0) {
-                let item = this.getItem(toTraverse.shift());
-                item._dbusClientGcTag = tag;
-                Array.prototype.push.apply(toTraverse, item.getChildrenIds());
+            let item = this.getItem(toTraverse.shift());
+            item._dbusClientGcTag = tag;
+            Array.prototype.push.apply(toTraverse, item.getChildrenIds());
          }
          for(let id in this._items) {
             if(this._items[id]._dbusClientGcTag != tag)
@@ -558,7 +558,6 @@ DBusClient.prototype = {
       this._doLayoutUpdate(root);
 
       this._gcItems();
-      //this._fakeSendAboutToShow();
 
       if(this._flagLayoutUpdateRequired)
          this._beginLayoutUpdate();
@@ -633,6 +632,7 @@ DBusClient.prototype = {
       if(this._idLayoutUpdate == 0) {
          this._idLayoutUpdate = GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE,
             Lang.bind(this, this._requestLayoutUpdate));
+         //this._requestLayoutUpdate();
       }
    },
 
