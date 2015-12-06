@@ -3036,7 +3036,7 @@ ConfigurablePopupMenuItem.prototype = {
 
    setIconName: function(name) {
       this._icon.visible = ((this._displayIcon) && (name && name != ""));
-      this._icon.icon_name = iconName;
+      this._icon.icon_name = name;
    },
 
    desaturateItemIcon: function(desaturate) {

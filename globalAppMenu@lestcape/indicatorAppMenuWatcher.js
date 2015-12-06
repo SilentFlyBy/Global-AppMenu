@@ -255,6 +255,8 @@ IndicatorAppMenuWatcher.prototype = {
    UnregisterWindowAsync: function(params, invocation) {
       let [xid] = params;
       this._destroyMenu(xid);
+      if((xid) && (xid in this._registeredWindows))
+          this._emitWindowUnregistered(xid);
    },
 
    GetMenuForWindowAsync: function(params, invocation) {
@@ -461,7 +463,6 @@ IndicatorAppMenuWatcher.prototype = {
          this._registeredWindows[xid].appMenu = null;
          if(appMenu) {
             appMenu.destroy();
-            this._emitWindowUnregistered(xid);
          }
          if(this._xidLast == xid)
             this.emit('appmenu-changed', this._registeredWindows[xid].window);
@@ -499,9 +500,7 @@ IndicatorAppMenuWatcher.prototype = {
          for(let pos in winList) {
             let wind = winList[pos];
             let xid = this._guessWindowXId(wind);
-            if(xid) {
-               if((xid in this._registeredWindows)&&(this._registeredWindows[xid].fail))
-                  continue;
+            if((xid) && !((xid in this._registeredWindows)&&(this._registeredWindows[xid].fail))) {
                this._registerWindowXId(xid, wind);
             }
          }
@@ -524,7 +523,10 @@ IndicatorAppMenuWatcher.prototype = {
       for(let xid in this._registeredWindows) {
          if(current.indexOf(xid) == -1) {
             this._destroyMenu(xid);
-            delete this._registeredWindows[xid];
+            this._emitWindowUnregistered(xid);
+            //FIXME Clementine can register the menu without have a windows yet (Maybe others?)
+            // So please, remember the Dbus Menu configuration(don't delete record).
+            //delete this._registeredWindows[xid];
          }
       }
    },
@@ -576,7 +578,7 @@ IndicatorAppMenuWatcher.prototype = {
             this._registeredWindows[xid].sender = senderDbus;
          if(!this._registeredWindows[xid].application)
             this._registeredWindows[xid].application = appTracker;
-         if(!this._registeredWindows[xid].window)
+         if(!this._registeredWindows[xid].window) 
             this._registeredWindows[xid].window = wind;
       } else {
          this._registeredWindows[xid] = {
@@ -593,7 +595,6 @@ IndicatorAppMenuWatcher.prototype = {
             fail: false
          };
       }
-
       this._tryToGetMenuClient(xid);
    },
 
@@ -717,6 +718,7 @@ IndicatorAppMenuWatcher.prototype = {
             if(register.icon)
                register.icon.destroy();
             this._destroyMenu(xid);
+            this._emitWindowUnregistered(xid);
          }
          this._registeredWindows = null;
          this._system.shellShowAppmenu(false);
