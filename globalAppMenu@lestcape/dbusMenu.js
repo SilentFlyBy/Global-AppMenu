@@ -432,7 +432,7 @@ DBusClient.prototype = {
       this._reportEvent(id, event, params, timestamp);
       if(event == ConfigurableMenus.FactoryEventTypes.opened) {
          this._sendAboutToShow(id);
-         this._fakeSendAboutToShow(id);
+         this.fakeSendAboutToShow(id);
       }
    },*/
 
@@ -441,7 +441,7 @@ DBusClient.prototype = {
       if(event == ConfigurableMenus.FactoryEventTypes.opened) {
          if(!this._buggyClient)
             this._sendAboutToShow(id);
-         this._fakeSendAboutToShow(id);
+         this.fakeSendAboutToShow(id);
       } else if(this._buggyClient && (event == ConfigurableMenus.FactoryEventTypes.closed)) {
          this._sendAboutToShow(id);
       }
@@ -467,7 +467,7 @@ DBusClient.prototype = {
    // We can fix the firefox delay when loading the menu with something like this, requesting AboutToShow for all submenu
    // items of the current submenu, but will not need update the child of a child, so we need to stop this not calling
    // directly sendEvent.
-   _fakeSendAboutToShow: function(lastId) {
+   fakeSendAboutToShow: function(lastId) {
       let listId = this._items[lastId].getChildrenIds();
       let id;
       for(let pos in listId) {
@@ -717,7 +717,7 @@ DBusClientGtk.prototype = {
          // FakeSendAboutToShow is not requiered by gtkdbus menu,
          // all structure is always retrived, so is more slow if
          // call that.
-         //this._fakeSendAboutToShow(id);
+         //this.fakeSendAboutToShow(id);
       }
    },
 
