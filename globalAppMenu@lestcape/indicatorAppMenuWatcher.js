@@ -356,9 +356,8 @@ IndicatorAppMenuWatcher.prototype = {
       let xid = this._guessWindowXId(wind);
       if((xid) && (xid in this._registeredWindows)) {
          let appmenu = this._registeredWindows[xid].appMenu;
-         if(appmenu /*&& !appmenu.isbuggyClient()*/)
-            appmenu._fakeSendAboutToShow(appmenu.getRootId());
-            //appmenu.sendEvent(appmenu.getRootId(), "opened", null, 0);
+         if(appmenu)
+            appmenu.fakeSendAboutToShow(appmenu.getRootId());
       }
    },
 

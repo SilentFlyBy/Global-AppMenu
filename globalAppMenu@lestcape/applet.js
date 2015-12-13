@@ -429,7 +429,7 @@ MyApplet.prototype = {
    _initEnviroment: function() {
       let isReady = this._system.activeUnityGtkModule(true);
       if(isReady) {
-         //this._system.activeJAyantanaModule(this.enableJayantana);
+         this._system.activeJAyantanaModule(this.enableJayantana);
          this._system.shellShowAppmenu(true);
          this._system.shellShowMenubar(true);
          this._system.activeUnityMenuProxy(true);
