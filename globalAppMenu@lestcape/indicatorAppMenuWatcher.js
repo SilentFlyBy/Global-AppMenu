@@ -259,6 +259,7 @@ IndicatorAppMenuWatcher.prototype = {
       this._windowsChangedId = 0;
       this._notifyWorkspacesId = 0;
       this._focusWindowId = 0;
+      this._buggyClientId = 0;
 
       this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(DBusRegistrar, this);
       this._tracker = Cinnamon.WindowTracker.get_default();
@@ -356,8 +357,12 @@ IndicatorAppMenuWatcher.prototype = {
       let xid = this._guessWindowXId(wind);
       if((xid) && (xid in this._registeredWindows)) {
          let appmenu = this._registeredWindows[xid].appMenu;
-         if(appmenu)
-            appmenu.fakeSendAboutToShow(appmenu.getRootId());
+         if(appmenu) {
+            if(appmenu.isbuggyClient())
+               appmenu.fakeSendAboutToShow(appmenu.getRootId());
+            else
+               appmenu.sendEvent(appmenu.getRootId(), "opened", null, 0);
+         }
       }
    },
 
@@ -539,7 +544,22 @@ IndicatorAppMenuWatcher.prototype = {
             //delete this._registeredWindows[xid];
          }
       }
-      // this._onWindowChanged();
+      GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, Lang.bind(this, function() {
+         if(this._buggyClientId != 0) {
+            GLib.SOURCE_REMOVE(this._buggyClientId);
+            this._buggyClientId = 0;
+         }
+         this._verifyBuggyClient(0);
+      }));
+   },
+
+   _verifyBuggyClient: function(time) {
+      if(time < 60000) {
+         this._buggyClientId = GLib.timeout_add(GLib.PRIORITY_DEFAULT_IDLE, 500, Lang.bind(this, function() {
+            this._onWindowChanged();
+            this._verifyBuggyClient(time + 500);
+         }));
+      }
    },
 
    _updateIcon: function(xid) {
