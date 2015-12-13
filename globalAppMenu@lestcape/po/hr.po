@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Global Application Menu 0.1-Beta\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-05-14 06:58-0500\n"
-"PO-Revision-Date: 2015-08-02 17:10-0600\n"
+"PO-Revision-Date: 2015-12-13 14:20-0600\n"
 "Last-Translator: gogo <trebelnik2@gmail.com>\n"
 "Language-Team: Croatian <hr@hr.org>\n"
 "MIME-Version: 1.0\n"
@@ -183,6 +183,10 @@ msgstr "Odaberite ako želite prikazati glavni izbornik na panelu."
 msgid "Menu items"
 msgstr "Stavke izbornika"
 
+#. globalAppMenu@lestcape->settings-schema.json->head-support->description
+msgid "Support"
+msgstr ""
+
 #. globalAppMenu@lestcape->settings-schema.json->head-application->description
 msgid "Applications"
 msgstr "Aplikacije"
@@ -194,6 +198,14 @@ msgstr "Prikaži smjernicu izbornika"
 #. globalAppMenu@lestcape->settings-schema.json->show-boxpointer->tooltip
 msgid "Select if you want to show the boxpointer of all floating menus."
 msgstr "Odaberite ako želite prikazati smjernice izbornika."
+
+#. globalAppMenu@lestcape->settings-schema.json->enable-jayantana->description
+msgid "Enable the support for JAyantana (Experimental)"
+msgstr ""
+
+#. globalAppMenu@lestcape->settings-schema.json->enable-jayantana->tooltip
+msgid "Select if you want to enable the support for JAyantana."
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->show-app-icon->description
 msgid "Show the application icon in the panel"

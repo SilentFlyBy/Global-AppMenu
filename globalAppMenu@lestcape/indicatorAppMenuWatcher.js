@@ -68,15 +68,24 @@ SystemProperties.prototype = {
       if(active) {
          let file = Gio.file_new_for_path("/usr/share/java/jayatanaag.jar");
          if(file.query_exists(null)) {
+             let envJavaToolOptions = this._getEnvJavaToolOptions();
              GLib.setenv('JAYATANA', "1", true);
              GLib.setenv('JAYATANA_FORCE', "1", true);
-             GLib.setenv('JAVA_TOOL_OPTIONS', "-javaagent:/usr/share/java/jayatanaag.jar", true);
+             let jayantana = "-javaagent:/usr/share/java/jayatanaag.jar";
+             if(envJavaToolOptions.indexOf(jayantana) == -1)
+                 envJavaToolOptions.push(jayantana);
+             GLib.setenv('JAVA_TOOL_OPTIONS', envJavaToolOptions.join(" "), true);
           }
       } else {
           GLib.setenv('JAYATANA', "0", true);
-          //GLib.unsetenv('JAYATANA');
-          //GLib.unsetenv('JAYATANA_FORCE');
-          //GLib.unsetenv('JAVA_TOOL_OPTIONS');
+          GLib.setenv('JAYATANA_FORCE', "0", true);
+          let envJavaToolOptions = this._getEnvJavaToolOptions();
+          let jayantana = "-javaagent:/usr/share/java/jayatanaag.jar";
+          let index = envJavaToolOptions.indexOf(jayantana);
+          if(index != -1) {
+             envJavaToolOptions.splice(index, -1);
+          }
+          GLib.setenv('JAVA_TOOL_OPTIONS', envJavaToolOptions.join(" "), true);
       }
    },
 
@@ -165,6 +174,21 @@ SystemProperties.prototype = {
       }
    },
 
+   _getEnvJavaToolOptions: function() {
+      let result = [];
+      let env = GLib.getenv('JAVA_TOOL_OPTIONS');
+      if(env && env != "") {
+         let arrayOptions = env.split(" ");
+         for(let pos in arrayOptions) {
+            let option = arrayOptions[pos];
+            if(option && option != "") {
+                result.push(option);
+            }
+         }
+      }
+      return result;
+   },
+
    _getEnvGtkModules: function() {
       let envGtk = GLib.getenv('GTK_MODULES');
       if(envGtk)
@@ -238,8 +262,6 @@ IndicatorAppMenuWatcher.prototype = {
 
       this._dbusImpl = Gio.DBusExportedObject.wrapJSObject(DBusRegistrar, this);
       this._tracker = Cinnamon.WindowTracker.get_default();
-      this._system = new SystemProperties();
-      this._isReady = this._initEnviroment();
    },
 
    // DBus Functions
@@ -291,7 +313,7 @@ IndicatorAppMenuWatcher.prototype = {
 
    // Public functions
    watch: function() {
-      if((this._isReady)&&(!this._ownName)) {
+      if(!this._ownName) {
          this._dbusImpl.export(Gio.DBus.session, WATCHER_OBJECT);
          this._ownName = Gio.DBus.session.own_name(WATCHER_INTERFACE,
                                Gio.BusNameOwnerFlags.NONE,
@@ -316,12 +338,8 @@ IndicatorAppMenuWatcher.prototype = {
       }
    },
 
-   canWatch: function() {
-      return this._isReady;
-   },
-
    isWatching: function() {
-      return ((this._isReady) && (this._ownName));
+      return (this._ownName);
    },
 
    getMenuForWindow: function(wind) {
@@ -338,8 +356,9 @@ IndicatorAppMenuWatcher.prototype = {
       let xid = this._guessWindowXId(wind);
       if((xid) && (xid in this._registeredWindows)) {
          let appmenu = this._registeredWindows[xid].appMenu;
-         if(appmenu)
-            appmenu.sendEvent(appmenu.getRootId(), "opened", null, 0);
+         if(appmenu /*&& !appmenu.isbuggyClient()*/)
+            appmenu._fakeSendAboutToShow(appmenu.getRootId());
+            //appmenu.sendEvent(appmenu.getRootId(), "opened", null, 0);
       }
    },
 
@@ -370,18 +389,6 @@ IndicatorAppMenuWatcher.prototype = {
    },
 
    // Private functions
-   _initEnviroment: function() {
-      let isReady = this._system.activeUnityGtkModule(true);
-      if(isReady) {
-         this._system.activeJAyantanaModule(true);
-         this._system.shellShowAppmenu(true);
-         this._system.shellShowMenubar(true);
-         this._system.activeUnityMenuProxy(true);
-         return true;
-      }
-      return false;
-   },
-
    _acquiredName: function() {
       this._everAcquiredName = true;
       global.log("%s Acquired name %s".format(LOG_NAME, WATCHER_INTERFACE));
@@ -435,16 +442,16 @@ IndicatorAppMenuWatcher.prototype = {
    _onMenuClientReady: function(xid, client) {
       if(client != null) {
          this._registeredWindows[xid].appMenu = client;
-         if(!this._registeredWindows[xid].window) {
-            this._registerAllWindows();
-         }
-         if(this._guessWindowXId(global.display.focus_window) == xid)
-            this._onWindowChanged();
          let root = client.getRoot();
          root.connectAndRemoveOnDestroy({
             'childs-empty'   : Lang.bind(this, this._onMenuEmpty, xid),
             'destroy'        : Lang.bind(this, this._onMenuDestroy, xid)
          });
+         if(this._guessWindowXId(global.display.focus_window) == xid) {
+            this._onWindowChanged();
+         } else if(!this._registeredWindows[xid].window) {
+            this._registerAllWindows();
+         }
       }
    },
 
@@ -499,9 +506,11 @@ IndicatorAppMenuWatcher.prototype = {
          // For each window, let's make sure we add it!
          for(let pos in winList) {
             let wind = winList[pos];
-            let xid = this._guessWindowXId(wind);
-            if((xid) && !((xid in this._registeredWindows)&&(this._registeredWindows[xid].fail))) {
-               this._registerWindowXId(xid, wind);
+            if(Main.isInteresting(wind)) {
+               let xid = this._guessWindowXId(wind);
+               if((xid) && !((xid in this._registeredWindows)&&(this._registeredWindows[xid].fail))) {
+                  this._registerWindowXId(xid, wind);
+               }
             }
          }
       }
@@ -515,9 +524,11 @@ IndicatorAppMenuWatcher.prototype = {
          // For each window, let's make sure we add it!
          for(let pos in winList) {
             let wind = winList[pos];
-            let xid = this._guessWindowXId(wind);
-            if(xid)
-               current.push(xid.toString());
+            if(Main.isInteresting(wind)) {
+               let xid = this._guessWindowXId(wind);
+               if(xid)
+                  current.push(xid.toString());
+            }
          }
       }
       for(let xid in this._registeredWindows) {
@@ -529,6 +540,7 @@ IndicatorAppMenuWatcher.prototype = {
             //delete this._registeredWindows[xid];
          }
       }
+      // this._onWindowChanged();
    },
 
    _updateIcon: function(xid) {
@@ -563,23 +575,43 @@ IndicatorAppMenuWatcher.prototype = {
          }
       }
 
+      let dbusPropertiesChanged = false;
       if(xid in this._registeredWindows) {
          // Firefox use the regitrar iface and also the gtk way, but it unsupported.
          // We ask then for the new data and prevent the override of registrar.
-         if(!this._registeredWindows[xid].menubarObjectPath)
+         if(menubarPath && menubarPath != this._registeredWindows[xid].menubarObjectPath) {
             this._registeredWindows[xid].menubarObjectPath = menubarPath;
-         if(!this._registeredWindows[xid].appmenuObjectPath)
+            dbusPropertiesChanged = true;
+         }
+         if(appmenuPath && appmenuPath != this._registeredWindows[xid].appmenuObjectPath) {
             this._registeredWindows[xid].appmenuObjectPath = appmenuPath;
-         if(!this._registeredWindows[xid].windowObjectPath)
+            dbusPropertiesChanged = true;
+         }
+         if(windowPath && windowPath != this._registeredWindows[xid].windowObjectPath) {
             this._registeredWindows[xid].windowObjectPath = windowPath;
-         if(!this._registeredWindows[xid].appObjectPath)
+            dbusPropertiesChanged = true;
+         }
+         if(appPath && appPath != this._registeredWindows[xid].appObjectPath) {
             this._registeredWindows[xid].appObjectPath = appPath;
-         if(!this._registeredWindows[xid].sender)
+            dbusPropertiesChanged = true;
+         }
+         if(senderDbus && senderDbus != this._registeredWindows[xid].sender) {
             this._registeredWindows[xid].sender = senderDbus;
-         if(!this._registeredWindows[xid].application)
+            dbusPropertiesChanged = true;
+         }
+         if(appTracker && appTracker != this._registeredWindows[xid].application) {
             this._registeredWindows[xid].application = appTracker;
-         if(!this._registeredWindows[xid].window) 
+            //dbusPropertiesChanged = true;
+         }
+         if(wind && wind != this._registeredWindows[xid].window) {
             this._registeredWindows[xid].window = wind;
+            //dbusPropertiesChanged = true;
+         }
+         if(dbusPropertiesChanged && this._registeredWindows[xid].appMenu) {
+            //Main.notify("es " + xid + " " + senderDbus + " " + menubarPath);
+            this._destroyMenu(xid);
+            this._registeredWindows[xid].fail = false;
+         }
       } else {
          this._registeredWindows[xid] = {
             window: wind,
@@ -599,7 +631,6 @@ IndicatorAppMenuWatcher.prototype = {
    },
 
    _tryToGetMenuClient: function(xid) {
-      this._updateIcon(xid);
       if((xid in this._registeredWindows) && (!this._registeredWindows[xid].appMenu)) {
          if((this._registeredWindows[xid].menubarObjectPath) &&
             (this._registeredWindows[xid].sender)) {
@@ -629,6 +660,7 @@ IndicatorAppMenuWatcher.prototype = {
             if(xid in this._registeredWindows)
                registerWin = this._registeredWindows[xid];
          }
+         this._updateIcon(xid);
          if(registerWin) {
             this.emit('appmenu-changed', registerWin.window);
             this._xidLast = xid;
@@ -721,13 +753,6 @@ IndicatorAppMenuWatcher.prototype = {
             this._emitWindowUnregistered(xid);
          }
          this._registeredWindows = null;
-         this._system.shellShowAppmenu(false);
-         this._system.shellShowMenubar(false);
-         this._system.activeUnityMenuProxy(false);
-         this._system.activeJAyantanaModule(false);
-         // FIXME When we can call system.activeUnityGtkModule(false)?
-         // Is possible that we need to add an option to the settings
-         // to be more easy to the user uninstall the applet
       }
    }
 };

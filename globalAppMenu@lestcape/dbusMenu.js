@@ -391,6 +391,7 @@ DBusClient.prototype = {
       this._flagLayoutUpdateInProgress = false;
       // Property requests are queued
       this._propertiesRequestedFor = []; // ids
+      this._buggyClient = false;
 
       let initItemId = this.getRootId();
 
@@ -427,12 +428,27 @@ DBusClient.prototype = {
       return null;
    },
 
-   sendEvent: function(id, event, params, timestamp) {
+  /* sendEvent: function(id, event, params, timestamp) {
       this._reportEvent(id, event, params, timestamp);
       if(event == ConfigurableMenus.FactoryEventTypes.opened) {
          this._sendAboutToShow(id);
          this._fakeSendAboutToShow(id);
       }
+   },*/
+
+   sendEvent: function(id, event, params, timestamp) {
+      this._reportEvent(id, event, params, timestamp);
+      if(event == ConfigurableMenus.FactoryEventTypes.opened) {
+         if(!this._buggyClient)
+            this._sendAboutToShow(id);
+         this._fakeSendAboutToShow(id);
+      } else if(this._buggyClient && (event == ConfigurableMenus.FactoryEventTypes.closed)) {
+         this._sendAboutToShow(id);
+      }
+   },
+
+   isbuggyClient: function() {
+      return this._buggyClient;
    },
 
    // We don't need to cache and burst-send that since it will not happen that frequently
@@ -524,11 +540,15 @@ DBusClient.prototype = {
       if(this._items) {
          let tag = new Date().getTime();
          let toTraverse = [ this.getRootId() ];
+         let numberOfItems = 0;
          while (toTraverse.length > 0) {
             let item = this.getItem(toTraverse.shift());
             item._dbusClientGcTag = tag;
             Array.prototype.push.apply(toTraverse, item.getChildrenIds());
+            numberOfItems += 1;
          }
+         if(!this._buggyClient)
+             this._buggyClient = (Object.keys(this._items).length == numberOfItems);
          for(let id in this._items) {
             if(this._items[id]._dbusClientGcTag != tag)
                delete this._items[id];

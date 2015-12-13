@@ -178,6 +178,10 @@ msgstr ""
 msgid "Menu items"
 msgstr ""
 
+#. globalAppMenu@lestcape->settings-schema.json->head-support->description
+msgid "Support"
+msgstr ""
+
 #. globalAppMenu@lestcape->settings-schema.json->head-application->description
 msgid "Applications"
 msgstr ""
@@ -188,6 +192,14 @@ msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->show-boxpointer->tooltip
 msgid "Select if you want to show the boxpointer of all floating menus."
+msgstr ""
+
+#. globalAppMenu@lestcape->settings-schema.json->enable-jayantana->description
+msgid "Enable the support for JAyantana (Experimental)"
+msgstr ""
+
+#. globalAppMenu@lestcape->settings-schema.json->enable-jayantana->tooltip
+msgid "Select if you want to enable the support for JAyantana."
 msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->show-app-icon->description

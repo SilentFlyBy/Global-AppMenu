@@ -332,6 +332,7 @@ MyApplet.prototype = {
          this.set_applet_tooltip(_("Global Application Menu"));
 
          this.currentWindow = null;
+         this.sendWindow = null;
          this.showAppIcon = true;
          this.showAppName = true;
          this.desaturateAppIcon = false;
@@ -356,6 +357,8 @@ MyApplet.prototype = {
          this.actor.connect("enter-event", Lang.bind(this, this._onAppletEnterEvent));
 
          this.menuFactory = new MyMenuFactory();
+         this._system = new IndicatorAppMenuWatcher.SystemProperties();
+
          this._createSettings();
 
          // Swap applet_context_menu to Configurable Menu Api.
@@ -368,7 +371,9 @@ MyApplet.prototype = {
          this.indicatorDbus = new IndicatorAppMenuWatcher.IndicatorAppMenuWatcher(
                 IndicatorAppMenuWatcher.AppmenuMode.MODE_STANDARD, this._getIconSize());
 
-         if(this.indicatorDbus.canWatch()) {
+         this._isReady = this._initEnviroment();
+
+         if(this._isReady) {
              this.indicatorDbus.watch();
              this.indicatorDbus.connect('appmenu-changed', Lang.bind(this, this._onAppmenuChanged));
          } else {
@@ -383,6 +388,7 @@ MyApplet.prototype = {
 
    _createSettings: function() {
       this.settings = new Settings.AppletSettings(this, this.uuid, this.instance_id);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "enable-jayantana", "enableJayantana", this._onEnableJayantanaChanged, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "show-app-icon", "showAppIcon", this._onShowAppIconChanged, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "desaturate-app-icon", "desaturateAppIcon", this._onDesaturateAppIconChanged, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "show-app-name", "showAppName", this._onShowAppNameChanged, null);
@@ -401,6 +407,7 @@ MyApplet.prototype = {
       this.settings.bindProperty(Settings.BindingDirection.IN, "effect", "effectType", this._onEffectTypeChanged, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "effect-time", "effectTime", this._onEffectTimeChanged, null);
 
+      this._onEnableJayantanaChanged();
       this._onDisplayInPanelChanged();
       this._onShowAppIconChanged();
       this._onDesaturateAppIconChanged();
@@ -417,6 +424,32 @@ MyApplet.prototype = {
       this._onOpenOnHoverChanged();
       this._onEffectTypeChanged();
       this._onEffectTimeChanged();
+   },
+
+   _initEnviroment: function() {
+      let isReady = this._system.activeUnityGtkModule(true);
+      if(isReady) {
+         //this._system.activeJAyantanaModule(this.enableJayantana);
+         this._system.shellShowAppmenu(true);
+         this._system.shellShowMenubar(true);
+         this._system.activeUnityMenuProxy(true);
+         return true;
+      }
+      return false;
+   },
+
+   _finalizeEnviroment: function() {
+      this._system.shellShowAppmenu(false);
+      this._system.shellShowMenubar(false);
+      this._system.activeUnityMenuProxy(false);
+      this._system.activeJAyantanaModule(false);
+      // FIXME When we can call system.activeUnityGtkModule(false)?
+      // Is possible that we need to add an option to the settings
+      // to be more easy to the user uninstall the applet
+   },
+
+   _onEnableJayantanaChanged: function() {
+      this._system.activeJAyantanaModule(this.enableJayantana);
    },
 
    _updateKeybinding: function() {
@@ -553,6 +586,7 @@ MyApplet.prototype = {
    _closeMenu: function() {
       if((this.menu)&&(this.menu.isOpen)) {
          this.menu.close(false, true);
+         this.sendWindow = null;
       }
    },
 
@@ -584,8 +618,12 @@ MyApplet.prototype = {
    },
 
    _onAppletEnterEvent: function() {
-      if(this.currentWindow)
-         this.indicatorDbus.updateMenuForWindow(this.currentWindow);
+      if(this.currentWindow) {
+         if(this.currentWindow != this.sendWindow) {
+            this.indicatorDbus.updateMenuForWindow(this.currentWindow);
+            this.sendWindow = this.currentWindow;
+         }
+      }
       if((this.menu)&&(this.menu.isInFloatingState())&&(this.openOnHover))
          this.menu.open(true);
    },
@@ -603,6 +641,7 @@ MyApplet.prototype = {
 
    on_applet_removed_from_panel: function() {
       this.indicatorDbus.destroy();
+      this._finalizeEnviroment();
    },
 
    on_applet_clicked: function(event) {

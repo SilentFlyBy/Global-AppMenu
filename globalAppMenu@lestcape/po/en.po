@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Global Application Menu 0.1-Beta\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-05-14 06:58-0500\n"
-"PO-Revision-Date: 2015-07-21 18:57-0600\n"
+"PO-Revision-Date: 2015-12-13 14:20-0600\n"
 "Last-Translator: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "Language-Team: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -181,6 +181,10 @@ msgstr "Select if you want to display the main menu in the panel."
 msgid "Menu items"
 msgstr "Menu items"
 
+#. globalAppMenu@lestcape->settings-schema.json->head-support->description
+msgid "Support"
+msgstr "Support"
+
 #. globalAppMenu@lestcape->settings-schema.json->head-application->description
 msgid "Applications"
 msgstr "Applications"
@@ -192,6 +196,14 @@ msgstr "Show the boxpointers"
 #. globalAppMenu@lestcape->settings-schema.json->show-boxpointer->tooltip
 msgid "Select if you want to show the boxpointer of all floating menus."
 msgstr "Select if you want to show the boxpointer of all floating menus."
+
+#. globalAppMenu@lestcape->settings-schema.json->enable-jayantana->description
+msgid "Enable the support for JAyantana (Experimental)"
+msgstr "Enable the support for JAyantana (Experimental)"
+
+#. globalAppMenu@lestcape->settings-schema.json->enable-jayantana->tooltip
+msgid "Select if you want to enable the support for JAyantana."
+msgstr "Select if you want to enable the support for JAyantana."
 
 #. globalAppMenu@lestcape->settings-schema.json->show-app-icon->description
 msgid "Show the application icon in the panel"
