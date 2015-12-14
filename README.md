@@ -37,6 +37,21 @@ Known issues (Try at your own risk):
 * There are some unsupported apps that can not be integrate into the applet, like Blender, as has his own GUI toolkit.
 * For some untested applications, it is possible a failure caused by a bug in the applet. Please, report it if is working in Unity.
 
+Experimental JAyatana support (try at your own risk):
+--------------
+JAyatana it's buggy and was removed intentional from Intellij Idea, Ubuntu 15.04 and others.
+
+Currently you can use the JAyatana support as a decision inside the applet. This will work for some java applications only and for others with several problems or also will not work. Some time you will need restart Cinnamon to see the menu, like for example with JDownloader. 
+
+I really don't know if this is caused by an improperly handled of the JavaEmbeddedFrame by Muffin (The Cinnamon Windows Manager), if it's an specific behavior/bugs of JAyatana or whatever. What occurs is that some time the JavaEmbeddedFrame can steal the menu to the main windows and some time not. So, a Cinnamon restart after opening JDownloader would fix the problem in most of cases, in others is possible you will need to kill the JDownloader process and then opening the application it again. To remove the experimental tag, the JAyatana project will need to implement this stuff at less:
+
+1- Use the same sender in the DbusMenu implementation for the same windows and not a new one.
+2- Use the same menu item id for all layout-updates and not a new one.
+
+This is because force to reload all items and this is pretty hard for javascript.
+
+Aditionally, we need to find how resolve the JavaEmbeddedFrame situation.
+
 Change log
 --------------
 0.6-Beta
