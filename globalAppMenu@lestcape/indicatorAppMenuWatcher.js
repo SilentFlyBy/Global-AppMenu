@@ -546,7 +546,7 @@ IndicatorAppMenuWatcher.prototype = {
       }
       GLib.idle_add(GLib.PRIORITY_DEFAULT_IDLE, Lang.bind(this, function() {
          if(this._buggyClientId != 0) {
-            GLib.SOURCE_REMOVE(this._buggyClientId);
+            GLib.source_remove(this._buggyClientId);
             this._buggyClientId = 0;
          }
          this._verifyBuggyClient(0);

@@ -14,21 +14,15 @@
 // along with this program; if not, write to the Free Software
 // Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301, USA.
 
-const St = imports.gi.St;
-const Lang = imports.lang;
 const Clutter = imports.gi.Clutter;
-const Pango = imports.gi.Pango;
+const St = imports.gi.St;
 const Gio = imports.gi.Gio;
 const GLib = imports.gi.GLib;
-const Meta = imports.gi.Meta;
-const Cairo = imports.cairo;
+const Lang = imports.lang;
 const Gettext = imports.gettext;
-const Mainloop = imports.mainloop;
-
 const Applet = imports.ui.applet;
 const Main = imports.ui.main;
 const Settings = imports.ui.settings;
-const PopupMenu = imports.ui.popupMenu;
 
 const AppletPath = imports.ui.appletManager.applets["globalAppMenu@lestcape"];
 const IndicatorAppMenuWatcher = AppletPath.indicatorAppMenuWatcher;
@@ -201,7 +195,7 @@ MyMenuFactory.prototype = {
       else if(itemType == ConfigurableMenus.FactoryClassTypes.MenuSectionMenuItemClass)
          shellItem = new ConfigurableMenus.ConfigurablePopupMenuSection();
       else if(itemType == ConfigurableMenus.FactoryClassTypes.SeparatorMenuItemClass)
-         shellItem = new PopupMenu.PopupSeparatorMenuItem('');
+         shellItem = new ConfigurableMenus.ConfigurableSeparatorMenuItem();
       else if(itemType == ConfigurableMenus.FactoryClassTypes.MenuItemClass)
          shellItem = new ConfigurableMenus.ConfigurableApplicationMenuItem("FIXME");
       //else
@@ -212,106 +206,6 @@ MyMenuFactory.prototype = {
       }
       return shellItem;
    }
-};
-
-function GradientLabel() {
-   this._init.apply(this, arguments);
-}
-
-GradientLabel.prototype = {
-   _init: function(text, size) {
-      this.text = text;
-      this.size = size;
-
-      this.actor = new St.Bin();
-      //this.labelActor = new St.Label({ style_class: 'applet-label' });
-      this._drawingArea = new St.DrawingArea({ style_class: 'applet-label' });
-      this._drawingArea.connect('repaint', Lang.bind(this, this._onRepaint));
-      this._drawingArea.connect('style-changed', Lang.bind(this, this._onStyleChanged));
-      this.actor.set_child(this._drawingArea);
-      this.margin = 2;
-   },
-
-   setText: function(text) {
-      this.text = text;
-      this._updateSize();
-   },
-
-   setSize: function(size) {
-      this.size = size;
-      this._updateSize();
-   },
-
-   _onStyleChanged: function() {
-      this.themeNode = this._drawingArea.get_theme_node();
-      this._updateSize();
-   },
-
-   _updateSize: function() {
-      if(this.themeNode) {
-         let font    = this.themeNode.get_font();
-         let context = this._drawingArea.get_pango_context();
-         let metrics = context.get_metrics(font, context.get_language());
-         let width   = Math.min(this.size, this.text.length) * metrics.get_approximate_char_width() / Pango.SCALE;
-         let height  =  font.get_size() / Pango.SCALE;
-         this._drawingArea.set_width(width);
-         this._drawingArea.set_height(height + 2*this.margin);
-         this._drawingArea.queue_repaint();
-      }
-   },
-
-   _onRepaint: function(area) {
-      try {
-      let cr = area.get_context();
-      let [width, height] = area.get_surface_size();
-
-      let resultText = this.text.substring(0, Math.min(this.size, this.text.length));
-
-      let font = this.themeNode.get_font();
-      let context = this._drawingArea.get_pango_context();
-      let metrics = context.get_metrics(font, context.get_language());
-      let fontSize = height - 2*this.margin;
-      let startColor = this.themeNode.get_color('color');
-
-      let weight = Cairo.FontWeight.NORMAL;
-      if(font.get_weight() >= 700)
-        weight = Cairo.FontWeight.BOLD;
-      cr.selectFontFace(font.get_family(), Cairo.FontSlant.NORMAL, weight);
-      cr.moveTo(0, height/2 + (metrics.get_descent()/Pango.SCALE) + 1);
-      cr.setFontSize(fontSize);
-
-      let shadowPattern = new Cairo.LinearGradient(0, 0, width, height);
-      shadowPattern.addColorStopRGBA(0, 0, 0, 0, 1);
-      shadowPattern.addColorStopRGBA(1, 0, 0, 0, 0);
-      cr.setSource(shadowPattern);
-
-      cr.showText(resultText);
-      cr.fill();
-
-      cr.moveTo(1, height/2 + (metrics.get_descent()/Pango.SCALE) + 1);
-      cr.setFontSize(fontSize);
-      let realPattern = new Cairo.LinearGradient(0, 0, width, height);
-      realPattern.addColorStopRGBA(0, startColor.red / 255, startColor.green / 255, startColor.blue / 255, startColor.alpha / 255);
-      realPattern.addColorStopRGBA(0.5, startColor.red / 255, startColor.green / 255, startColor.blue / 255, startColor.alpha / 255);
-      realPattern.addColorStopRGBA(1, startColor.red / 255, startColor.green / 255, startColor.blue / 255, 0);
-      cr.setSource(realPattern);
-
-      cr.showText(resultText);
-      cr.fill();
-      cr.stroke();
-      } catch(e) {Main.notify("err"+ e.message)}
-   }
-};
-
-function CustomKeybindings() {
-   this._init.apply(this, arguments);
-}
-
-CustomKeybindings.prototype = {
-   _init: function(metadata) {
-     //this."org.cinnamon.desktop.keybindings";
-   },
-   
 };
 
 function MyApplet() {
@@ -351,7 +245,7 @@ MyApplet.prototype = {
 
          this.actorIcon = new St.Bin();
 
-         this.gradient = new GradientLabel("", 10);
+         this.gradient = new ConfigurableMenus.GradientLabelMenuItem("", 10);
          this.actor.add(this.actorIcon, { y_align: St.Align.MIDDLE, y_fill: false });
          this.actor.add(this.gradient.actor, { y_align: St.Align.MIDDLE, y_fill: false });
          this.actor.connect("enter-event", Lang.bind(this, this._onAppletEnterEvent));
@@ -445,7 +339,8 @@ MyApplet.prototype = {
       this._system.activeJAyantanaModule(false);
       // FIXME When we can call system.activeUnityGtkModule(false)?
       // Is possible that we need to add an option to the settings
-      // to be more easy to the user uninstall the applet
+      // to be more easy to the user uninstall the applet in a
+      // propertly way.
    },
 
    _onEnableJayantanaChanged: function() {
@@ -456,21 +351,9 @@ MyApplet.prototype = {
       Main.keybindingManager.addHotKey("global-overlay-key", this.overlayKey, Lang.bind(this, function() {
          if(this.menu && !Main.overview.visible && !Main.expo.visible) {
             this.menu.toogleSubmenu(true);
-            //this._onAccel();
          }
       }));
    },
-
-   /*_onAccel: function() {
-      this.menu.showAccel(true);
-      if(this._keybindingTimeOut != 0)
-         Mainloop.source_remove(this._keybindingTimeOut);
-      this._keybindingTimeOut = Mainloop.timeout_add(500, Lang.bind(this, function() {
-         Mainloop.source_remove(this._keybindingTimeOut);
-         this._keybindingTimeOut = 0;
-         this.menu.showAccel(false);
-      }));
-   },*/
 
    _onEffectTypeChanged: function() {
       this.menuFactory.setEffect(this.effectType);
@@ -571,11 +454,8 @@ MyApplet.prototype = {
       if(this._isNewMenu(newMenu)) {
          this._closeMenu();
          this.menu = newMenu;
-         if(this.menu) { 
-            if((!this.menu.isOpen)&&
-               (!this.menu.isInFloatingState())&&(this.automaticActiveMainMenu))
-               this.menu.open();
-         }
+         if(this.menu && this.automaticActiveMainMenu && !this.menu.isInFloatingState())
+            this.menu.open();
       }
       if(this._isNewApp(newLabel, newIcon)) {
          this.gradient.setText(newLabel);
@@ -624,7 +504,7 @@ MyApplet.prototype = {
             this.sendWindow = this.currentWindow;
          }
       }
-      if((this.menu)&&(this.menu.isInFloatingState())&&(this.openOnHover))
+      if((this.menu)&&(this.openOnHover))
          this.menu.open(true);
    },
 
