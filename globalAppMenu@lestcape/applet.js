@@ -104,8 +104,9 @@ MyMenuFactory.prototype = {
          this._floatingMenu = floating;
          for(let pos in this._menuLikend) {
             let shellMenu = this._menuLikend[pos].getShellItem();
-            if(shellMenu)
+            if(shellMenu) {
                shellMenu.setFloatingState(this._floatingMenu);
+            }
          }
       }
    },
@@ -203,6 +204,8 @@ MyMenuFactory.prototype = {
       if(itemType == ConfigurableMenus.FactoryClassTypes.RootMenuClass) {
          shellItem.setFloatingState(this._floatingMenu);
          shellItem.setOpenOnHover(this._openOnHover);
+      } else if(itemType == ConfigurableMenus.FactoryClassTypes.SubMenuMenuItemClass) {
+         shellItem.menu.setFloatingState(this._floatingSubMenu);
       }
       return shellItem;
    }
