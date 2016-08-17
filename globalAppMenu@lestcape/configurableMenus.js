@@ -5772,6 +5772,7 @@ ConfigurableMenuApplet.prototype = {
          this.actor.set_style_class_name('applet-container-box');
          this.box.set_style_class_name('applet-menu-content');
          this.box.set_vertical(false);
+         this._scroll.set_style_class_name('');
       }
       let items = this._getMenuItems();
       for(let pos in items) {
