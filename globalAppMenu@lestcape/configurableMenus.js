@@ -16,7 +16,6 @@
 
 const Cinnamon = imports.gi.Cinnamon;
 const Applet = imports.ui.applet;
-const PopupMenu = imports.ui.popupMenu;
 const Clutter = imports.gi.Clutter;
 const Gtk = imports.gi.Gtk;
 const Pango = imports.gi.Pango;
@@ -33,7 +32,7 @@ const DND = imports.ui.dnd;
 
 const POPUP_ANIMATION_TIME = 0.15;
 
-const OrnamentType = PopupMenu.Ornament ? PopupMenu.Ornament : {
+const OrnamentType = {
    NONE:  0,
    CHECK: 1,
    DOT:   2,
@@ -91,7 +90,7 @@ ScrollItemsBox.prototype = {
 
    _getTopMenu: function(actor) {
       while(actor) {
-         if((actor._delegate) && (actor._delegate instanceof PopupMenu.PopupMenu))
+         if((actor._delegate) && (actor._delegate instanceof ConfigurableMenu))
             return actor._delegate;
          actor = actor.get_parent();
       }
@@ -1015,7 +1014,7 @@ ConfigurablePointer.prototype = {
 
    _getTopMenu: function(actor) {
       while(actor) {
-         if((actor._delegate) && (actor._delegate instanceof PopupMenu.PopupMenu))
+         if((actor._delegate) && (actor._delegate instanceof ConfigurableMenu))
             return actor._delegate;
          actor = actor.get_parent();
       }
@@ -2006,6 +2005,10 @@ ConfigurableBasicPopupMenuItem.prototype = {
       this._icon.icon_name = name;
    },
 
+   setIconType: function(type) {
+      this._icon.set_icon_type(type);
+   },
+
    desaturateItemIcon: function(desaturate) {
       if(this._desaturateIcon != desaturate) {
          this._desaturateIcon = desaturate;
@@ -2874,7 +2877,7 @@ ConfigurableMenuManager.prototype = {
 
    _getTopMenu: function(actor) {
       while(actor) {
-         if((actor._delegate) && (actor._delegate instanceof PopupMenu.PopupMenu))
+         if((actor._delegate) && (actor._delegate instanceof ConfigurableMenu))
             return actor._delegate;
          actor = actor.get_parent();
       }
@@ -2938,6 +2941,293 @@ ConfigurableMenuManager.prototype = {
    }
 };
 
+function ConfigurablePopupMenuBase() {
+   throw new TypeError('Trying to instantiate abstract class ConfigurablePopupMenuBase');
+}
+
+ConfigurablePopupMenuBase.prototype = {
+   _init: function(sourceActor, styleClass) {
+      this.sourceActor = sourceActor;
+
+      if (styleClass !== undefined) {
+         this.box = new St.BoxLayout({ style_class: styleClass, vertical: true });
+      } else {
+         this.box = new St.BoxLayout({ vertical: true });
+      }
+      this.box.connect_after('queue-relayout', Lang.bind(this, this._menuQueueRelayout));
+      this.length = 0;
+
+      this.isOpen = false;
+      this.blockSourceEvents = false;
+      this.passEvents = false;
+
+      this._activeMenuItem = null;
+      this._childMenus = [];
+   },
+
+   addAction: function(title, callback) {
+      let menuItem = new ConfigurablePopupMenuItem(title);
+      this.addMenuItem(menuItem);
+      menuItem.connect('activate', Lang.bind(this, function (menuItem, event) {
+         callback(event);
+      }));
+
+      return menuItem;
+   },
+
+   addSettingsAction: function(title, module) {
+      let menuItem = this.addAction(title, function() {
+         Util.spawnCommandLine("cinnamon-settings " + module);
+      });
+      return menuItem;
+   },
+
+   addCommandlineAction: function(title, cmd) {
+      let menuItem = this.addAction(title, function() {
+         Util.spawnCommandLine(cmd);
+      });
+      return menuItem
+   },
+
+   isChildMenu: function(menu) {
+      return this._childMenus.indexOf(menu) != -1;
+   },
+
+   addChildMenu: function(menu) {
+      if (this.isChildMenu(menu))
+         return;
+
+      this._childMenus.push(menu);
+      this.emit('child-menu-added', menu);
+   },
+
+   removeChildMenu: function(menu) {
+      let index = this._childMenus.indexOf(menu);
+
+      if (index == -1)
+         return;
+
+      this._childMenus.splice(index, 1);
+      this.emit('child-menu-removed', menu);
+   },
+
+   _connectSubMenuSignals: function(object, menu) {
+      object._subMenuActivateId = menu.connect('activate', Lang.bind(this, function(submenu, submenuItem, keepMenu) {
+         this.emit('activate', submenuItem, keepMenu);
+         if (!keepMenu) {
+            this.close(true);
+         }
+      }));
+      object._subMenuActiveChangeId = menu.connect('active-changed', Lang.bind(this, function(submenu, submenuItem) {
+         if (this._activeMenuItem && this._activeMenuItem != submenuItem)
+            this._activeMenuItem.setActive(false);
+         this._activeMenuItem = submenuItem;
+         this.emit('active-changed', submenuItem);
+      }));
+   },
+
+   _connectItemSignals: function(menuItem) {
+      menuItem._activeChangeId = menuItem.connect('active-changed', Lang.bind(this, function (menuItem, active) {
+         if (active && this._activeMenuItem != menuItem) {
+            if (this._activeMenuItem)
+               this._activeMenuItem.setActive(false);
+            this._activeMenuItem = menuItem;
+            this.emit('active-changed', menuItem);
+         } else if (!active && this._activeMenuItem == menuItem) {
+            this._activeMenuItem = null;
+            this.emit('active-changed', null);
+         }
+      }));
+      menuItem._sensitiveChangeId = menuItem.connect('sensitive-changed', Lang.bind(this, function(menuItem, sensitive) {
+         if (!sensitive && this._activeMenuItem == menuItem) {
+            if (!this.actor.navigate_focus(menuItem.actor, Gtk.DirectionType.TAB_FORWARD, true))
+               this.actor.grab_key_focus();
+         } else if (sensitive && this._activeMenuItem == null) {
+            if (global.stage.get_key_focus() == this.actor)
+               menuItem.actor.grab_key_focus();
+         }
+      }));
+      menuItem._activateId = menuItem.connect('activate', Lang.bind(this, function (menuItem, event, keepMenu) {
+         this.emit('activate', menuItem, keepMenu);
+         if (!keepMenu) {
+             this.close(true);
+         }
+      }));
+      menuItem.connect('destroy', Lang.bind(this, function(emitter) {
+         menuItem.disconnect(menuItem._activateId);
+         menuItem.disconnect(menuItem._activeChangeId);
+         menuItem.disconnect(menuItem._sensitiveChangeId);
+         if (menuItem.menu) {
+            menuItem.menu.disconnect(menuItem._subMenuActivateId);
+            menuItem.menu.disconnect(menuItem._subMenuActiveChangeId);
+            this.disconnect(menuItem._closingId);
+         }
+         if (menuItem == this._activeMenuItem)
+            this._activeMenuItem = null;
+         this.length--;
+      }));
+   },
+
+   _updateSeparatorVisibility: function(menuItem) {
+      let children = this.box.get_children();
+
+      let index = children.indexOf(menuItem.actor);
+
+      if (index < 0)
+         return;
+
+      let childBeforeIndex = index - 1;
+
+      while (childBeforeIndex >= 0 && !children[childBeforeIndex].visible)
+         childBeforeIndex--;
+
+      if (childBeforeIndex < 0
+          || children[childBeforeIndex]._delegate instanceof ConfigurableSeparatorMenuItem) {
+         menuItem.actor.hide();
+         return;
+      }
+
+      let childAfterIndex = index + 1;
+
+      while (childAfterIndex < children.length && !children[childAfterIndex].visible)
+         childAfterIndex++;
+
+      if (childAfterIndex >= children.length
+          || children[childAfterIndex]._delegate instanceof ConfigurableSeparatorMenuItem) {
+         menuItem.actor.hide();
+         return;
+      }
+
+      menuItem.actor.show();
+   },
+
+   addMenuItem: function(menuItem, position) {
+      let before_item = null;
+      if (position == undefined) {
+         this.box.add(menuItem.actor);
+      } else {
+         let items = this._getMenuItems();
+         if (position < items.length) {
+            before_item = items[position].actor;
+            this.box.insert_child_below(menuItem.actor, before_item);
+         } else
+            this.box.add(menuItem.actor);
+      }
+      if (menuItem instanceof ConfigurablePopupMenuSection) {
+         this._connectSubMenuSignals(menuItem, menuItem);
+         menuItem.connect('destroy', Lang.bind(this, function() {
+            menuItem.disconnect(menuItem._subMenuActivateId);
+            menuItem.disconnect(menuItem._subMenuActiveChangeId);
+
+            this.length--;
+         }));
+      } else if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
+         if (before_item == null)
+            this.box.add(menuItem.menu.actor);
+         else
+            this.box.insert_child_below(menuItem.menu.actor, before_item);
+         this._connectSubMenuSignals(menuItem, menuItem.menu);
+         this._connectItemSignals(menuItem);
+         menuItem._closingId = this.connect('open-state-changed', function(self, open) {
+            if (!open)
+            menuItem.menu.close(false);
+         });
+      } else if (menuItem instanceof ConfigurableSeparatorMenuItem) {
+         this._connectItemSignals(menuItem);
+         this.connect('open-state-changed', Lang.bind(this, function() { this._updateSeparatorVisibility(menuItem); }));
+         this.box.connect('allocation-changed', Lang.bind(this, function() { this._updateSeparatorVisibility(menuItem); }));
+      } else if (menuItem instanceof ConfigurablePopupBaseMenuItem)
+         this._connectItemSignals(menuItem);
+      else
+         throw TypeError("Invalid argument to ConfigurablePopupMenuBase.addMenuItem()");
+
+      this.length++;
+   },
+
+   getColumnWidths: function() {
+      let columnWidths = [];
+      let items = this.box.get_children();
+      for (let i = 0; i < items.length; i++) {
+         if (!items[i].visible)
+            continue;
+         if (items[i]._delegate instanceof ConfigurablePopupBaseMenuItem || items[i]._delegate instanceof ConfigurablePopupMenuBase) {
+            let itemColumnWidths = items[i]._delegate.getColumnWidths();
+            for (let j = 0; j < itemColumnWidths.length; j++) {
+               if (j >= columnWidths.length || itemColumnWidths[j] > columnWidths[j])
+                  columnWidths[j] = itemColumnWidths[j];
+            }
+         }
+      }
+      return columnWidths;
+   },
+
+   setColumnWidths: function(widths) {
+      let items = this.box.get_children();
+      for (let i = 0; i < items.length; i++) {
+         if (items[i]._delegate instanceof ConfigurablePopupBaseMenuItem || items[i]._delegate instanceof ConfigurablePopupMenuBase)
+            items[i]._delegate.setColumnWidths(widths);
+      }
+   },
+
+   _menuQueueRelayout: function() {
+      this.box.get_children().map(function (actor) { actor.queue_relayout(); });
+   },
+
+   addActor: function(actor) {
+      this.box.add(actor);
+   },
+
+   _getMenuItems: function() {
+      return this.box.get_children().map(function (actor) {
+         return actor._delegate;
+      }).filter(function(item) {
+         return item instanceof ConfigurablePopupBaseMenuItem || item instanceof ConfigurablePopupMenuSection;
+      });
+   },
+
+   get firstMenuItem() {
+      let items = this._getMenuItems();
+      if (items.length)
+         return items[0];
+      else
+         return null;
+   },
+
+   get numMenuItems() {
+      return this._getMenuItems().length;
+   },
+
+   removeAll: function() {
+      let children = this._getMenuItems();
+      for (let i = 0; i < children.length; i++) {
+         let item = children[i];
+         item.destroy();
+      }
+   },
+
+   toggle: function() {
+      if (this.isOpen)
+         this.close(true);
+      else
+         this.open(true);
+   },
+
+   toggle_with_options: function (animate, onComplete) {
+      if (this.isOpen) {
+         this.close(animate, onComplete);
+      } else {
+         this.open(animate, onComplete);
+      }
+   },
+
+   destroy: function() {
+      this.removeAll();
+      this.actor.destroy();
+      this.emit('destroy');
+   }
+};
+Signals.addSignalMethods(ConfigurablePopupMenuBase.prototype);
+
 /**
  * ConfigurableMenu
  *
@@ -2948,11 +3238,10 @@ function ConfigurableMenu() {
 }
 
 ConfigurableMenu.prototype = {
-   // Compatibility reasons
-   __proto__: PopupMenu.PopupMenu.prototype,
+   __proto__: ConfigurablePopupMenuBase.prototype,
 
    _init: function(launcher, arrowAlignment, orientation, floating) {
-      PopupMenu.PopupMenuBase.prototype._init.call (this, (launcher ? launcher.actor: null), 'popup-menu-content');
+      ConfigurablePopupMenuBase.prototype._init.call (this, (launcher ? launcher.actor: null), 'popup-menu-content');
       try {
          this._arrowAlignment = arrowAlignment;
          this._arrowSide = orientation;
@@ -3049,9 +3338,7 @@ ConfigurableMenu.prototype = {
       return this.box.get_children().map(function (actor) {
          return actor._delegate;
       }).filter(function(item) {
-         return item instanceof PopupMenu.PopupBaseMenuItem ||
-                item instanceof PopupMenu.PopupMenuSection ||
-                item instanceof ConfigurablePopupBaseMenuItem ||
+         return item instanceof ConfigurablePopupBaseMenuItem ||
                 item instanceof ConfigurablePopupMenuSection;
       });
    },
@@ -3295,7 +3582,7 @@ ConfigurableMenu.prototype = {
          if((box)&&(box != parent)) {
             if(parent)
                parent.remove_actor(this.actor);
-            if((box._delegate)&&(box._delegate instanceof PopupMenu.PopupMenuBase)) {
+            if((box._delegate)&&(box._delegate instanceof ConfigurablePopupMenuBase)) {
                 let items = box._delegate._getMenuItems();
                 let position = items.indexOf(this.launcher) + 1;
                 if((position != 0) && (position < items.length)) {
@@ -3331,7 +3618,7 @@ ConfigurableMenu.prototype = {
    },
 
    _setDesaturateItemIcon: function(menuItem) {
-      if ((menuItem instanceof ConfigurablePopupSubMenuMenuItem) || (menuItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+      if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
          if(menuItem.menu.desaturateItemIcon)
              menuItem.menu.desaturateItemIcon(this._desaturateItemIcon);
       }
@@ -3340,7 +3627,7 @@ ConfigurableMenu.prototype = {
    },
 
    _setShowItemIcon: function(menuItem) {
-      if ((menuItem instanceof ConfigurablePopupSubMenuMenuItem) || (menuItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+      if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
          if(menuItem.menu.setShowItemIcon)
              menuItem.menu.setShowItemIcon(this._showItemIcon);
       }
@@ -3462,8 +3749,7 @@ ConfigurableMenu.prototype = {
             if(result)
                return result;
          } else if((items[pos].actor.visible)&&(items[pos].sensitive)&&
-                   (!((items[pos] instanceof PopupMenu.PopupSeparatorMenuItem) ||
-                      (items[pos] instanceof ConfigurableSeparatorMenuItem)))) {
+                   (!(items[pos] instanceof ConfigurableSeparatorMenuItem))) {
             return items[pos];
          }
       }
@@ -3478,8 +3764,7 @@ ConfigurableMenu.prototype = {
             if(result)
                return result;
          } else if((items[pos].actor.visible)&&(items[pos].sensitive)&&
-                   (!((items[pos] instanceof PopupMenu.PopupSeparatorMenuItem) ||
-                      (items[pos] instanceof ConfigurableSeparatorMenuItem)))) {
+                   (!(items[pos] instanceof ConfigurableSeparatorMenuItem))) {
             return items[pos];
          }
       }
@@ -3799,7 +4084,7 @@ ConfigurableMenu.prototype = {
        if(this.launcher) {
          let actor = this.launcher.actor;
          while(actor) {
-            if((actor._delegate) && (actor._delegate instanceof PopupMenu.PopupMenu)) {
+            if((actor._delegate) && (actor._delegate instanceof ConfigurableMenu)) {
                this._topMenu = actor._delegate;
                break;
             }
@@ -3930,14 +4215,14 @@ ConfigurableMenu.prototype = {
          } else
             this.box.add(menuItem.actor);
       }
-      if (menuItem instanceof PopupMenu.PopupMenuSection) {
+      if (menuItem instanceof ConfigurablePopupMenuSection) {
          this._connectSubMenuSignals(menuItem, menuItem);
          menuItem._destroyId = menuItem.connect('destroy', Lang.bind(this, function() {
             menuItem.disconnect(menuItem._subMenuActivateId);
             menuItem.disconnect(menuItem._subMenuActiveChangeId);
             this.length--;
          }));
-      } else if ((menuItem instanceof ConfigurablePopupSubMenuMenuItem) || (menuItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+      } else if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
          if(menuItem.menu) {
             if(!this._isFloating(menuItem.menu)) {
                if (before_item == null)
@@ -3952,7 +4237,7 @@ ConfigurableMenu.prototype = {
                menuItem.menu.close(false);
          });
          this._connectItemSignals(menuItem);
-      } else if ((menuItem instanceof ConfigurableSeparatorMenuItem) || (menuItem instanceof PopupMenu.PopupSeparatorMenuItem)) {
+      } else if (menuItem instanceof ConfigurableSeparatorMenuItem) {
          this._connectItemSignals(menuItem);
          // updateSeparatorVisibility needs to get called any time the
          // separator's adjacent siblings change visibility or position.
@@ -3960,10 +4245,11 @@ ConfigurableMenu.prototype = {
          // precise ways would require a lot more bookkeeping.
          menuItem._closingMenuId = this.connect('open-state-changed', Lang.bind(this, function() { this._updateSeparatorVisibility(menuItem); }));
          menuItem._allocationId = this.box.connect('allocation-changed', Lang.bind(this, function() { this._updateSeparatorVisibility(menuItem); }));
-      } else if ((menuItem instanceof ConfigurablePopupBaseMenuItem) || (menuItem instanceof PopupMenu.PopupBaseMenuItem)) {
+      //} else if ((menuItem instanceof ConfigurablePopupBaseMenuItem) || (menuItem instanceof PopupMenu.PopupBaseMenuItem)) {
+      } else if (menuItem instanceof ConfigurablePopupBaseMenuItem) {
          this._connectItemSignals(menuItem);
       } else
-         throw TypeError("Invalid argument to PopupMenuBase.addMenuItem()");
+         throw TypeError("Invalid argument to ConfigurablePopupMenuBase.addMenuItem()");
 
       this.length++;
    },
@@ -4020,21 +4306,21 @@ ConfigurableMenu.prototype = {
          if(parent)
             parent.remove_actor(menuItem.menu.actor);
       }
-      if (menuItem instanceof PopupMenu.PopupMenuSection) {
+      if (menuItem instanceof ConfigurablePopupMenuSection) {
          this._disconnectSubMenuSignals(menuItem, menuItem);
          menuItem.disconnect(menuItem._destroyId);
          menuItem.disconnect(menuItem._subMenuActivateId);
          menuItem.disconnect(menuItem._subMenuActiveChangeId);
-      } else if ((menuItem instanceof ConfigurablePopupSubMenuMenuItem) || (menuItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+      } else if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
          if(menuItem.menu)
             this._disconnectSubMenuSignals(menuItem, menuItem.menu);
          menuItem.disconnect(menuItem._closingMenuId);
          this._disconnectItemSignals(menuItem);
-      } else if ((menuItem instanceof ConfigurableSeparatorMenuItem) || (menuItem instanceof PopupMenu.PopupSeparatorMenuItem)) {
+      } else if (menuItem instanceof ConfigurableSeparatorMenuItem) {
          this._disconnectItemSignals(menuItem);
          menuItem.disconnect(menuItem._closingMenuId);
          menuItem.disconnect(menuItem._allocationId);
-      } else if ((menuItem instanceof ConfigurablePopupBaseMenuItem) || (menuItem instanceof PopupMenu.PopupBaseMenuItem))
+      } else if (menuItem instanceof ConfigurablePopupBaseMenuItem)
          this._disconnectItemSignals(menuItem);
       this.length--;
    },
@@ -4298,7 +4584,7 @@ ConfigurableMenu.prototype = {
             this._vectorBlocker.release();
             this._vectorBlocker = null;
          }
-         PopupMenu.PopupMenuBase.prototype.destroy.call(this);
+         ConfigurablePopupMenuBase.prototype.destroy.call(this);
          this.actor = null;
       }
    }
@@ -4315,15 +4601,21 @@ function ConfigurablePopupMenuSection() {
 }
 
 ConfigurablePopupMenuSection.prototype = {
-   __proto__: PopupMenu.PopupMenuSection.prototype,
+   __proto__: ConfigurablePopupMenuBase.prototype,
 
    _init: function() {
-      PopupMenu.PopupMenuSection.prototype._init.call(this);
+      ConfigurablePopupMenuBase.prototype._init.call(this);
+      this.actor = this.box;
       this.actor._delegate = this;
+      this.isOpen = true;
       this._showItemIcon = true;
       this._desaturateItemIcon = false;
       this._vectorBlocker = null;
    },
+
+   // deliberately ignore any attempt to open() or close()
+   open: function(animate) { },
+   close: function() { },
 
    setVertical: function (vertical) {
       this.box.set_vertical(vertical);
@@ -4333,9 +4625,7 @@ ConfigurablePopupMenuSection.prototype = {
       return this.box.get_children().map(function (actor) {
          return actor._delegate;
       }).filter(function(item) {
-         return item instanceof PopupMenu.PopupBaseMenuItem ||
-                item instanceof PopupMenu.PopupMenuSection ||
-                item instanceof ConfigurablePopupBaseMenuItem ||
+         return item instanceof ConfigurablePopupBaseMenuItem ||
                 item instanceof ConfigurablePopupMenuSection;
       });
    },
@@ -4373,14 +4663,14 @@ ConfigurablePopupMenuSection.prototype = {
          } else
             this.box.add(menuItem.actor);
       }
-      if (menuItem instanceof PopupMenu.PopupMenuSection) {
+      if (menuItem instanceof ConfigurablePopupMenuSection) {
          this._connectSubMenuSignals(menuItem, menuItem);
          menuItem._destroyId = menuItem.connect('destroy', Lang.bind(this, function() {
             menuItem.disconnect(menuItem._subMenuActivateId);
             menuItem.disconnect(menuItem._subMenuActiveChangeId);
             this.length--;
          }));
-      } else if ((menuItem instanceof ConfigurablePopupSubMenuMenuItem) || (menuItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+      } else if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
          if(menuItem.menu) {
             if(!this._isFloating(menuItem.menu)) {
                if (before_item == null)
@@ -4395,7 +4685,7 @@ ConfigurablePopupMenuSection.prototype = {
                menuItem.menu.close(false);
          });
          this._connectItemSignals(menuItem);
-      } else if ((menuItem instanceof ConfigurableSeparatorMenuItem) || (menuItem instanceof PopupMenu.PopupSeparatorMenuItem)) {
+      } else if (menuItem instanceof ConfigurableSeparatorMenuItem) {
          this._connectItemSignals(menuItem);
          // updateSeparatorVisibility needs to get called any time the
          // separator's adjacent siblings change visibility or position.
@@ -4403,10 +4693,10 @@ ConfigurablePopupMenuSection.prototype = {
          // precise ways would require a lot more bookkeeping.
          menuItem._closingMenuId = this.connect('open-state-changed', Lang.bind(this, function() { this._updateSeparatorVisibility(menuItem); }));
          menuItem._allocationId = this.box.connect('allocation-changed', Lang.bind(this, function() { this._updateSeparatorVisibility(menuItem); }));
-      } else if ((menuItem instanceof ConfigurablePopupBaseMenuItem) || (menuItem instanceof PopupMenu.PopupBaseMenuItem)) {
+      } else if (menuItem instanceof ConfigurablePopupBaseMenuItem) {
          this._connectItemSignals(menuItem);
       } else
-         throw TypeError("Invalid argument to PopupMenuBase.addMenuItem()");
+         throw TypeError("Invalid argument to ConfigurablePopupMenuBase.addMenuItem()");
 
       this.length++;
    },
@@ -4463,21 +4753,21 @@ ConfigurablePopupMenuSection.prototype = {
          if(parent)
             parent.remove_actor(menuItem.menu.actor);
       }
-      if (menuItem instanceof PopupMenu.PopupMenuSection) {
+      if (menuItem instanceof ConfigurablePopupMenuSection) {
          this._disconnectSubMenuSignals(menuItem, menuItem);
          menuItem.disconnect(menuItem._destroyId);
          menuItem.disconnect(menuItem._subMenuActivateId);
          menuItem.disconnect(menuItem._subMenuActiveChangeId);
-      } else if ((menuItem instanceof ConfigurablePopupSubMenuMenuItem) || (menuItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+      } else if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
          if(menuItem.menu)
             this._disconnectSubMenuSignals(menuItem, menuItem.menu);
          menuItem.disconnect(menuItem._closingMenuId);
          this._disconnectItemSignals(menuItem);
-      } else if ((menuItem instanceof ConfigurableSeparatorMenuItem) || (menuItem instanceof PopupMenu.PopupSeparatorMenuItem)) {
+      } else if (menuItem instanceof ConfigurableSeparatorMenuItem) {
          this._disconnectItemSignals(menuItem);
          menuItem.disconnect(menuItem._closingMenuId);
          menuItem.disconnect(menuItem._allocationId);
-      } else if ((menuItem instanceof ConfigurablePopupBaseMenuItem) || (menuItem instanceof PopupMenu.PopupBaseMenuItem))
+      } else if (menuItem instanceof ConfigurablePopupBaseMenuItem)
          this._disconnectItemSignals(menuItem);
       this.length--;
    },
@@ -4549,7 +4839,7 @@ ConfigurablePopupMenuSection.prototype = {
    },
 
    _setDesaturateItemIcon: function(menuItem) {
-      if ((menuItem instanceof ConfigurablePopupSubMenuMenuItem) || (menuItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+      if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
          if(menuItem.menu.desaturateItemIcon)
              menuItem.menu.desaturateItemIcon(this._desaturateItemIcon);
       }
@@ -4558,7 +4848,7 @@ ConfigurablePopupMenuSection.prototype = {
    },
 
    _setShowItemIcon: function(menuItem) {
-      if ((menuItem instanceof ConfigurablePopupSubMenuMenuItem) || (menuItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+      if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
          if(menuItem.menu.setShowItemIcon)
              menuItem.menu.setShowItemIcon(this._showItemIcon);
       }
@@ -4568,7 +4858,7 @@ ConfigurablePopupMenuSection.prototype = {
 
    destroy: function() {
       if(this.actor) {
-         PopupMenu.PopupMenuSection.prototype.destroy.call(this);
+         ConfigurablePopupMenuBase.prototype.destroy.call(this);
          this.actor = null;
       }
    }
@@ -5777,7 +6067,7 @@ ConfigurableMenuApplet.prototype = {
       let items = this._getMenuItems();
       for(let pos in items) {
          let menuItem = items[pos];
-         if ((menuItem instanceof ConfigurablePopupSubMenuMenuItem) || (menuItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+         if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
             this._setMenuInPosition(menuItem);
             this._setShowItemIcon(menuItem);
             menuItem.menu.fixToCorner(menuItem.menu.fixCorner);
@@ -5815,7 +6105,7 @@ ConfigurableMenuApplet.prototype = {
             let menuItem = null;
             for(let pos in items) {
                menuItem = items[pos];
-               if ((menuItem instanceof ConfigurablePopupSubMenuMenuItem) || (menuItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+               if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
                   menuItem.menu.open(animate);
                   break;
                }
@@ -5835,7 +6125,7 @@ ConfigurableMenuApplet.prototype = {
             let items = this._getMenuItems();
             for(let pos in items) {
                let menuItem = items[pos];
-               if ((menuItem instanceof ConfigurablePopupSubMenuMenuItem) || (menuItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+               if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
                   menuItem.menu.close(animate);
                }
             }
@@ -5893,7 +6183,7 @@ ConfigurableMenuApplet.prototype = {
    },
 
    addMenuItem: function(menuItem, position) {
-      if ((menuItem instanceof ConfigurablePopupSubMenuMenuItem) || (menuItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+      if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
          let beforeItem = null;
          if(position == undefined) {
             this.box.add(menuItem.actor);
@@ -5930,7 +6220,7 @@ ConfigurableMenuApplet.prototype = {
    },
 
    removeItem: function(menuItem) {
-      if ((menuItem instanceof ConfigurablePopupSubMenuMenuItem) || (menuItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+      if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
          if(menuItem.menu)
             menuItem.menu.disconnect(item.menu._stateId);
          menuItem.actor.disconnect(menuItem._pressId);
@@ -6020,7 +6310,7 @@ ConfigurableMenuApplet.prototype = {
    },
 
    _setDesaturateItemIcon: function(menuItem) {
-      if ((menuItem instanceof ConfigurablePopupSubMenuMenuItem) || (menuItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+      if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
          if(menuItem.menu.desaturateItemIcon)
              menuItem.menu.desaturateItemIcon(this._desaturateItemIcon);
       }
@@ -6029,7 +6319,7 @@ ConfigurableMenuApplet.prototype = {
    },
 
    _setShowItemIcon: function(menuItem) {
-      if ((menuItem instanceof ConfigurablePopupSubMenuMenuItem) || (menuItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+      if (menuItem instanceof ConfigurablePopupSubMenuMenuItem) {
          if(menuItem.menu.setShowItemIcon)
              menuItem.menu.setShowItemIcon(this._showItemIcon);
          if(menuItem.setShowItemIcon)
@@ -6683,7 +6973,7 @@ PopupMenuAbstractFactory.prototype = {
       let child;
       for(let i in childs) {
          child = childs[i];
-         if(child instanceof PopupMenu.PopupMenuBase) {
+         if(child instanceof ConfigurablePopupMenuBase) {
             this._closeAllSubmenuChilds(child);
          }
          else if((child.menu)&&(child.menu.isOpen)) {
@@ -6696,7 +6986,7 @@ PopupMenuAbstractFactory.prototype = {
    _getTopMenu: function(shellItem) {
       let actor = shellItem.actor.get_parent();
       while (actor) {
-         if((actor._delegate) && ((actor._delegate instanceof PopupMenu.PopupMenu) ||
+         if((actor._delegate) && ((actor._delegate instanceof ConfigurableMenu) ||
              (actor._delegate instanceof PopupMenu.PopupSubMenu)))
             return actor._delegate;
          actor = actor.get_parent();
@@ -6771,15 +7061,15 @@ MenuFactory.prototype = {
       let shellItem = null;
       let itemType = factoryItem.getFactoryType();
       if(itemType == FactoryClassTypes.RootMenuClass)
-         shellItem = new Applet.PopupMenu(launcher, orientation);
+         shellItem = new ConfigurableMenuApplet(launcher, orientation, menuManager);
       if(itemType == FactoryClassTypes.SubMenuMenuItemClass)
-         shellItem = new PopupMenu.PopupSubMenuMenuItem("FIXME");
+         shellItem = new ConfigurablePopupSubMenuMenuItem("FIXME");
       else if(itemType == FactoryClassTypes.MenuSectionMenuItemClass)
-         shellItem = new PopupMenu.PopupMenuSection();
+         shellItem = new ConfigurablePopupMenuSection();
       else if(itemType == FactoryClassTypes.SeparatorMenuItemClass)
-         shellItem = new PopupMenu.PopupSeparatorMenuItem();
+         shellItem = new ConfigurableSeparatorMenuItem();
       else if(itemType == FactoryClassTypes.MenuItemClass)
-         shellItem = new PopupMenu.PopupMenuItem("FIXME");
+         shellItem = new ConfigurableApplicationMenuItem("FIXME");
       //else
       //    throw new TypeError('Trying to instantiate a shell item with an invalid factory type');
       return shellItem;
@@ -6908,7 +7198,6 @@ MenuFactory.prototype = {
       // Don't allow to override previusly preasigned items, destroy the shell item first.
       factoryItem.destroyShellItem();
       let shellItem = this._createShellItem(factoryItem);
-      this._hackShellItem(shellItem);
 
       // Initially create children on idle, to not stop cinnamon mainloop.
       Mainloop.idle_add(Lang.bind(this, this._createChildrens, factoryItem));
@@ -6925,13 +7214,13 @@ MenuFactory.prototype = {
    _createChildrens: function(factoryItem) {
       if(factoryItem) {
          let shellItem = factoryItem.getShellItem();
-         if((shellItem instanceof ConfigurablePopupSubMenuMenuItem) || (shellItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+         if(shellItem instanceof ConfigurablePopupSubMenuMenuItem) {
             let children = factoryItem.getChildren();
             for(let i = 0; i < children.length; ++i) {
                let chItem = this._createItem(children[i]);
                shellItem.menu.addMenuItem(chItem);
             }
-         } else if(shellItem instanceof PopupMenu.PopupMenuSection) {
+         } else if(shellItem instanceof ConfigurablePopupMenuSection) {
             let children = factoryItem.getChildren();
             for(let i = 0; i < children.length; ++i) {
                let chItem = this._createItem(children[i]);
@@ -6944,10 +7233,10 @@ MenuFactory.prototype = {
    _onChildAdded: function(factoryItem, child, position) {
       let shellItem = factoryItem.getShellItem();
       if(shellItem) {
-         if((shellItem instanceof ConfigurablePopupSubMenuMenuItem) || (shellItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+         if(shellItem instanceof ConfigurablePopupSubMenuMenuItem) {
             shellItem.menu.addMenuItem(this._createItem(child), position, "factor");
-         } else if((shellItem instanceof PopupMenu.PopupMenuSection) ||
-                    (shellItem instanceof PopupMenu.PopupMenu)) {
+         } else if((shellItem instanceof ConfigurablePopupMenuSection) ||
+                    (shellItem instanceof ConfigurableMenu)) {
             shellItem.addMenuItem(this._createItem(child), position);
          } else {
             global.logWarning("Tried to add a child to non-submenu item. Better recreate it as whole");
@@ -6961,10 +7250,10 @@ MenuFactory.prototype = {
    _onChildMoved: function(factoryItem, child, oldpos, newpos) {
       let shellItem = factoryItem.getShellItem();
       if(shellItem) {
-         if((shellItem instanceof ConfigurablePopupSubMenuMenuItem) || (shellItem instanceof PopupMenu.PopupSubMenuMenuItem)) {
+         if(shellItem instanceof ConfigurablePopupSubMenuMenuItem) {
             this._moveItemInMenu(shellItem.menu, child, newpos);
-         } else if((shellItem instanceof PopupMenu.PopupMenuSection) ||
-                    (shellItem instanceof PopupMenu.PopupMenu)) {
+         } else if((shellItem instanceof ConfigurablePopupMenuSection) ||
+                    (shellItem instanceof ConfigurableMenu)) {
             this._moveItemInMenu(shellItem, child, newpos);
          } else {
             global.logWarning("Tried to move a child in non-submenu item. Better recreate it as whole");
@@ -6984,7 +7273,7 @@ MenuFactory.prototype = {
       let parentMenu = null;
       if(factoryItemParent) {
          let shellItemParent = factoryItemParent.getShellItem();
-         if(shellItemParent instanceof PopupMenu.PopupMenuSection)
+         if(shellItemParent instanceof ConfigurablePopupMenuSection)
             parentMenu = shellItemParent;
          else
             parentMenu = shellItemParent.menu;
@@ -7030,40 +7319,6 @@ MenuFactory.prototype = {
                // Skip the rest
                break;
             }
-         }
-      }
-   },
-
-   _hackShellItem: function(shellItem) {
-      if(shellItem instanceof PopupMenu.PopupMenuItem) {
-         if(!shellItem.setAccel) {
-            shellItem._accel = new St.Label();
-            if(shellItem.addActor) { //GS 3.8
-               shellItem.addActor(shellItem._accel);
-            } else { //GS >= 3.10
-               shellItem.actor.add_actor(shellItem._accel);
-            }
-         }
-
-         if(!shellItem._icon) {
-            shellItem._icon = new St.Icon({ style_class: 'popup-menu-icon', x_align: St.Align.END });
-            if(shellItem.addActor) { //GS 3.8
-               shellItem.addActor(shellItem._icon, { align: St.Align.END });
-            } else { //GS >= 3.10
-               shellItem.actor.add(shellItem._icon, { x_align: St.Align.END });
-               shellItem.label.get_parent().child_set(shellItem.label, { expand: true });
-            }
-         }
-
-         // GS3.8: emulate the ornament stuff.
-         // this is similar to how the setShowDot function works
-         if(!shellItem.setOrnament) {
-
-            shellItem._ornament = new St.Label();
-            shellItem.actor.add_actor(shellItem._ornament);
-            shellItem.setOrnament = this._setOrnamentPolyfill;
-            //GS doesn't disconnect that one, either
-            shellItem.actor.connect('allocate', Lang.bind(this, this._allocateOrnament, shellItem));
          }
       }
    }

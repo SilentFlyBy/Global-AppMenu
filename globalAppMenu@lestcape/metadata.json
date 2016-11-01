@@ -2,9 +2,10 @@
     "website": "https://github.com/lestcape/Global-AppMenu", 
     "name": "Global Application Menu", 
     "contributors": "Lester Carballo P\u00e9rez", 
-    "uuid": "globalAppMenu@lestcape", 
+    "dangerous": true, 
+    "description": "Adds global application menu support to Cinnamon", 
     "comments": "Adds global application menu support to Cinnamon", 
     "version": "0.4-Beta", 
     "last-edited": "1433139195", 
-    "description": "Adds global application menu support to Cinnamon"
+    "uuid": "globalAppMenu@lestcape"
 }

@@ -23,8 +23,9 @@ const Gettext = imports.gettext;
 const Applet = imports.ui.applet;
 const Main = imports.ui.main;
 const Settings = imports.ui.settings;
+const AppletManager = imports.ui.appletManager;
 
-const AppletPath = imports.ui.appletManager.applets["globalAppMenu@lestcape"];
+const AppletPath = AppletManager.applets["globalAppMenu@lestcape"];
 const IndicatorAppMenuWatcher = AppletPath.indicatorAppMenuWatcher;
 const ConfigurableMenus = AppletPath.configurableMenus;
 
@@ -208,7 +209,7 @@ MyMenuFactory.prototype = {
          shellItem.menu.setFloatingState(this._floatingSubMenu);
       }
       return shellItem;
-   }
+   },
 };
 
 function MyApplet() {
@@ -333,6 +334,53 @@ MyApplet.prototype = {
          return true;
       }
       return false;
+   },
+
+   finalizeContextMenu: function () {
+      // Add default context menus if we're in panel edit mode, ensure their removal if we're not       
+      let items = this._applet_context_menu._getMenuItems();
+
+      if (this.context_menu_item_remove == null) {
+         this.context_menu_item_remove = new ConfigurableMenus.ConfigurableBasicPopupMenuItem(_("Remove '%s'").format(_(this._meta.name)));
+         this.context_menu_item_remove.setIconName("edit-delete");
+         this.context_menu_item_remove.setShowItemIcon(true);
+         this.context_menu_item_remove.setIconType(St.IconType.SYMBOLIC);
+         this.context_menu_item_remove.connect('activate', Lang.bind(this, function() {
+            AppletManager._removeAppletFromPanel(this._uuid, this.instance_id);
+         }));
+      }
+      if (this.context_menu_item_about == null) {
+         this.context_menu_item_about = new ConfigurableMenus.ConfigurableBasicPopupMenuItem(_("About..."));
+         this.context_menu_item_about.setIconName("dialog-question");
+         this.context_menu_item_about.setShowItemIcon(true);
+         this.context_menu_item_about.setIconType(St.IconType.SYMBOLIC);
+         this.context_menu_item_about.connect('activate', Lang.bind(this, this.openAbout));
+      }
+
+      if (this.context_menu_separator == null) {
+         this.context_menu_separator = new ConfigurableMenus.ConfigurableSeparatorMenuItem();
+      }
+
+      if (items.indexOf(this.context_menu_item_about) == -1) {
+         this._applet_context_menu.addMenuItem(this.context_menu_item_about);
+      }
+
+      if (!this._meta["hide-configuration"] && GLib.file_test(this._meta["path"] + "/settings-schema.json", GLib.FileTest.EXISTS)) {
+         if (this.context_menu_item_configure == null) {            
+             this.context_menu_item_configure = new ConfigurableMenus.ConfigurableBasicPopupMenuItem(_("Configure..."));
+             this.context_menu_item_configure.setIconName("system-run");
+             this.context_menu_item_configure.setShowItemIcon(true);
+             this.context_menu_item_configure.setIconType(St.IconType.SYMBOLIC);
+             this.context_menu_item_configure.connect('activate', Lang.bind(this, this.configureApplet));
+         }
+         if (items.indexOf(this.context_menu_item_configure) == -1) {
+             this._applet_context_menu.addMenuItem(this.context_menu_item_configure);
+         }
+      }
+
+      if (items.indexOf(this.context_menu_item_remove) == -1) {
+         this._applet_context_menu.addMenuItem(this.context_menu_item_remove);
+      }
    },
 
    _finalizeEnviroment: function() {
