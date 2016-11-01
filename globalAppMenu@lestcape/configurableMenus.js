@@ -2577,10 +2577,9 @@ ConfigurableMenuManager.prototype = {
          if(this._activeMenu && this._activeMenu.isChildMenu(menu)) {
             this._menuStack.push(this._activeMenu);
          } else if((!focus || !menu.actor.contains(focus))) {
+            menu.actor.grab_key_focus();
             if(menu.sourceActor)
                menu.sourceActor.grab_key_focus();
-            else
-               menu.actor.grab_key_focus();
          }
          this._activeMenu = menu;
       } else if(this._menuStack.length > 0) {
