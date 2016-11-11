@@ -24,6 +24,7 @@ const Applet = imports.ui.applet;
 const Main = imports.ui.main;
 const Settings = imports.ui.settings;
 const AppletManager = imports.ui.appletManager;
+const Util = imports.misc.util;
 
 const AppletPath = AppletManager.applets["globalAppMenu@lestcape"];
 const IndicatorAppMenuWatcher = AppletPath.indicatorAppMenuWatcher;
@@ -334,6 +335,20 @@ MyApplet.prototype = {
          return true;
       }
       return false;
+   },
+
+   openAbout: function() {
+      if(Applet.Applet.prototype.openAbout)
+         Applet.Applet.prototype.configureApplet.call(this);
+      else
+         Main.notify("Missing reference to the About Dialog");
+   },
+
+   configureApplet: function() {
+      if(Applet.Applet.prototype.configureApplet)
+         Applet.Applet.prototype.configureApplet.call(this);
+      else
+         Util.spawnCommandLine("xlet-settings applet " + this._uuid + " " + this.instance_id);
    },
 
    finalizeContextMenu: function () {
