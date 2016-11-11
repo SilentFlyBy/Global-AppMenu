@@ -339,7 +339,7 @@ MyApplet.prototype = {
 
    openAbout: function() {
       if(Applet.Applet.prototype.openAbout)
-         Applet.Applet.prototype.configureApplet.call(this);
+         Applet.Applet.prototype.openAbout.call(this);
       else
          Main.notify("Missing reference to the About Dialog");
    },
