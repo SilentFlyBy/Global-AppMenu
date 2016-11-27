@@ -258,14 +258,14 @@ MyApplet.prototype = {
          this.menuFactory = new MyMenuFactory();
          this._system = new IndicatorAppMenuWatcher.SystemProperties();
 
-         this._createSettings();
-
          // Swap applet_context_menu to Configurable Menu Api.
          this._menuManager.removeMenu(this._applet_context_menu);
          this._applet_context_menu.destroy();
          this._applet_context_menu = new ConfigurableMenus.ConfigurableMenu(this, 0.0, orientation, true);
          this._menuManager = new ConfigurableMenus.ConfigurableMenuManager(this);
          this._menuManager.addMenu(this._applet_context_menu);
+
+         this._createSettings();
 
          this.indicatorDbus = new IndicatorAppMenuWatcher.IndicatorAppMenuWatcher(
                 IndicatorAppMenuWatcher.AppmenuMode.MODE_STANDARD, this._getIconSize());
@@ -471,6 +471,8 @@ MyApplet.prototype = {
 
    _onShowBoxPointerChanged: function() {
       this.menuFactory.showBoxPointer(this.showBoxPointer);
+      if(this._applet_context_menu.showBoxPointer)
+         this._applet_context_menu.showBoxPointer(this.showBoxPointer);
    },
 
    _onAlignMenuLauncherChanged: function() {
