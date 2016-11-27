@@ -666,6 +666,10 @@ IndicatorAppMenuWatcher.prototype = {
    _onWindowChanged: function() {
       let xid = this._guessWindowXId(global.display.focus_window);
       if(xid) {
+         //Main.notify("" + global.display.focus_window.hide_titlebar_when_maximized);
+         if(global.display.focus_window.set_hide_titlebar_when_maximized)
+             global.display.focus_window.set_hide_titlebar_when_maximized(true);
+         //Main.notify("" + global.display.focus_window.get_hide_titlebar_when_maximized());
          let registerWin = null;
          if(xid in this._registeredWindows) {
             registerWin = this._registeredWindows[xid];

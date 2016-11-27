@@ -16,6 +16,7 @@
 
 const Cinnamon = imports.gi.Cinnamon;
 const Applet = imports.ui.applet;
+const AppletManager = imports.ui.appletManager;
 const Clutter = imports.gi.Clutter;
 const Gtk = imports.gi.Gtk;
 const Pango = imports.gi.Pango;
@@ -2637,6 +2638,7 @@ ConfigurableMenuManager.prototype = {
             let oldMenu = this._activeMenu;
             this._activeMenu = null;
             oldMenu.close(false);
+            this.emit('close-menu', this.oldMenu);
          }
          newMenu.open(true);
       } else {
@@ -2731,8 +2733,10 @@ ConfigurableMenuManager.prototype = {
       if(eventType == Clutter.EventType.BUTTON_PRESS ||
          eventType == Clutter.EventType.BUTTON_RELEASE) {
          for(let i = this._menuStack.length; i > -1; i--) {
-            if(this._activeMenu)
+            if(this._activeMenu) {
                this._activeMenu.close(false);
+               this.emit('close-menu', this._activeMenu);
+            }
          }
          return false;
       }
@@ -2740,8 +2744,10 @@ ConfigurableMenuManager.prototype = {
    },
 
    _closeMenu: function() {
-      if(this._activeMenu != null)
+      if(this._activeMenu != null) {
          this._activeMenu.close(true);
+         this.emit('close-menu', this._activeMenu);
+      }
    },
 
    setEffect: function(effect) {
@@ -2918,6 +2924,7 @@ ConfigurableMenuManager.prototype = {
          let oldMenu = this._activeMenu;
          this._activeMenu = null;
          oldMenu.close(false);
+         this.emit('close-menu', oldMenu);
          if(!hadFocus)
             focus.grab_key_focus();
       }
@@ -2939,6 +2946,7 @@ ConfigurableMenuManager.prototype = {
       return false;
    }
 };
+Signals.addSignalMethods(ConfigurableMenuManager.prototype);
 
 function ConfigurablePopupMenuBase() {
    throw new TypeError('Trying to instantiate abstract class ConfigurablePopupMenuBase');
@@ -3777,6 +3785,19 @@ ConfigurableMenu.prototype = {
       });
    },
 
+   _updatePanelVisibility: function() {
+      if(Main.panelManager) {
+         if(Main.panelManager.updatePanelsVisibility)
+            Main.panelManager.updatePanelsVisibility();
+         else {
+            for(let i in Main.panelManager.panels) {
+               if(Main.panelManager.panels[i])
+                  Main.panelManager.panels[i]._hidePanel();
+            }
+         }
+      }
+   },
+
    _openClean: function(animate) {
       if((this.isOpen)||(!this._reactive))
          return;
@@ -3828,13 +3849,9 @@ ConfigurableMenu.prototype = {
 
       if(this._floating) {
          this._boxPointer.hide(animate);
-         if(Main.panelManager) {
-            for(let i in Main.panelManager.panels) {
-               if(Main.panelManager.panels[i])
-                  Main.panelManager.panels[i]._hidePanel();
-            }
-         }
-         global.menuStackLength -= 1;
+         if(global.menuStackLength > 0)
+             global.menuStackLength -= 1;
+         this._updatePanelVisibility();
       } else {
          this.actor.hide();
       }
@@ -6040,6 +6057,7 @@ ConfigurableMenuApplet.prototype = {
       this.actor.set_style_class_name('applet-container-box');
       this.actor.connect('notify::mapped', Lang.bind(this, this._onMapped));
       this._menuManager.addMenu(this);
+      this._menuManager.connect('close-menu', Lang.bind(this, this._onSubMenuClosed));
 
       this.actor.connect('key-press-event', Lang.bind(this, this._onKeyPressEvent));
       if(this.launcher._applet_tooltip) {
@@ -6072,6 +6090,38 @@ ConfigurableMenuApplet.prototype = {
             menuItem.menu.fixToCorner(menuItem.menu.fixCorner);
          }
       }
+   },
+
+   _updatePanelVisibility: function() {
+      if(Main.panelManager) {
+         let panel = null;
+         try {
+            panel = AppletManager.enabledAppletDefinitions.idMap[this.launcher.instance_id].panel;
+            panel._mouseEntered = false;
+         } catch(e) {
+            global.logError("Fail to update panel visibility: " + e);
+         }
+         if(this.isOpen && !this._floating && (global.menuStackLength == 0)) {
+            global.menuStackLength += 1;
+         }
+         if(Main.panelManager.updatePanelsVisibility) {
+            if(panel && (global.menuStackLength > 0))
+               panel._mouseEntered = true;
+            Main.panelManager.updatePanelsVisibility();
+         } else {
+            if(panel && (global.menuStackLength > 0))
+               panel._mouseEntered = true;
+            for(let i in Main.panelManager.panels) {
+               if(Main.panelManager.panels[i] && Main.panelManager.panels[i]._hidePanel)
+                  Main.panelManager.panels[i]._hidePanel();
+            }
+         }
+      }
+   },
+
+   _onSubMenuClosed: function() {
+      if(global.menuStackLength == 0)
+         this._updatePanelVisibility();
    },
 
    _onMapped: function() {
@@ -6139,10 +6189,14 @@ ConfigurableMenuApplet.prototype = {
          if(this._childMenus.length > 0)
             ConfigurableMenu.prototype.open.call(this, false);
       } else if(!this.isOpen) {
+         if(global.menuStackLength == undefined)
+            global.menuStackLength = 0;
+         global.menuStackLength += 1;
          this.actor.show();
          this.isOpen = true;
          this.emit('open-state-changed', true);
       }
+      this._updatePanelVisibility();
    },
 
    close: function(animate, forced) {
@@ -6150,10 +6204,13 @@ ConfigurableMenuApplet.prototype = {
          ConfigurableMenu.prototype.close.call(this, false);
       } else if((forced)&&(this.isOpen)) {
          this.actor.hide();
+         if(global.menuStackLength > 0)
+             global.menuStackLength -= 1;
          this._activeSubMenuItem = null;
          this._isSubMenuOpen = false;
          this.isOpen = false;
-         this.emit('open-state-changed', false);
+         this._updatePanelVisibility();
+         this.emit('open-state-changed', true);
       }
    },
 
