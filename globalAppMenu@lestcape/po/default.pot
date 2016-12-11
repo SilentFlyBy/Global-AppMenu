@@ -27,8 +27,36 @@ msgstr ""
 msgid "You need restart your computer, to active the unity-gtk-module"
 msgstr ""
 
-#: utility.js:181
-msgid "Command not found."
+#: applet.js:423
+msgid "The environment variable cannot be changed"
+msgstr ""
+
+#: applet.js:425
+msgid "The environment variable was set, a logout will be required to apply the changes"
+msgstr ""
+
+#: utils/environment.js:45
+msgid "Global Menu Environment Usage"
+msgstr ""
+
+#: utils/environment.js:46
+msgid "Install environment variables"
+msgstr ""
+
+#: utils/environment.js:47
+msgid "Uninstall environment variables"
+msgstr ""
+
+#: utils/environment.js:139
+msgid "Please enter your password to configure the Menu Proxy environment variable"
+msgstr ""
+
+#: utils/environment.js:150
+msgid "Could not acquire root privileges"
+msgstr ""
+
+#: utils/environment.js:162
+msgid "Could not find current file"
 msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->max-app-name-
@@ -192,6 +220,14 @@ msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->show-boxpointer->tooltip
 msgid "Select if you want to show the boxpointer of all floating menus."
+msgstr ""
+
+#. globalAppMenu@lestcape->settings-schema.json->enable-environment->description
+msgid "Statically set the menu proxy environment variable (Experimental)"
+msgstr ""
+
+#. globalAppMenu@lestcape->settings-schema.json->enable-environment->tooltip
+msgid "Select if you want to set statically the menu proxy environment variable."
 msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->enable-jayantana->description

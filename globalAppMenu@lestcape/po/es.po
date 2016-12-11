@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Global Application Menu 0.1-Beta\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-05-14 06:58-0500\n"
-"PO-Revision-Date: 2015-12-13 14:20-0600\n"
+"PO-Revision-Date: 2016-12-11 03:12-0600\n"
 "Last-Translator: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "Language-Team: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -16,7 +16,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Language: es\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Poedit 1.5.4\n"
+"X-Generator: Poedit 1.8.7.1\n"
 
 #: applet.js:261
 msgid "Global Application Menu"
@@ -26,9 +26,37 @@ msgstr "Global Application Menu"
 msgid "You need restart your computer, to active the unity-gtk-module"
 msgstr "Es necesario reiniciar el equipo, para activar la unity-gtk-module"
 
-#: utility.js:181
-msgid "Command not found."
-msgstr "Comando no encontrado."
+#: applet.js:423
+msgid "The environment variable cannot be changed"
+msgstr "La variable de entorno no se puede cambiar"
+
+#: applet.js:425
+msgid "The environment variable was set, a logout will be required to apply the changes"
+msgstr "Se estableció la variable de entorno, se requerirá un cierre de sesión para aplicar los cambios"
+
+#: utils/environment.js:45
+msgid "Global Menu Environment Usage"
+msgstr "Uso de Global Menu Environment"
+
+#: utils/environment.js:46
+msgid "Install environment variables"
+msgstr "Instalar variables de entorno"
+
+#: utils/environment.js:47
+msgid "Uninstall environment variables"
+msgstr "Desintalar variables de entorno"
+
+#: utils/environment.js:139
+msgid "Please enter your password to configure the Menu Proxy environment variable"
+msgstr "Por favor, introduzca su contraseña para configurar la variable de entorno Menu Proxy"
+
+#: utils/environment.js:150
+msgid "Could not acquire root privileges"
+msgstr "No se pueden obtener privilegios de root"
+
+#: utils/environment.js:162
+msgid "Could not find current file"
+msgstr "No se pudo encontrar el archivo actual"
 
 #. globalAppMenu@lestcape->settings-schema.json->max-app-name-
 #. size->description
@@ -102,8 +130,7 @@ msgstr "Duración del efecto:"
 
 #. globalAppMenu@lestcape->settings-schema.json->effect-time->tooltip
 msgid "The time on seconds to perform the effect(More time is slower)."
-msgstr ""
-"El tiempo en segundos para realizar el efecto (Más tiempo es más lento)."
+msgstr "El tiempo en segundos para realizar el efecto (Más tiempo es más lento)."
 
 #. globalAppMenu@lestcape->settings-schema.json->automatic-active-
 #. mainmenu->description
@@ -138,12 +165,8 @@ msgid "Automatically open the submenu"
 msgstr "Abrir automáticamente el submenú"
 
 #. globalAppMenu@lestcape->settings-schema.json->open-active-submenu->tooltip
-msgid ""
-"Select if you want to automatically open the submenu when the mouse is "
-"inside of the launcher."
-msgstr ""
-"Seleccione si desea abrir automáticamente el submenú cuando el ratón está "
-"dentro del lanzador."
+msgid "Select if you want to automatically open the submenu when the mouse is inside of the launcher."
+msgstr "Seleccione si desea abrir automáticamente el submenú cuando el ratón está dentro del lanzador."
 
 #. globalAppMenu@lestcape->settings-schema.json->close-active-
 #. submenu->description
@@ -151,12 +174,8 @@ msgid "Automatically close the submenu"
 msgstr "Cerrar automáticamente el submenú"
 
 #. globalAppMenu@lestcape->settings-schema.json->close-active-submenu->tooltip
-msgid ""
-"Select if you want to automatically close the submenu when the mouse is out "
-"of the launcher."
-msgstr ""
-"Seleccione si desea cerrar automáticamente el submenú cuando el ratón está "
-"fuera del lanzador."
+msgid "Select if you want to automatically close the submenu when the mouse is out of the launcher."
+msgstr "Seleccione si desea cerrar automáticamente el submenú cuando el ratón está fuera del lanzador."
 
 #. globalAppMenu@lestcape->settings-schema.json->show-app-name->description
 msgid "Show the application name in the panel"
@@ -196,8 +215,15 @@ msgstr "Mostrar los boxpointers"
 
 #. globalAppMenu@lestcape->settings-schema.json->show-boxpointer->tooltip
 msgid "Select if you want to show the boxpointer of all floating menus."
-msgstr ""
-"Seleccione si desea mostrar los boxpointer de todos los menús flotantes."
+msgstr "Seleccione si desea mostrar los boxpointer de todos los menús flotantes."
+
+#. globalAppMenu@lestcape->settings-schema.json->enable-environment->description
+msgid "Statically set the menu proxy environment variable (Experimental)"
+msgstr "Establecer estáticamente la variable de entorno de proxy de menú (Experimental)"
+
+#. globalAppMenu@lestcape->settings-schema.json->enable-environment->tooltip
+msgid "Select if you want to set statically the menu proxy environment variable."
+msgstr "Seleccione si desea establecer de forma estática la variable de entorno de proxy de menú."
 
 #. globalAppMenu@lestcape->settings-schema.json->enable-jayantana->description
 msgid "Enable the support for JAyantana (Experimental)"

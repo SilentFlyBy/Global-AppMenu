@@ -22,8 +22,12 @@ const Lang = imports.lang;
 const Signals = imports.signals;
 
 const Main = imports.ui.main;
+const AppletManager = imports.ui.appletManager;
+const Util = imports.misc.util;
 
-const AppletPath = imports.ui.appletManager.applets['globalAppMenu@lestcape'];
+
+const FILE_PATH = AppletManager.appletMeta["globalAppMenu@lestcape"].path;
+const AppletPath = AppletManager.applets['globalAppMenu@lestcape'];
 const DBusMenu = AppletPath.dbusMenu;
 const DBusRegistrar = DBusMenu.loadInterfaceXml("DBusRegistrar.xml");
 
@@ -53,6 +57,7 @@ function SystemProperties() {
 SystemProperties.prototype = {
 
    _init: function() {
+      this._environmentCallback = null;
       this.xSetting = new Gio.Settings({ schema: 'org.cinnamon.settings-daemon.plugins.xsettings' });
    },
 
@@ -147,6 +152,46 @@ SystemProperties.prototype = {
          return false;
       }
       return true;
+   },
+
+   setEnvironmentVar: function(show, callback) {
+      this._environmentCallback = callback;
+      if(show && !this.isEnvironmentSet()) {
+          let destFile = Gio.file_new_for_path(FILE_PATH).get_child('utils').get_child('environment.js');
+          this._changeModeGFile(destFile, 755);
+          Util.spawn_async([destFile.get_path(), '-i'], Lang.bind(this, this._onEnvironmentChanged));
+      } else if(!show && this.isEnvironmentSet()) {
+          let destFile = Gio.file_new_for_path(FILE_PATH).get_child('utils').get_child('environment.js');
+          this._changeModeGFile(destFile, 755);
+          Util.spawn_async([destFile.get_path(), '-u'], Lang.bind(this, this._onEnvironmentChanged));
+      }
+   },
+
+   isEnvironmentSet: function() {
+      let path = "/etc/profile.d/cinnamon-globalmenu.sh";
+      let file = Gio.file_new_for_path(path);
+      return file.query_exists(null);
+   },
+
+   _onEnvironmentChanged: function(result) {
+      let out = result.split(/\n/);
+      if((out.length == 2) && ((out[out.length-2] == "true") || (out[out.length-2] == "false"))) {
+         if(this._environmentCallback) {
+             this._environmentCallback(this.isEnvironmentSet(), out[out.length-2] == "false");
+         }
+      } else {
+         if(this._environmentCallback) {
+             this._environmentCallback(this.isEnvironmentSet(), true);
+         }
+      }
+   },
+
+   _changeModeGFile: function(file, octal) {
+      if(file.query_exists(null)) {
+         let info = file.query_info("unix::mode", Gio.FileQueryInfoFlags.NONE, null);
+         info.set_attribute_uint32("unix::mode", parseInt(octal, 8));
+         file.set_attributes_from_info(info, Gio.FileQueryInfoFlags.NONE, null);
+      }
    },
 
    _overrideBoolXSetting: function(xsetting, show) {

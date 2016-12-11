@@ -9,6 +9,12 @@
     "separator-support-bottom" : {
         "type": "separator"
     },
+    "enable-environment" : {
+        "type" : "checkbox",
+        "default" : false,
+        "description": "Statically set the menu proxy environment variable (Experimental)",
+        "tooltip": "Select if you want to set statically the menu proxy environment variable."
+    },
     "enable-jayantana" : {
         "type" : "checkbox",
         "default" : false,

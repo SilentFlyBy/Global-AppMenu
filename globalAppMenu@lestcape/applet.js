@@ -224,6 +224,8 @@ MyApplet.prototype = {
       Applet.Applet.prototype._init.call(this, orientation, panelHeight, instanceId);
       try {
          this.uuid = metadata["uuid"];
+         Gettext.bindtextdomain(this.uuid, GLib.get_home_dir() + "/.local/share/locale");
+
          this.orientation = orientation;
 
          this.execInstallLanguage();
@@ -270,7 +272,7 @@ MyApplet.prototype = {
          this.indicatorDbus = new IndicatorAppMenuWatcher.IndicatorAppMenuWatcher(
                 IndicatorAppMenuWatcher.AppmenuMode.MODE_STANDARD, this._getIconSize());
 
-         this._isReady = this._initEnviroment();
+         this._isReady = this._initEnvironment();
 
          if(this._isReady) {
              this.indicatorDbus.watch();
@@ -287,6 +289,7 @@ MyApplet.prototype = {
 
    _createSettings: function() {
       this.settings = new Settings.AppletSettings(this, this.uuid, this.instance_id);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "enable-environment", "enableEnvironment", this._onEnableEnvironmentChanged, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "enable-jayantana", "enableJayantana", this._onEnableJayantanaChanged, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "show-app-icon", "showAppIcon", this._onShowAppIconChanged, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "desaturate-app-icon", "desaturateAppIcon", this._onDesaturateAppIconChanged, null);
@@ -306,6 +309,7 @@ MyApplet.prototype = {
       this.settings.bindProperty(Settings.BindingDirection.IN, "effect", "effectType", this._onEffectTypeChanged, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "effect-time", "effectTime", this._onEffectTimeChanged, null);
 
+      this._onEnableEnvironmentChanged();
       this._onEnableJayantanaChanged();
       this._onDisplayInPanelChanged();
       this._onShowAppIconChanged();
@@ -325,7 +329,7 @@ MyApplet.prototype = {
       this._onEffectTimeChanged();
    },
 
-   _initEnviroment: function() {
+   _initEnvironment: function() {
       let isReady = this._system.activeUnityGtkModule(true);
       if(isReady) {
          this._system.activeJAyantanaModule(this.enableJayantana);
@@ -398,7 +402,7 @@ MyApplet.prototype = {
       }
    },
 
-   _finalizeEnviroment: function() {
+   _finalizeEnvironment: function() {
       this._system.shellShowAppmenu(false);
       this._system.shellShowMenubar(false);
       this._system.activeUnityMenuProxy(false);
@@ -407,6 +411,24 @@ MyApplet.prototype = {
       // Is possible that we need to add an option to the settings
       // to be more easy to the user uninstall the applet in a
       // propertly way.
+   },
+
+   _onEnableEnvironmentChanged: function() {
+      if(this.enableEnvironment != this._system.isEnvironmentSet()) {
+         this._system.setEnvironmentVar(this.enableEnvironment, Lang.bind(this, this._envVarChanged));
+      }
+   },
+
+   _envVarChanged: function(result, error) {
+      this.enableEnvironment = result;
+      if(error)
+         Main.notify(_("The environment variable cannot be changed"));
+      else
+         Main.notify(_("The environment variable was set, a logout will be required to apply the changes"));
+   },
+
+   _onEnableJayantanaChanged: function() {
+      this._system.activeJAyantanaModule(this.enableJayantana);
    },
 
    _onEnableJayantanaChanged: function() {
@@ -589,7 +611,7 @@ MyApplet.prototype = {
 
    on_applet_removed_from_panel: function() {
       this.indicatorDbus.destroy();
-      this._finalizeEnviroment();
+      this._finalizeEnvironment();
    },
 
    on_applet_clicked: function(event) {

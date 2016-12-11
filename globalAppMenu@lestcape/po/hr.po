@@ -8,15 +8,15 @@ msgstr ""
 "Project-Id-Version: Global Application Menu 0.1-Beta\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-05-14 06:58-0500\n"
-"PO-Revision-Date: 2015-12-13 14:20-0600\n"
+"PO-Revision-Date: 2016-12-11 03:13-0600\n"
 "Last-Translator: gogo <trebelnik2@gmail.com>\n"
 "Language-Team: Croatian <hr@hr.org>\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
-"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
-"X-Generator: Poedit 1.5.4\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%10<=4 && (n"
+"%100<10 || n%100>=20) ? 1 : 2);\n"
+"X-Generator: Poedit 1.8.7.1\n"
 "Language: hr\n"
 
 #: applet.js:261
@@ -25,12 +25,39 @@ msgstr "Globalni izbornik aplikacija"
 
 #: applet.js:292
 msgid "You need restart your computer, to active the unity-gtk-module"
-msgstr ""
-"Trebate ponovno pokrenuti vaše računalo, kako bi aktivirali unity-gtk-module"
+msgstr "Trebate ponovno pokrenuti vaše računalo, kako bi aktivirali unity-gtk-module"
 
-#: utility.js:181
-msgid "Command not found."
-msgstr "Naredba nije pronađena."
+#: applet.js:423
+msgid "The environment variable cannot be changed"
+msgstr ""
+
+#: applet.js:425
+msgid "The environment variable was set, a logout will be required to apply the changes"
+msgstr ""
+
+#: utils/environment.js:45
+msgid "Global Menu Environment Usage"
+msgstr ""
+
+#: utils/environment.js:46
+msgid "Install environment variables"
+msgstr ""
+
+#: utils/environment.js:47
+msgid "Uninstall environment variables"
+msgstr ""
+
+#: utils/environment.js:139
+msgid "Please enter your password to configure the Menu Proxy environment variable"
+msgstr ""
+
+#: utils/environment.js:150
+msgid "Could not acquire root privileges"
+msgstr ""
+
+#: utils/environment.js:162
+msgid "Could not find current file"
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->max-app-name-
 #. size->description
@@ -140,11 +167,11 @@ msgstr "Automatski otvori podizbornik"
 
 #. globalAppMenu@lestcape->settings-schema.json->open-active-submenu->tooltip
 msgid ""
-"Select if you want to automatically open the submenu when the mouse is "
-"inside of the launcher."
+"Select if you want to automatically open the submenu when the mouse is inside of the "
+"launcher."
 msgstr ""
-"Odaberite ako želite automatski otvoriti podizbornik kada je pokazivač miša "
-"unutar pokretača."
+"Odaberite ako želite automatski otvoriti podizbornik kada je pokazivač miša unutar "
+"pokretača."
 
 #. globalAppMenu@lestcape->settings-schema.json->close-active-
 #. submenu->description
@@ -153,11 +180,11 @@ msgstr "Automatski zatvori podizbornik"
 
 #. globalAppMenu@lestcape->settings-schema.json->close-active-submenu->tooltip
 msgid ""
-"Select if you want to automatically close the submenu when the mouse is out "
-"of the launcher."
+"Select if you want to automatically close the submenu when the mouse is out of the "
+"launcher."
 msgstr ""
-"Odaberite ako želite automatski zatvoriti podizbornik kada je pokazivač miša "
-"izvan pokretača."
+"Odaberite ako želite automatski zatvoriti podizbornik kada je pokazivač miša izvan "
+"pokretača."
 
 #. globalAppMenu@lestcape->settings-schema.json->show-app-name->description
 msgid "Show the application name in the panel"
@@ -198,6 +225,14 @@ msgstr "Prikaži smjernicu izbornika"
 #. globalAppMenu@lestcape->settings-schema.json->show-boxpointer->tooltip
 msgid "Select if you want to show the boxpointer of all floating menus."
 msgstr "Odaberite ako želite prikazati smjernice izbornika."
+
+#. globalAppMenu@lestcape->settings-schema.json->enable-environment->description
+msgid "Statically set the menu proxy environment variable (Experimental)"
+msgstr ""
+
+#. globalAppMenu@lestcape->settings-schema.json->enable-environment->tooltip
+msgid "Select if you want to set statically the menu proxy environment variable."
+msgstr ""
 
 #. globalAppMenu@lestcape->settings-schema.json->enable-jayantana->description
 msgid "Enable the support for JAyantana (Experimental)"
