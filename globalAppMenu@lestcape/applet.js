@@ -224,10 +224,7 @@ MyApplet.prototype = {
       Applet.Applet.prototype._init.call(this, orientation, panelHeight, instanceId);
       try {
          this.uuid = metadata["uuid"];
-         Gettext.bindtextdomain(this.uuid, GLib.get_home_dir() + "/.local/share/locale");
-
          this.orientation = orientation;
-
          this.execInstallLanguage();
 
          this.set_applet_tooltip(_("Global Application Menu"));
@@ -294,6 +291,7 @@ MyApplet.prototype = {
       this.settings.bindProperty(Settings.BindingDirection.IN, "show-app-icon", "showAppIcon", this._onShowAppIconChanged, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "desaturate-app-icon", "desaturateAppIcon", this._onDesaturateAppIconChanged, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "show-app-name", "showAppName", this._onShowAppNameChanged, null);
+      this.settings.bindProperty(Settings.BindingDirection.IN, "text-gradient", "textGradient", this._onTextGradientChange, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "max-app-name-size", "maxAppNameSize", this._onMaxAppNameSizeChanged, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "automatic-active-mainmenu", "automaticActiveMainMenu", this._automaticActiveMainMenuChanged, null);
       this.settings.bindProperty(Settings.BindingDirection.IN, "open-active-submenu", "openActiveSubmenu", this._onOpenActiveSubmenuChanged, null);
@@ -315,6 +313,7 @@ MyApplet.prototype = {
       this._onShowAppIconChanged();
       this._onDesaturateAppIconChanged();
       this._onShowAppNameChanged();
+      this._onTextGradientChange();
       this._onMaxAppNameSizeChanged();
       this._updateKeybinding();
 
@@ -431,10 +430,6 @@ MyApplet.prototype = {
       this._system.activeJAyantanaModule(this.enableJayantana);
    },
 
-   _onEnableJayantanaChanged: function() {
-      this._system.activeJAyantanaModule(this.enableJayantana);
-   },
-
    _updateKeybinding: function() {
       Main.keybindingManager.addHotKey("global-overlay-key", this.overlayKey, Lang.bind(this, function() {
          if(this.menu && !Main.overview.visible && !Main.expo.visible) {
@@ -472,6 +467,10 @@ MyApplet.prototype = {
 
    _onShowAppNameChanged: function() {
       this.gradient.actor.visible = this.showAppName;
+   },
+
+   _onTextGradientChange: function() {
+      this.gradient.setTextDegradation(this.textGradient);
    },
 
    _onMaxAppNameSizeChanged: function() {
@@ -623,10 +622,10 @@ MyApplet.prototype = {
    },
 
    execInstallLanguage: function() {
+      let localeFolder = Gio.file_new_for_path(GLib.get_home_dir() + "/.local/share/locale");
+      Gettext.bindtextdomain(this.uuid, localeFolder.get_path());
       try {
-         let shareFolder = GLib.get_home_dir() + "/.local/share/";
-         let localeFolder = Gio.file_new_for_path(shareFolder + "locale/");
-         let moFolder = Gio.file_new_for_path(shareFolder + "cinnamon/applets/" + this.uuid + "/po/mo/");
+         let moFolder = Gio.file_new_for_path(localeFolder.get_parent().get_path() + "/cinnamon/applets/" + this.uuid + "/po/mo/");
          let children = moFolder.enumerate_children('standard::name,standard::type,time::modified',
                                                      Gio.FileQueryInfoFlags.NONE, null);
          let info, child, moFile, moLocale, moPath, src, dest, modified, destModified;
@@ -655,7 +654,6 @@ MyApplet.prototype = {
                }
             }
          }
-         Gettext.bindtextdomain(this.uuid, localeFolder.get_path());
       } catch(e) {
          global.logWarning("Error %s".format(e.message));
       }

@@ -1869,6 +1869,7 @@ GradientLabelMenuItem.prototype = {
       this._text = text;
       this._size = size;
       this.margin = 2;
+      this.textDegradation = false;
       this.actor.set_style_class_name('gradient-label-menu-item');
 
       this._drawingArea = new St.DrawingArea({ style_class: 'applet-label' });
@@ -1881,6 +1882,10 @@ GradientLabelMenuItem.prototype = {
    setText: function(text) {
       this._text = text;
       this._updateSize();
+   },
+
+   setTextDegradation: function(degradate) {
+      this.textDegradation = degradate;
    },
 
    setSize: function(size) {
@@ -1898,9 +1903,12 @@ GradientLabelMenuItem.prototype = {
          let font    = this.themeNode.get_font();
          let context = this._drawingArea.get_pango_context();
          let metrics = context.get_metrics(font, context.get_language());
-         let width   = Math.min(this._size, this._text.length) * metrics.get_approximate_char_width() / Pango.SCALE;
+         let digit_width = metrics.get_approximate_digit_width() / Pango.SCALE;
+         let char_width = metrics.get_approximate_char_width() / Pango.SCALE;
+         let width   = Math.min(this._size, this._text.length) * (4*char_width + digit_width)/5;
+
          let height  =  font.get_size() / Pango.SCALE;
-         this._drawingArea.set_width(width);
+         this._drawingArea.set_width(width + 2*this.margin);
          this._drawingArea.set_height(height + 2*this.margin);
          this._drawingArea.queue_repaint();
       }
@@ -1910,38 +1918,43 @@ GradientLabelMenuItem.prototype = {
       try {
          let cr = area.get_context();
          let [width, height] = area.get_surface_size();
-
          let resultText = this._text.substring(0, Math.min(this._size, this._text.length));
 
          let font = this.themeNode.get_font();
          let context = this._drawingArea.get_pango_context();
          let metrics = context.get_metrics(font, context.get_language());
-         let fontSize = height - 2*this.margin;
+         let fontSize = font.get_size()/Pango.SCALE;
          let startColor = this.themeNode.get_color('color');
 
          let weight = Cairo.FontWeight.NORMAL;
          if(font.get_weight() >= 700)
             weight = Cairo.FontWeight.BOLD;
          cr.selectFontFace(font.get_family(), Cairo.FontSlant.NORMAL, weight);
-         cr.moveTo(0, height/2 + (metrics.get_descent()/Pango.SCALE) + 1);
          cr.setFontSize(fontSize);
+         cr.moveTo(this.margin, (height/2) + (metrics.get_descent()/Pango.SCALE));
 
-         let shadowPattern = new Cairo.LinearGradient(0, 0, width, height);
-         shadowPattern.addColorStopRGBA(0, 0, 0, 0, 1);
-         shadowPattern.addColorStopRGBA(1, 0, 0, 0, 0);
-         cr.setSource(shadowPattern);
+         if(this.textDegradation) {
+            let shadowPattern = new Cairo.LinearGradient(0, 0, width, height);
+            shadowPattern.addColorStopRGBA(0, 0, 0, 0, 1);
+            shadowPattern.addColorStopRGBA(1, 0, 0, 0, 0);
+            cr.setSource(shadowPattern);
+         }
 
          cr.showText(resultText);
          cr.fill();
 
-         cr.moveTo(1, height/2 + (metrics.get_descent()/Pango.SCALE) + 1);
          cr.setFontSize(fontSize);
-         let realPattern = new Cairo.LinearGradient(0, 0, width, height);
-         realPattern.addColorStopRGBA(0, startColor.red / 255, startColor.green / 255, startColor.blue / 255, startColor.alpha / 255);
-         realPattern.addColorStopRGBA(0.5, startColor.red / 255, startColor.green / 255, startColor.blue / 255, startColor.alpha / 255);
-         realPattern.addColorStopRGBA(1, startColor.red / 255, startColor.green / 255, startColor.blue / 255, 0);
-         cr.setSource(realPattern);
+         cr.moveTo(this.margin + 1, (height/2) + (metrics.get_descent()/Pango.SCALE));
 
+         if(this.textDegradation) {
+            let realPattern = new Cairo.LinearGradient(0, 0, width, height);
+            realPattern.addColorStopRGBA(0, startColor.red / 255, startColor.green / 255, startColor.blue / 255, startColor.alpha / 255);
+            realPattern.addColorStopRGBA(0.4, startColor.red / 255, startColor.green / 255, startColor.blue / 255, startColor.alpha / 255);
+            realPattern.addColorStopRGBA(1, startColor.red / 255, startColor.green / 255, startColor.blue / 255, 0);
+            cr.setSource(realPattern);
+         } else {
+            Clutter.cairo_set_source_color(cr, startColor);
+         }
          cr.showText(resultText);
          cr.fill();
          cr.stroke();

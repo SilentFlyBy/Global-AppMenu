@@ -8,7 +8,7 @@ msgstr ""
 "Project-Id-Version: Global Application Menu 0.1-Beta\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2015-05-14 06:58-0500\n"
-"PO-Revision-Date: 2016-12-11 03:12-0600\n"
+"PO-Revision-Date: 2016-12-17 13:52-0600\n"
 "Last-Translator: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "Language-Team: Lester Carballo Pérez <lestcape@gmail.com>\n"
 "MIME-Version: 1.0\n"
@@ -70,6 +70,14 @@ msgstr "Maximum size of the application name:"
 #. globalAppMenu@lestcape->settings-schema.json->max-app-name-size->units
 msgid "characters"
 msgstr "characters"
+
+#. globalAppMenu@lestcape->settings-schema.json->text-gradient->tooltip
+msgid "Show a linear gradient effect in the application name"
+msgstr "Show a linear gradient effect in the application name"
+
+#. globalAppMenu@lestcape->settings-schema.json->text-gradient->description
+msgid "Select if you want to show a linear gradient effect in the application name."
+msgstr "Select if you want to show a linear gradient effect in the application name."
 
 #. globalAppMenu@lestcape->settings-schema.json->head-submenu->description
 msgid "Submenu"

@@ -72,6 +72,14 @@ msgstr ""
 msgid "characters"
 msgstr ""
 
+#. globalAppMenu@lestcape->settings-schema.json->text-gradient->tooltip
+msgid "Show a linear gradient effect in the application name"
+msgstr ""
+
+#. globalAppMenu@lestcape->settings-schema.json->text-gradient->description
+msgid "Select if you want to show a linear gradient effect in the application name."
+msgstr ""
+
 #. globalAppMenu@lestcape->settings-schema.json->head-submenu->description
 msgid "Submenu"
 msgstr ""
