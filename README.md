@@ -1,4 +1,7 @@
-Cinnamon Applet: Global Application Menu Version: v0.6-Beta
+Gnome Shell Extension: Global Application Menu Version: v0.6-Beta
+
+This applet have not support for cinnamon desktop anymore, will be migrated to Gnome Shell soon.
+--------------
 
 Last update: 22 July 2015
 
@@ -23,9 +26,7 @@ Author of language translation:
 
 Description
 --------------
-**Warning:** This is a third-party applet, is not official.
-
-This applet integrates the Ubuntu Application Menu (Global Menu) support into the Cinnamon Desktop.
+This applet integrates the Ubuntu Application Menu (Global Menu) support into the Gnome Shell Desktop.
 
 It's used the same idea of the Gnome Shell extension made by rgcjonas:
 
