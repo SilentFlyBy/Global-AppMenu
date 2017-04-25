@@ -1,6 +1,6 @@
 Gnome Shell Extension: Global Application Menu Version: v0.6-Beta
 
-This applet have not support for cinnamon desktop anymore, as all extensions was `forked by Clement`: https://github.com/linuxmint/cinnamon-spices-applets/issues/385 who not have respect for the works of other developers.
+This applet have not support for cinnamon desktop anymore, as all extensions was `forked by Clement` is available for Gnome Shell.
 --------------
 
 Last update: 22 July 2015
