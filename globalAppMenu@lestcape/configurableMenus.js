@@ -6409,6 +6409,7 @@ ConfigurableMenuApplet.prototype = {
          menuItem._triangle.hide();
          menuItem._icon.hide();
          menuItem.label.set_style_class_name('applet-label');
+         menuItem.label.set_style_class_name('gm-lc-menu-item');
          menuItem.actor.add_style_class_name('applet-box');
       }
    },
