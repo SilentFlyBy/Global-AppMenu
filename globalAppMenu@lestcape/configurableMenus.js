@@ -122,7 +122,7 @@ ScrollItemsBox.prototype = {
                this.panelToScroll.disconnect(this._idReparent);
                this._idReparent = 0;
             }
-            if(this.panelToScroll.get_parent() == this._panelWrapper) 
+            if(this.panelToScroll.get_parent() == this._panelWrapper)
                this._panelWrapper.remove_actor(this.panelToScroll);
          }
          this.panelToScroll = panelToScroll;
@@ -210,7 +210,7 @@ ScrollItemsBox.prototype = {
          } else {
             this.scroll.get_hscroll_bar().visible = true;
          }
-      }   
+      }
    },
 
   _onParentChange: function() {
@@ -280,7 +280,7 @@ ScrollItemsBox.prototype = {
             }
          }
       }
-   }, 
+   },
 //horizontalcode
    set_style_class: function(styleClass) {
       this.scroll.style_class = styleClass;
@@ -459,9 +459,9 @@ BoxPointer.prototype = {
     /**
      * setArrowSide:
      * @side (St.Side): The new side of the menu
-     * 
+     *
      * Sets the arrow side of the menu. Note that the side is the side
-     * of the source actor, not the menu, e.g. If St.Side.TOP is set, 
+     * of the source actor, not the menu, e.g. If St.Side.TOP is set,
      * then the menu will appear below the source actor (the source
      * actor will be on top of the menu)
      */
@@ -714,7 +714,7 @@ BoxPointer.prototype = {
         let margin = (4 * borderRadius + borderWidth + arrowBase);
         let halfMargin = margin / 2;
 
-        let themeNode = this.actor.get_theme_node();
+        //themeNode = this.actor.get_theme_node();
         let gap = themeNode.get_length('-boxpointer-gap');
 
         let resX, resY;
@@ -1503,7 +1503,7 @@ VectorBoxBlocker.prototype = {
       let t = this._p0.x*this._p1.y - this._p0.y*this._p1.x + (this._p0.y - this._p1.y)*px +
               (this._p1.x - this._p0.x)*py;
       if((s >= 0) && (t >= 0)) {
-         let area = -this._p1.y*this._p2.x + this._p0.y*(-this._p1.x + this._p2.x) + 
+         let area = -this._p1.y*this._p2.x + this._p0.y*(-this._p1.x + this._p2.x) +
                      this._p0.x*(this._p1.y - this._p2.y) + this._p1.x*this._p2.y;
          return ((s + t) <= area);
       }
@@ -1547,7 +1547,7 @@ CheckButton.prototype = {
         // FIXME: The current size is big and the container only is useful,
         // because the current theme. Can be fixed the theme also?
         this._container = new St.Bin();
-        this.actor.add_style_class_name('popup-menu-icon'); 
+        this.actor.add_style_class_name('popup-menu-icon');
         this.actor.connect('notify::mapped', Lang.bind(this, this._onMapped));
         this.actor.set_child(this._container);
     },
@@ -1598,7 +1598,7 @@ RadioBox.prototype = {
         this.actor._delegate = this;
         this.actor.checked = state;
         this._container = new St.Bin();
-        this.actor.add_style_class_name('popup-menu-icon'); 
+        this.actor.add_style_class_name('popup-menu-icon');
         this.actor.connect('notify::mapped', Lang.bind(this, this._onMapped));
         this.actor.set_child(this._container);
     },
@@ -1748,7 +1748,7 @@ ConfigurablePopupBaseMenuItem.prototype = {
 
    setActive: function (active) {
       let activeChanged = active != this.active;
-      
+
       if (activeChanged) {
          this.active = active;
          this.actor.change_style_pseudo_class('active', active);
@@ -2135,7 +2135,7 @@ ConfigurablePopupSubMenuMenuItem.prototype = {
       this.actor.add_style_class_name('popup-submenu-menu-item');
       this._arrowSide = St.Side.LEFT;
       this._hide_expander = (hide_expander == true);
-      this._triangle = new St.Icon({ 
+      this._triangle = new St.Icon({
           icon_name: "media-playback-start",
           icon_type: St.IconType.SYMBOLIC,
           style_class: 'popup-menu-icon'
@@ -2532,7 +2532,7 @@ ConfigurableMenuManager.prototype = {
 
       let position = this._findMenu(menu);
       // Not a menu we manage
-      if(position == -1) 
+      if(position == -1)
          return;
 
       let menudata = this._menus[position];
@@ -4212,7 +4212,7 @@ ConfigurableMenu.prototype = {
             height = 100;
          this.actor.set_width(width);
          this.actor.set_height(height);
-         // We need to force the actor allocation, 
+         // We need to force the actor allocation,
          // because we want to know if the new size satify our restriction.
          this.actor.allocate_preferred_size(Clutter.AllocationFlags.ALLOCATION_NONE);
          let [minWidth, ] = this.box.get_preferred_width(-1);
@@ -4439,7 +4439,7 @@ ConfigurableMenu.prototype = {
             global.focus_manager.remove_group(this.actor);
             this.actor.set_style_class_name('');
             this._scroll.set_style_class_name('popup-sub-menu');
-            this._boxPointer.clearPosition(); 
+            this._boxPointer.clearPosition();
             //this._insertMenuOnLauncher();
          }
       }
@@ -4451,7 +4451,7 @@ ConfigurableMenu.prototype = {
    },
 
    setLauncher: function(launcher) {
-      this.close();      
+      this.close();
       this.launcher = launcher;
       if(this.launcher) {
          this.sourceActor = this.launcher.actor;
@@ -5676,7 +5676,7 @@ ConfigurableGridSection.prototype = {
    _getMenuItems: function() {
       Main.notify("call" + this._menuItems.length);
       return this._menuItems;//this._visibleItems;
-   },   
+   },
 
    _getVisibleChildren: function() {
       //if(this._visibleItemsChange) {
@@ -5910,7 +5910,7 @@ ConfigurableGridSection.prototype = {
       //let portSize = 20;
       //this._spaceActor.height = this._getPreferredAllocationHeight(availWidth) - portSize*50;
       //return portSize;
-      let spaceBox = new Clutter.ActorBox();
+      //let spaceBox = new Clutter.ActorBox();
       x = box.x1 + leftEmptySpace;
       let spaceBox = this._calculateSpaceBox(this._spaceActor, x, y, box);
       this._spaceActor.allocate(spaceBox, flags);
@@ -6460,7 +6460,7 @@ ConfigurableAppletMenu.prototype = {
       if(this.parent.orientation == St.Side.TOP)
          this.parent.actor.add_style_class_name('menu-applet-panel-top-box');
       else
-         this.parent.actor.add_style_class_name('menu-applet-panel-bottom-box'); 
+         this.parent.actor.add_style_class_name('menu-applet-panel-bottom-box');
       this.actor.destroy();
    },
 
@@ -6468,7 +6468,7 @@ ConfigurableAppletMenu.prototype = {
       if(this.parent.orientation == St.Side.TOP)
          this.parent.actor.set_style_class_name('menu-applet-panel-top-box');
       else
-         this.parent.actor.set_style_class_name('menu-applet-panel-bottom-box'); 
+         this.parent.actor.set_style_class_name('menu-applet-panel-bottom-box');
       this.parent._applet_label.get_parent().remove_actor(this.parent._applet_label);
       this.parent._applet_icon_box.get_parent().remove_actor(this.parent._applet_icon_box);
 
@@ -6551,7 +6551,7 @@ ConfigurableAppletMenu.prototype = {
    navegateAppletMenu: function(symbol, actor) {
       let actorChange = this.activeActor;
       if(!actorChange)
-        actorChange = this.rootGnomeCat;	
+        actorChange = this.rootGnomeCat;
       let resultActor;
       if(symbol == Clutter.KEY_Right) {
          let index = this._findActorIndex(actorChange);
@@ -6670,7 +6670,7 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    getLabel: function() {
-      return this._label; 
+      return this._label;
    },
 
    setLabel: function(label) {
@@ -6807,14 +6807,14 @@ PopupMenuAbstractFactory.prototype = {
       if((this.shellItem)&&(this.shellItem.label)) {
          let label = this.getLabel();
          // Especially on GS3.8, the separator item might not even have a hidden label
-         if(this.shellItem.label) 
+         if(this.shellItem.label)
             this.shellItem.label.set_text(label);
       }
    },
 
    _updateOrnament: function() {
       // Separators and alike might not have gotten the polyfill
-      if((this.shellItem)&&(this.shellItem.setOrnament)) { 
+      if((this.shellItem)&&(this.shellItem.setOrnament)) {
          if(this.getToggleType() == "checkmark") {
             this.shellItem.setOrnament(OrnamentType.CHECK, this.getToggleState());
          } else if(this.getToggleType() == "radio") {
@@ -6963,7 +6963,7 @@ PopupMenuAbstractFactory.prototype = {
    },
 
    // handlers = { "signal": handler }
-   connectAndRemoveOnDestroy: function(handlers) { 
+   connectAndRemoveOnDestroy: function(handlers) {
       this._connectAndSaveId(this, handlers, this._externalSignalsHandlers);
    },
 
@@ -7022,7 +7022,7 @@ PopupMenuAbstractFactory.prototype = {
       }
    },
 
-   //HACK: When a submenu will close, also close all childs submenus. 
+   //HACK: When a submenu will close, also close all childs submenus.
 /* _onShellMenuPreOpened: function(menu) {
       let topMenu = this._getTopMenu(menu);
       if(topMenu) {
@@ -7161,7 +7161,7 @@ MenuFactory.prototype = {
    },
 
    buildShellMenu: function(factoryMenu, launcher, orientation, menuManager) {
-      let shellItem = this.getShellMenu(factoryMenu);
+      //let shellItem = this.getShellMenu(factoryMenu);
       if(factoryMenu.shellItem)
          return factoryMenu.shellItem;
 
